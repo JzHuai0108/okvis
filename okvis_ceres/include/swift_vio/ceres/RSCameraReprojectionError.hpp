@@ -72,6 +72,9 @@ public:
   static const int kNumResiduals = 2;
 };
 
+template <class GEOMETRY_TYPE>
+class RS_LocalBearingVector;
+
 /// \brief The 2D keypoint reprojection error accounting for rolling shutter
 ///     skew and time offset and camera intrinsics.
 /// \warning A potential problem with this reprojection error happens when
@@ -121,7 +124,7 @@ class RSCameraReprojectionError
           1 /* frame readout time */,
           1 /* camera time offset */,
           9 /* velocity, bg_i and ba_i */,
-          7 /* IMU i's extrinsic parameters */,
+          //7 /* IMU i's extrinsic parameters */,
           9 /* T_gi */,
           9 /* T_si */,
           6 /* T_ai */> base_t;
@@ -165,9 +168,9 @@ class RSCameraReprojectionError
   RSCameraReprojectionError(
       const measurement_t& measurement,
       const covariance_t& covariance,
-      std::shared_ptr<const okvis::cameras::CameraBase> targetCamera,
+      std::shared_ptr<const camera_geometry_t> targetCamera,
       std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasurementCanopy,
-      std::shared_ptr<const okvis::ImuParameters> imuParameters,
+      okvis::ImuParameters imuParameters,
       okvis::Time targetStateTime, okvis::Time targetImageTime);
 
   /// \brief Trivial destructor.
@@ -242,13 +245,30 @@ class RSCameraReprojectionError
   {
     return "RSCameraReprojectionError";
   }
+
+  void assignJacobians(
+      double const *const *parameters, double **jacobians,
+      double **jacobiansMinimal,
+      const Eigen::Matrix<double, 2, 4> &Jh_weighted,
+      const Eigen::Matrix<double, 2, Eigen::Dynamic> &Jpi_weighted,
+      const Eigen::Matrix<double, 4, 6> &dhC_deltaTWSt,
+      const Eigen::Matrix<double, 4, 6> &dhC_deltaTWSh,
+      const Eigen::Matrix<double, 4, 4> &dhC_deltahpCh,
+      const Eigen::Matrix<double, 4, 6> &dhC_dExtrinsict,
+      const Eigen::Matrix<double, 4, 6> &dhC_dExtrinsich,
+      const Eigen::Vector4d &dhC_td, double kpN,
+      const Eigen::Matrix<double, 4, 9> &dhC_sb) const;
+
+  friend class RS_LocalBearingVector<GEOMETRY_TYPE>;
  protected:
   measurement_t measurement_; ///< The (2D) measurement.
 
-  std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasCanopy_;
-  std::shared_ptr<const okvis::ImuParameters> imuParameters_;
+  std::shared_ptr<const camera_geometry_t> cameraGeometryBase_;
 
-  std::shared_ptr<const okvis::cameras::CameraBase> targetCamera_;
+  std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasCanopy_;
+  okvis::ImuParameters imuParameters_;
+
+  std::shared_ptr<const camera_geometry_t> targetCamera_;
 
   // weighting related
   covariance_t information_; ///< The 2x2 information matrix.
@@ -257,6 +277,25 @@ class RSCameraReprojectionError
 
   okvis::Time targetStateTime_; ///< Timestamp of the target pose, T_WBt.
   okvis::Time targetImageTime_; ///< Raw timestamp of the target image.
+};
+
+template <class GEOMETRY_TYPE>
+class RS_LocalBearingVector
+{
+public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  RS_LocalBearingVector(const RSCameraReprojectionError<GEOMETRY_TYPE> &rsre);
+  template <typename Scalar>
+  bool operator()(const Scalar *const T_WS, const Scalar *const hp_W, const Scalar *const T_WSh,
+                  const Scalar *const extrinsic, const Scalar *const extrinsich, const Scalar *const t_r,
+                  const Scalar *const t_d, const Scalar *const speedAndBiases,
+                  const Scalar *const deltaT_WS, const Scalar *const deltaT_WSh,
+                  const Scalar *const deltaExtrinsic, const Scalar *const deltaExtrinsich,
+                  const Scalar *const T_g, const Scalar *const T_s, const Scalar *const T_a,
+                  Scalar *hp_C) const;
+
+private:
+  const RSCameraReprojectionError<GEOMETRY_TYPE> &rsre_;
 };
 
 }  // namespace ceres
