@@ -24,7 +24,7 @@ RSCameraReprojectionError<GEOMETRY_TYPE>::RSCameraReprojectionError(
     const covariance_t& covariance,
     std::shared_ptr<const camera_geometry_t> targetCamera,
     std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasCanopy,
-    okvis::ImuParameters imuParameters,
+    std::shared_ptr<const okvis::ImuParameters> imuParameters,
     okvis::Time targetStateTime, okvis::Time targetImageTime)
     : imuMeasCanopy_(imuMeasCanopy),
       imuParameters_(imuParameters),
@@ -107,10 +107,10 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   const okvis::Time t_end = targetStateTime_ + okvis::Duration(relativeFeatureTime);
   const double wedge = 5e-8;
   if (relativeFeatureTime >= wedge){
-    swift_vio::ode::predictStates(*imuMeasCanopy_, imuParameters_.g, pair_T_WBt,
+    swift_vio::ode::predictStates(*imuMeasCanopy_, imuParameters_->g, pair_T_WBt,
                                   speedBgBa, t_start, t_end);
   }else if (relativeFeatureTime <= -wedge){
-    swift_vio::ode::predictStatesBackward(*imuMeasCanopy_, imuParameters_.g, pair_T_WBt,
+    swift_vio::ode::predictStatesBackward(*imuMeasCanopy_, imuParameters_->g, pair_T_WBt,
                                           speedBgBa, t_start, t_end);
   }
   okvis::kinematics::Transformation T_WBt(pair_T_WBt.first, pair_T_WBt.second);
@@ -975,12 +975,12 @@ operator()(const Scalar *const T_WBt,
 
   if (relativeFeatureTime >= Scalar(5e-8))
   {
-    swift_vio::ode::predictStates(imuMeasurements, (Scalar)(rsre_.imuParameters_.g), pairT_WB_t,
+    swift_vio::ode::predictStates(imuMeasurements, (Scalar)(rsre_.imuParameters_->g), pairT_WB_t,
                                   speedBgBa, t_start, t_end);
   }
   else if (relativeFeatureTime <= Scalar(-5e-8))
   {
-    swift_vio::ode::predictStatesBackward(imuMeasurements, (Scalar)(rsre_.imuParameters_.g),
+    swift_vio::ode::predictStatesBackward(imuMeasurements, (Scalar)(rsre_.imuParameters_->g),
                                           pairT_WB_t, speedBgBa, t_start, t_end);
   }
 

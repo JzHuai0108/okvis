@@ -124,7 +124,6 @@ class RSCameraReprojectionError
           1 /* frame readout time */,
           1 /* camera time offset */,
           9 /* velocity, bg_i and ba_i */,
-          //7 /* IMU i's extrinsic parameters */,
           9 /* T_gi */,
           9 /* T_si */,
           6 /* T_ai */> base_t;
@@ -170,7 +169,7 @@ class RSCameraReprojectionError
       const covariance_t& covariance,
       std::shared_ptr<const camera_geometry_t> targetCamera,
       std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasurementCanopy,
-      okvis::ImuParameters imuParameters,
+      std::shared_ptr<const okvis::ImuParameters> imuParameters,
       okvis::Time targetStateTime, okvis::Time targetImageTime);
 
   /// \brief Trivial destructor.
@@ -266,7 +265,7 @@ class RSCameraReprojectionError
   std::shared_ptr<const camera_geometry_t> cameraGeometryBase_;
 
   std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasCanopy_;
-  okvis::ImuParameters imuParameters_;
+  std::shared_ptr<const okvis::ImuParameters> imuParameters_;
 
   std::shared_ptr<const camera_geometry_t> targetCamera_;
 
