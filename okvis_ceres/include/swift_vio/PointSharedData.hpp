@@ -114,6 +114,11 @@ class PointSharedData {
   }
   /// @}
 
+  const std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>> &
+  imuAugmentedParameterPtrs() const {
+    return imuAugmentedParamBlockPtrs_;
+  }
+
   /// @name functions for IMU propagation.
   /// @{
   /**

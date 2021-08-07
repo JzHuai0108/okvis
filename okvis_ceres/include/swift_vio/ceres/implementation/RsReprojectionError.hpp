@@ -162,7 +162,6 @@ bool RsReprojectionError<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
   }
 
   // calculate jacobians, if required
-  // This is pretty close to Paul Furgale's thesis. eq. 3.100 on page 40
   if (jacobians != NULL) {
     if (!valid) {
       setJacobiansZero(jacobians, jacobiansMinimal);
