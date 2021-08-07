@@ -114,7 +114,7 @@ int Estimator::addImu(const ImuParameters & imuParameters)
     LOG(ERROR) << "only one IMU currently supported";
     return -1;
   }
-  imuParametersVec_.push_back(imuParameters);
+  imuParametersVec_.emplace_back(new ImuParameters(imuParameters));
   imuRig_.addImu(imuParameters);
   return imuParametersVec_.size() - 1;
 }
@@ -153,8 +153,8 @@ bool Estimator::addStates(
     }
     speedAndBias.setZero();
     speedAndBias.head<3>() = initialNavState_.v_WS;
-    speedAndBias.segment<3>(3) = imuParametersVec_.at(0).g0;
-    speedAndBias.tail<3>() = imuParametersVec_.at(0).a0;
+    speedAndBias.segment<3>(3) = imuParametersVec_.at(0)->g0;
+    speedAndBias.tail<3>() = imuParametersVec_.at(0)->a0;
   } else {
     // get the previous states
     uint64_t T_WS_id = statesMap_.rbegin()->second.id;
@@ -173,7 +173,7 @@ bool Estimator::addStates(
 
     // propagate pose and speedAndBias
     int numUsedImuMeasurements = ceres::ImuError::propagation(
-        imuMeasurements, imuParametersVec_.at(0), T_WS, speedAndBias,
+        imuMeasurements, *imuParametersVec_.at(0), T_WS, speedAndBias,
         statesMap_.rbegin()->second.timestamp, multiFrame->timestamp());
     OKVIS_ASSERT_TRUE_DBG(Exception, numUsedImuMeasurements > 1,
                        "propagation failed");
@@ -299,8 +299,8 @@ bool Estimator::addStates(
     for (size_t i = 0; i < imuParametersVec_.size(); ++i) {
       Eigen::Matrix<double,6,1> variances;
       // get these from parameter file
-      const double sigma_bg = imuParametersVec_.at(0).sigma_bg;
-      const double sigma_ba = imuParametersVec_.at(0).sigma_ba;
+      const double sigma_bg = imuParametersVec_.at(0)->sigma_bg;
+      const double sigma_ba = imuParametersVec_.at(0)->sigma_ba;
       std::shared_ptr<ceres::SpeedAndBiasError > speedAndBiasError(
             new ceres::SpeedAndBiasError(
                 speedAndBias, initialNavState_.std_v_WS[0]*initialNavState_.std_v_WS[0],
@@ -318,7 +318,7 @@ bool Estimator::addStates(
     // add IMU error terms
     for (size_t i = 0; i < imuParametersVec_.size(); ++i) {
       std::shared_ptr<ceres::ImuError> imuError(
-          new ceres::ImuError(imuMeasurements, imuParametersVec_.at(i),
+          new ceres::ImuError(imuMeasurements, *imuParametersVec_.at(i),
                               lastElementIterator->second.timestamp,
                               states.timestamp));
       /*::ceres::ResidualBlockId id = */mapPtr_->addResidualBlock(

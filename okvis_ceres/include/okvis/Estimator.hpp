@@ -840,7 +840,7 @@ class Estimator : public VioBackendInterface
   // parameters
   std::vector<okvis::ExtrinsicsEstimationParameters,
       Eigen::aligned_allocator<okvis::ExtrinsicsEstimationParameters> > extrinsicsEstimationParametersVec_; ///< Extrinsics parameters.
-  std::vector<okvis::ImuParameters, Eigen::aligned_allocator<okvis::ImuParameters> > imuParametersVec_; ///< IMU parameters.
+  std::vector<std::shared_ptr<okvis::ImuParameters>> imuParametersVec_; ///< IMU parameters.
 
   // loss function for reprojection errors
   std::shared_ptr< ::ceres::LossFunction> cauchyLossFunctionPtr_; ///< Cauchy loss.

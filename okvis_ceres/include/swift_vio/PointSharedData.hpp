@@ -98,7 +98,7 @@ class PointSharedData {
   void setImuAugmentedParameterPtrs(
       const std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>&
           imuAugmentedParamBlockPtrs,
-      const okvis::ImuParameters* imuParams) {
+      std::shared_ptr<const okvis::ImuParameters> imuParams) {
     imuAugmentedParamBlockPtrs_ = imuAugmentedParamBlockPtrs;
     imuParameters_ = imuParams;
   }
@@ -362,7 +362,7 @@ class PointSharedData {
       trParamBlockPtrs_;
   std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>
       imuAugmentedParamBlockPtrs_;
-  const okvis::ImuParameters* imuParameters_;
+  std::shared_ptr<const okvis::ImuParameters> imuParameters_;
 
   // The structure of sharedJacobians is determined by an external cameraObservationModelId.
   std::vector<
