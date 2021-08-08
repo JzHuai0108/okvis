@@ -305,7 +305,7 @@ class PointSharedData {
     const StateInfoForOneKeypoint& item =
         stateInfoForObservations_[observationIndex];
     double relFeatureTime = normalizedFeatureTime(item);
-    Eigen::Vector3d gW(0, 0, -imuParameters_->g);
+    Eigen::Vector3d gW = imuParameters_->gravity();
     Eigen::Vector3d dr =
         -(item.T_WBtij_lin.r() - item.positionVelocityLinPtr->head<3>() -
           item.positionVelocityLinPtr->tail<3>() * relFeatureTime -

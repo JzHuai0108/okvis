@@ -34,8 +34,9 @@ public:
 template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL, class EXTRINSIC_MODEL>
 class LocalBearingVector;
 
-// TODO(jhuai): simplify template arguments to CameraModel, ExtrinsicModel,
-// and LandmarkModel.
+// TODO(jhuai): simplify the class to only one template argument GEOMETRY_TYPE,
+// The extrinsic model and intrinsic model can be passed as pointers to ceres::LocalParameterization.
+// Also merge the projection and distortion intrinsics into one parameter block.
 
 // The IMU model is assumed to be BG_BA which is accurate enough for predicting
 // poses in a short term, (usually less than t_r/2), also Jacobians in the

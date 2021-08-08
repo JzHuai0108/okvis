@@ -72,7 +72,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   Eigen::Map<const Eigen::Quaterniond> q_WBt0(parameters[Index::T_WBt] + 3);
 
   Eigen::Map<const Eigen::Vector4d> scaled_p_Ch(parameters[Index::hp_Ch]);
-  Eigen::Vector4d hp_Ch = scaled_p_Ch / scaled_p_Ch[3]; // homogeneous representation.
+  Eigen::Vector4d hp_Ch = scaled_p_Ch; // homogeneous representation.
 
   Eigen::Map<const Eigen::Vector3d> p_BCt(parameters[Index::T_BCt]);
   Eigen::Map<const Eigen::Quaterniond> q_BCt(parameters[Index::T_BCt] + 3);
@@ -123,7 +123,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   Eigen::Matrix3d C_CBt = C_BCt.transpose();
   Eigen::Matrix4d T_CBt = Eigen::Matrix4d::Identity();
   T_CBt.topLeftCorner<3, 3>() = C_CBt;
-  T_CBt.topRightCorner<3, 1>() = -C_CBt * p_BCt; //_xiugai
+  T_CBt.topRightCorner<3, 1>() = -C_CBt * p_BCt;
   Eigen::Matrix3d C_WBt = q_WBt.toRotationMatrix();
   Eigen::Matrix3d C_BWt = C_WBt.transpose();
   Eigen::Matrix4d T_BWt = Eigen::Matrix4d::Identity();
@@ -132,7 +132,6 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   Eigen::Vector4d hp_Wt = (T_WBh * T_BCh).T() * hp_Ch;
   Eigen::Vector4d hp_Bt = T_BWt * hp_Wt;
   Eigen::Vector4d hp_Ct = T_CBt * hp_Bt;
-  Eigen::Vector4d hp_Bh = (T_BCh).T() * hp_Ch;
 
   // calculate the reprojection error
   measurement_t kp;
@@ -170,7 +169,6 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
       return true;
     }
 
-    // TODO(jhuai): binliang: correct the below to compute the Jacobians analytically.
     Eigen::Matrix<double, 3, 6> dhC_deltaTWSt;   //T_WB
     Eigen::Matrix<double, 3, 6> dhC_dExtrinsict; //T_BC
     Eigen::Matrix<double, 3, 4> dhC_deltahpCh;
@@ -190,8 +188,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
 
     Eigen::Matrix<double, 4, 6> dhC_dExtrinsict_temp;
     dhC_dExtrinsict_temp.block<3, 3>(0, 0) = -C_CBt * hp_Ct[3];
-    //dhC_dExtrinsict_temp.block<3, 3>(0, 3) = -okvis::kinematics::crossMx(hp_Ct.head<3>()) * C_CBt;
-    dhC_dExtrinsict_temp.block<3, 3>(0, 3) = okvis::kinematics::crossMx(C_CBt * (T_WBt.inverse() * (T_WBh * T_BCh) * hp_Ch).head<3>());
+    dhC_dExtrinsict_temp.block<3, 3>(0, 3) = okvis::kinematics::crossMx(hp_Ct.head<3>()) * C_CBt;
     dhC_dExtrinsict_temp.row(3).setZero();
     dhC_dExtrinsict = dhC_dExtrinsict_temp.topRows<3>();
 
@@ -201,19 +198,17 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
     Eigen::Matrix3d C_WBh = q_WBh.toRotationMatrix();
     Eigen::Matrix<double, 4, 6> dhW_deltaTWSh;
     dhW_deltaTWSh.topLeftCorner<3, 3>() = Eigen::Matrix3d::Identity() * (T_BCh.T() * hp_Ch)[3]; //p
-    //dhW_deltaTWSh.topRightCorner<3, 3>() = -C_WBh * okvis::kinematics::crossMx(p_BP_Wh); //q
     dhW_deltaTWSh.topRightCorner<3, 3>() = -1 * okvis::kinematics::crossMx(C_WBh * p_BP_Wh); //q
     dhW_deltaTWSh.row(3).setZero();
 
     dhC_deltaTWSh = ((T_WBt * T_BCt).inverse().T() * dhW_deltaTWSh).topRows<3>();
-    dhC_deltahpCh = ((T_WBt * T_BCt).inverse() * (T_WBh * T_BCh)).T().topRows<3>(); //_xiugai(budui)
+    dhC_deltahpCh = ((T_WBt * T_BCt).inverse() * (T_WBh * T_BCh)).T().topRows<3>();
 
     Eigen::Vector3d p_BP_Ch = hp_Ch.head<3>();
     Eigen::Matrix3d C_BCh = q_BCh.toRotationMatrix();
     Eigen::Matrix<double, 4, 6> dhW_dExtrinsich;
     dhW_dExtrinsich.topLeftCorner<3, 3>() = Eigen::Matrix3d::Identity() * hp_Ch[3];        //p
-    dhW_dExtrinsich.topRightCorner<3, 3>() = -C_BCh * okvis::kinematics::crossMx(p_BP_Ch); //q
-    //dhW_dExtrinsich.topRightCorner<3, 3>() = -1* okvis::kinematics::crossMx(C_BCh * p_BP_Ch); //q
+    dhW_dExtrinsich.topRightCorner<3, 3>() = okvis::kinematics::crossMx(C_BCh * (-p_BP_Ch)); //q
     dhW_dExtrinsich.row(3).setZero();
     dhW_dExtrinsich = T_WBh.T() * dhW_dExtrinsich;
 
@@ -464,7 +459,6 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
                                          double* residuals, double** jacobians,
                                          double** jacobiansMinimal) const
 {
-  // TODO(jhuai): binliang: either implement auto diff here or use autodiff in the test.
   const int numOutputs = 4;
   double deltaTWSt[6] = {0};
   double deltaTWSh[6] = {0};
@@ -608,7 +602,6 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
   zeroJacobian<7, 6, 2>(Index::T_WBt, jacobians, jacobiansMinimal);
   zeroJacobian<4, 3, 2>(Index::hp_Ch, jacobians, jacobiansMinimal);
 
-  // TODO(jhuai): binliang: correct the below for other parameters.
   zeroJacobian<7, 6, 2>(Index::T_WBh, jacobians, jacobiansMinimal);
   zeroJacobian<7, 6, 2>(Index::T_BCt, jacobians, jacobiansMinimal);
   zeroJacobian<7, 6, 2>(Index::T_BCh, jacobians, jacobiansMinimal);
@@ -883,7 +876,7 @@ operator()(const Scalar *const T_WBt,
            const Scalar *const t_r,
            const Scalar *const t_d,
            const Scalar *const speedAndBiases,
-           const Scalar *const T_g, const Scalar *const T_s, const Scalar *const T_a,
+           const Scalar *const /*T_g*/, const Scalar *const /*T_s*/, const Scalar *const /*T_a*/,
            const Scalar *const deltaT_WSt, const Scalar *const deltaT_WSh,
            const Scalar *const deltaExtrinsict, const Scalar *const deltaExtrinsich,
            Scalar residuals[4]) const
@@ -897,7 +890,6 @@ operator()(const Scalar *const T_WBt,
   Eigen::Matrix<Scalar, 3, 1> omega1 = deltaT_WB_t.template tail<3>();
   Eigen::Quaternion<Scalar> dqWSt = okvis::kinematics::expAndTheta(omega1);
   Eigen::Quaternion<Scalar> q_WB_t = dqWSt * q_WB_t_temp;
-  q_WB_t.normalize();
 
   //T_WBh
   Eigen::Map<const Eigen::Matrix<Scalar, 3, 1>> p_WB_h0(T_WBh);
@@ -908,7 +900,6 @@ operator()(const Scalar *const T_WBt,
   Eigen::Matrix<Scalar, 3, 1> omega2 = deltaT_WB_h.template tail<3>();
   Eigen::Quaternion<Scalar> dqWSh = okvis::kinematics::expAndTheta(omega2);
   Eigen::Quaternion<Scalar> q_WB_h = dqWSh * q_WB_h0;
-  q_WB_h.normalize();
 
   //okvis::kinematics::Transformation T_WB_h(p_WB_h, q_WB_h);
   Eigen::Matrix<Scalar, 4, 4> T_WB_h = Eigen::Matrix<Scalar, 4, 4>::Identity();
@@ -926,9 +917,7 @@ operator()(const Scalar *const T_WBt,
   Eigen::Matrix<Scalar, 3, 1> p_BC_t = p_BC_t0 + deltaT_BC_t.template head<3>();
   Eigen::Matrix<Scalar, 3, 1> omega3 = deltaT_BC_t.template tail<3>();
   Eigen::Quaternion<Scalar> dqBCt = okvis::kinematics::expAndTheta(omega3);
-  //Eigen::Quaternion<Scalar> q_BC_t = dqBCt * q_BC_t0;
-  Eigen::Quaternion<Scalar> q_BC_t = q_BC_t0 * dqBCt;
-  q_BC_t.normalize();
+  Eigen::Quaternion<Scalar> q_BC_t = dqBCt * q_BC_t0;
 
   //T_BCh
   Eigen::Matrix<Scalar, 3, 1> p_BC_h0(T_BCh[0], T_BCh[1], T_BCh[2]);
@@ -938,9 +927,7 @@ operator()(const Scalar *const T_WBt,
 
   Eigen::Matrix<Scalar, 3, 1> omega4 = deltaT_BC_h.template tail<3>();
   Eigen::Quaternion<Scalar> dqBCh = okvis::kinematics::expAndTheta(omega4);
-  //Eigen::Quaternion<Scalar> q_BC_h = dqBCh * q_BC_h0;
-  Eigen::Quaternion<Scalar> q_BC_h = q_BC_h0 * dqBCh;
-  q_BC_h.normalize();
+  Eigen::Quaternion<Scalar> q_BC_h = dqBCh * q_BC_h0;
 
   //okvis::kinematics::Transformation T_BC_h(p_BC_h, q_BC_h);
   Eigen::Matrix<Scalar, 4, 4> T_BC_h = Eigen::Matrix<Scalar, 4, 4>::Identity();
