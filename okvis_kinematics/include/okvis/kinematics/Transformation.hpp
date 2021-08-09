@@ -239,6 +239,11 @@ class Transformation
   Eigen::Matrix3d C_; ///< The cached DCM C_{AB}.
 };
 
+inline Eigen::Quaterniond randomRotation(double rotationMaxRadians) {
+  Eigen::Vector3d axis = rotationMaxRadians * Eigen::Vector3d::Random();
+  return Eigen::Quaterniond(Eigen::AngleAxisd(axis.norm(), axis.normalized()));
+}
+
 }  // namespace kinematics
 }  // namespace okvis
 
