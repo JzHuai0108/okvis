@@ -78,6 +78,22 @@ public:
   bool ComputeLiftJacobian(const double *x, double *jacobian) const final {
     return liftJacobian(x, jacobian);
   }
+
+  static void toHomogeneousPoint(const double *x, double *y, double *jacobian) {
+    Eigen::Map<const Eigen::Matrix<double, kGlobalDim, 1>> inversepoint(x);
+    Eigen::Map<Eigen::Matrix<double, kGlobalDim, 1>> homogpoint(y);
+    double z = 1.0 / inversepoint[3];
+    homogpoint = inversepoint * z;
+    if (jacobian) {
+      Eigen::Map<Eigen::Matrix<double, kGlobalDim, kGlobalDim, Eigen::RowMajor>>
+          j(jacobian);
+      double z2 = z * z;
+      j << z, 0, 0, -inversepoint[0] * z2,
+          0, z, 0, -inversepoint[1] * z2,
+          0, 0, z, -inversepoint[2] * z2,
+          0, 0, 0, 0;
+    }
+  }
 };
 
 // [x, y, z, w, c, s]

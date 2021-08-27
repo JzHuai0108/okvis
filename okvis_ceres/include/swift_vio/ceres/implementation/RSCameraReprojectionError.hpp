@@ -71,8 +71,9 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   Eigen::Map<const Eigen::Vector3d> p_WBt0(parameters[Index::T_WBt]);
   Eigen::Map<const Eigen::Quaterniond> q_WBt0(parameters[Index::T_WBt] + 3);
 
-  Eigen::Map<const Eigen::Vector4d> scaled_p_Ch(parameters[Index::hp_Ch]);
-  Eigen::Vector4d hp_Ch = scaled_p_Ch; // homogeneous representation.
+  Eigen::Matrix<double, 4, 4, Eigen::RowMajor> dh_dl;
+  Eigen::Vector4d hp_Ch;
+  swift_vio::InverseDepthParameterization::toHomogeneousPoint(parameters[Index::AIDP], hp_Ch.data(), dh_dl.data());
 
   Eigen::Map<const Eigen::Vector3d> p_BCt(parameters[Index::T_BCt]);
   Eigen::Map<const Eigen::Quaterniond> q_BCt(parameters[Index::T_BCt] + 3);
@@ -109,7 +110,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   if (relativeFeatureTime >= wedge){
     swift_vio::ode::predictStates(*imuMeasCanopy_, imuParameters_->g, pair_T_WBt,
                                   speedBgBa, t_start, t_end);
-  }else if (relativeFeatureTime <= -wedge){
+  } else if (relativeFeatureTime <= -wedge){
     swift_vio::ode::predictStatesBackward(*imuMeasCanopy_, imuParameters_->g, pair_T_WBt,
                                           speedBgBa, t_start, t_end);
   }
@@ -117,7 +118,8 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   Eigen::Quaterniond q_WBt = pair_T_WBt.second;
   Eigen::Vector3d p_WBt = pair_T_WBt.first;
 
-  //Eigen::Vector4d hp_Ct = (T_WBt * T_BCt).inverse() * (T_WBh * T_BCh) * hp_Ch; //(T_WBh * T_BCh) * hp_Ch=hp_W
+  // hp_Ct = (T_WBt * T_BCt).inverse() * (T_WBh * T_BCh) * hp_Ch
+  // hp_W = (T_WBh * T_BCh) * hp_Ch
   // transform the point into the camera:
   Eigen::Matrix3d C_BCt = q_BCt.toRotationMatrix();
   Eigen::Matrix3d C_CBt = C_BCt.transpose();
@@ -143,8 +145,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
     cameraGeometryBase_->projectWithExternalParameters(hp_Ct.head<3>(), intrinsics, &kp, &Jh, &Jpi);
     Jh_weighted = squareRootInformation_ * Jh;
     Jpi_weighted = squareRootInformation_ * Jpi;
-  }
-  else{
+  } else {
     cameraGeometryBase_->projectWithExternalParameters(hp_Ct.head<3>(), intrinsics, &kp, &Jh, &Jpi);
   }
   measurement_t error = kp - measurement_;
@@ -169,9 +170,9 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
       return true;
     }
 
-    Eigen::Matrix<double, 3, 6> dhC_deltaTWSt;   //T_WB
-    Eigen::Matrix<double, 3, 6> dhC_dExtrinsict; //T_BC
-    Eigen::Matrix<double, 3, 4> dhC_deltahpCh;
+    Eigen::Matrix<double, 3, 6> dhC_deltaTWSt;   // T_WB
+    Eigen::Matrix<double, 3, 6> dhC_dExtrinsict; // T_BC
+    Eigen::Matrix<double, 3, 4> dhC_deltahpCh;   // Jacobian of the first 3 components of h^C relative to hp^Ch = [x, y, z, 1]^Ch
     Eigen::Matrix<double, 3, 6> dhC_deltaTWSh;
     Eigen::Matrix<double, 3, 6> dhC_dExtrinsich;
     Eigen::Vector3d dhC_td;
@@ -192,13 +193,11 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
     dhC_dExtrinsict_temp.row(3).setZero();
     dhC_dExtrinsict = dhC_dExtrinsict_temp.topRows<3>();
 
-    //h
-    //hp_Ct = (T_WBt * T_BCt).inverse() * (T_WBh * T_BCh) * hp_Ch;
     Eigen::Vector3d p_BP_Wh = (T_BCh.T() * hp_Ch).head<3>();
     Eigen::Matrix3d C_WBh = q_WBh.toRotationMatrix();
     Eigen::Matrix<double, 4, 6> dhW_deltaTWSh;
     dhW_deltaTWSh.topLeftCorner<3, 3>() = Eigen::Matrix3d::Identity() * (T_BCh.T() * hp_Ch)[3]; //p
-    dhW_deltaTWSh.topRightCorner<3, 3>() = -1 * okvis::kinematics::crossMx(C_WBh * p_BP_Wh); //q
+    dhW_deltaTWSh.topRightCorner<3, 3>() = okvis::kinematics::crossMx(C_WBh * (-p_BP_Wh)); //q
     dhW_deltaTWSh.row(3).setZero();
 
     dhC_deltaTWSh = ((T_WBt * T_BCt).inverse().T() * dhW_deltaTWSh).topRows<3>();
@@ -230,7 +229,6 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
         okvis::kinematics::crossMx(hp_Wt.head<3>() - hp_Wt[3] * p_WBt) *
         relativeFeatureTime * q_WBt0.toRotationMatrix();
 
-    //dhC_sb.row(3).setZero();
     dhC_sb.topRightCorner<3, 3>().setZero();
     dhC_sb.topLeftCorner<3, 3>() = dhC_vW;
     dhC_sb.block<3, 3>(0, 3) = dhC_bg;
@@ -240,11 +238,10 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J0_minimal;
       J0_minimal = Jh_weighted * dhC_deltaTWSt;
-      // pseudo inverse of the local parametrization Jacobian
+
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
       PoseLocalParameterization::liftJacobian(parameters[Index::T_WBt], J_lift.data());
 
-      // hallucinate Jacobian w.r.t. state
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J0(jacobians[0]);
       J0 = J0_minimal * J_lift;
       if (jacobiansMinimal != NULL)
@@ -261,16 +258,16 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
     if (jacobians[1] != NULL)
     {
       Eigen::Map<Eigen::Matrix<double, 2, 4, Eigen::RowMajor>> J1(jacobians[1]);
-      J1 = Jh_weighted * dhC_deltahpCh;
+      J1 = Jh_weighted * dhC_deltahpCh * dh_dl;
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[1] != NULL)
         {
           Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>>
               J1_minimal_mapped(jacobiansMinimal[1]);
-          Eigen::Matrix<double, 4, 3> S;
-          S.setZero();
-          S.topLeftCorner<3, 3>().setIdentity();
+
+          Eigen::Matrix<double, 4, 3, Eigen::RowMajor> S;
+          swift_vio::InverseDepthParameterization::plusJacobian(nullptr, S.data());
           J1_minimal_mapped = J1 * S;
         }
       }
@@ -280,11 +277,10 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J2_minimal;
       J2_minimal = Jh_weighted * dhC_deltaTWSh;
-      // hallucinate Jacobian w.r.t. state
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J2(jacobians[2]);
-      J2.setZero();
-      J2.topLeftCorner<2, 6>() = J2_minimal;
-      //J0 = J0_minimal * J_lift;
+      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
+      PoseLocalParameterization::liftJacobian(parameters[Index::T_WBh], J_lift.data());
+      J2 = J2_minimal * J_lift;
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[2] != NULL)
@@ -298,7 +294,6 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
 
     if (jacobians[3] != NULL)
     {
-      // compute the minimal version
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor>
           J3_minimal = Jh_weighted * dhC_dExtrinsict;
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J3(jacobians[3]);
@@ -318,12 +313,12 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
 
     if (jacobians[4] != NULL)
     {
-      // compute the minimal version
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor>
           J4_minimal = Jh_weighted * dhC_dExtrinsich;
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J4(jacobians[4]);
-      J4.setZero();
-      J4.topLeftCorner<2, 6>() = J4_minimal; // Warn: This assumes that the custom PoseLocalParameterization assigns identity to the PlusJacobian.
+      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
+      PoseLocalParameterization::liftJacobian(parameters[Index::T_BCh], J_lift.data());
+      J4 = J4_minimal * J_lift;
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[4] != NULL)
@@ -339,9 +334,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
     if (jacobians[5] != NULL)
     {
       Eigen::Map<Eigen::Matrix<double, 2, GEOMETRY_TYPE::NumIntrinsics, Eigen::RowMajor>> J5(jacobians[5]);
-      Eigen::Matrix<double, 2, Eigen::Dynamic> Jpi_weighted_copy = Jpi_weighted;
-      J5 = Jpi_weighted_copy
-               .template topLeftCorner<2, GEOMETRY_TYPE::NumIntrinsics>();
+      J5 = Jpi_weighted;
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[5] != NULL)
@@ -466,7 +459,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   double deltaTSCh[6] = {0};
   double const *const expandedParams[] = {
       parameters[Index::T_WBt],
-      parameters[Index::hp_Ch],
+      parameters[Index::AIDP],
       parameters[Index::T_WBh],
       parameters[Index::T_BCt],
       parameters[Index::T_BCh],
@@ -480,12 +473,10 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   double php_C[numOutputs];
   Eigen::Matrix<double, numOutputs, 7, Eigen::RowMajor> dhC_deltaTWSt_full;
   Eigen::Matrix<double, numOutputs, 7, Eigen::RowMajor> dhC_deltaTWSh_full;
-  Eigen::Matrix<double, numOutputs, 4, Eigen::RowMajor> dhC_deltahpCh;
+  Eigen::Matrix<double, numOutputs, 4, Eigen::RowMajor> dhC_dlCh;
   Eigen::Matrix<double, numOutputs, 7, Eigen::RowMajor> dhC_dExtrinsict_full;
   Eigen::Matrix<double, numOutputs, 7, Eigen::RowMajor> dhC_dExtrinsich_full;
 
-  //ProjectionIntrinsicJacType4 dhC_projIntrinsic;
-  //Eigen::Matrix<double, numOutputs, kDistortionDim, Eigen::RowMajor> dhC_distortion;
   Eigen::Matrix<double, numOutputs, GEOMETRY_TYPE::NumIntrinsics, Eigen::RowMajor> dhC_Intrinsic;
   Eigen::Matrix<double, numOutputs, 1> dhC_tr;
   Eigen::Matrix<double, numOutputs, 1> dhC_td;
@@ -499,12 +490,10 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   Eigen::Matrix<double, numOutputs, 9, Eigen::RowMajor> dhC_tsi;
   Eigen::Matrix<double, numOutputs, 6, Eigen::RowMajor> dhC_tai;
 
-  //dhC_projIntrinsic.setZero();
-  //dhC_distortion.setZero();
   dhC_Intrinsic.setZero();
   double *dpC_deltaAll[] = {
       dhC_deltaTWSt_full.data(),
-      dhC_deltahpCh.data(),
+      dhC_dlCh.data(),
       dhC_deltaTWSh_full.data(),
       dhC_dExtrinsict_full.data(),
       dhC_dExtrinsich_full.data(),
@@ -569,7 +558,6 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   }
 
   // calculate jacobians, if required
-  // This is pretty close to Paul Furgale's thesis. eq. 3.100 on page 40
   if (jacobians != NULL)
   {
     if (!valid)
@@ -587,7 +575,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
         Jh_weighted,
         Jpi_weighted,
         dhC_deltaTWSt, dhC_deltaTWSh,
-        dhC_deltahpCh,
+        dhC_dlCh,
         dhC_dExtrinsict, dhC_dExtrinsich,
         dhC_td,
         kpN,
@@ -600,7 +588,7 @@ template <class GEOMETRY_TYPE>
 void RSCameraReprojectionError<GEOMETRY_TYPE>::
     setJacobiansZero(double** jacobians, double** jacobiansMinimal) const {
   zeroJacobian<7, 6, 2>(Index::T_WBt, jacobians, jacobiansMinimal);
-  zeroJacobian<4, 3, 2>(Index::hp_Ch, jacobians, jacobiansMinimal);
+  zeroJacobian<4, 3, 2>(Index::AIDP, jacobians, jacobiansMinimal);
 
   zeroJacobian<7, 6, 2>(Index::T_WBh, jacobians, jacobiansMinimal);
   zeroJacobian<7, 6, 2>(Index::T_BCt, jacobians, jacobiansMinimal);
@@ -624,7 +612,7 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
         const Eigen::Matrix<double, 2, Eigen::Dynamic> &Jpi_weighted,
         const Eigen::Matrix<double, 4, 6> &dhC_deltaTWSt,
         const Eigen::Matrix<double, 4, 6> &dhC_deltaTWSh,
-        const Eigen::Matrix<double, 4, 4> &dhC_deltahpCh,
+        const Eigen::Matrix<double, 4, 4> &dhC_dlCh,
         const Eigen::Matrix<double, 4, 6> &dhC_dExtrinsict,
         const Eigen::Matrix<double, 4, 6> &dhC_dExtrinsich,
         const Eigen::Vector4d &dhC_td, double kpN,
@@ -636,11 +624,8 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J0_minimal;
       J0_minimal = Jh_weighted * dhC_deltaTWSt;
-      // pseudo inverse of the local parametrization Jacobian
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
       PoseLocalParameterization::liftJacobian(parameters[Index::T_WBt], J_lift.data());
-
-      // hallucinate Jacobian w.r.t. state
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J0(jacobians[0]);
       J0 = J0_minimal * J_lift;
       if (jacobiansMinimal != NULL)
@@ -657,16 +642,15 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
     if (jacobians[1] != NULL)
     {
       Eigen::Map<Eigen::Matrix<double, 2, 4, Eigen::RowMajor>> J1(jacobians[1]);
-      J1 = Jh_weighted * dhC_deltahpCh;
+      J1 = Jh_weighted * dhC_dlCh;
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[1] != NULL)
         {
           Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>>
               J1_minimal_mapped(jacobiansMinimal[1]);
-          Eigen::Matrix<double, 4, 3> S;
-          S.setZero();
-          S.topLeftCorner<3, 3>().setIdentity();
+          Eigen::Matrix<double, 4, 3, Eigen::RowMajor> S;
+          swift_vio::InverseDepthParameterization::plusJacobian(nullptr, S.data());
           J1_minimal_mapped = J1 * S;
         }
       }
@@ -676,15 +660,12 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J2_minimal;
       J2_minimal = Jh_weighted * dhC_deltaTWSh;
-      // pseudo inverse of the local parametrization Jacobian
-      //Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      //PoseLocalParameterization::liftJacobian(parameters[Index::T_WBh], J_lift.data());
 
-      // hallucinate Jacobian w.r.t. state
+      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
+      PoseLocalParameterization::liftJacobian(parameters[Index::T_WBh], J_lift.data());
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J2(jacobians[2]);
-      J2.setZero();
-      J2.topLeftCorner<2, 6>() = J2_minimal;
-      //J0 = J0_minimal * J_lift;
+      J2 = J2_minimal * J_lift;
+
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[2] != NULL)
@@ -698,7 +679,6 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
 
     if (jacobians[3] != NULL)
     {
-      // compute the minimal version
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor>
           J3_minimal = Jh_weighted * dhC_dExtrinsict;
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J3(jacobians[3]);
@@ -718,16 +698,13 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
 
     if (jacobians[4] != NULL)
     {
-      // compute the minimal version
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor>
           J4_minimal = Jh_weighted * dhC_dExtrinsich;
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J4(jacobians[4]);
-      //Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      //PoseLocalParameterization::liftJacobian(parameters[Index::T_BCh], J_lift.data());
+      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
+      PoseLocalParameterization::liftJacobian(parameters[Index::T_BCh], J_lift.data());
+      J4 = J4_minimal * J_lift;
 
-      //J4 = J4_minimal * J_lift;
-      J4.setZero();
-      J4.topLeftCorner<2, 6>() = J4_minimal;
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[4] != NULL)
@@ -743,13 +720,7 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
     if (jacobians[5] != NULL)
     {
       Eigen::Map<Eigen::Matrix<double, 2, GEOMETRY_TYPE::NumIntrinsics, Eigen::RowMajor>> J5(jacobians[5]);
-      Eigen::Matrix<double, 2, Eigen::Dynamic> Jpi_weighted_copy = Jpi_weighted;
-      //const int resultCols = Jpi_weighted_copy->cols() - 1;
-      //Jpi_weighted_copy->col(0) += Jpi_weighted_copy->col(1);
-      //Jpi_weighted_copy->block(0, 1, 2, resultCols - 1) = Jpi_weighted_copy->block(0, 2, 2, resultCols - 1);
-      //Jpi_weighted_copy->conservativeResize(Eigen::NoChange, resultCols);
-      J5 = Jpi_weighted_copy
-               .template topLeftCorner<2, GEOMETRY_TYPE::NumIntrinsics>();
+      J5 = Jpi_weighted;
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[5] != NULL)
@@ -869,7 +840,7 @@ template <class GEOMETRY_TYPE>
 template <typename Scalar>
 bool RS_LocalBearingVector<GEOMETRY_TYPE>::
 operator()(const Scalar *const T_WBt,
-           const Scalar *const hp_Ch,
+           const Scalar *const l_Ch,
            const Scalar *const T_WBh,
            const Scalar *const T_BCt,
            const Scalar *const T_BCh,
@@ -901,13 +872,11 @@ operator()(const Scalar *const T_WBt,
   Eigen::Quaternion<Scalar> dqWSh = okvis::kinematics::expAndTheta(omega2);
   Eigen::Quaternion<Scalar> q_WB_h = dqWSh * q_WB_h0;
 
-  //okvis::kinematics::Transformation T_WB_h(p_WB_h, q_WB_h);
   Eigen::Matrix<Scalar, 4, 4> T_WB_h = Eigen::Matrix<Scalar, 4, 4>::Identity();
   T_WB_h.template topLeftCorner<3, 3>() = q_WB_h.toRotationMatrix();
   T_WB_h.template topRightCorner<3, 1>() = p_WB_h;
 
-  //hp_Ch
-  Eigen::Map<const Eigen::Matrix<Scalar, 4, 1>> hp_Ch_t(hp_Ch);
+  Eigen::Map<const Eigen::Matrix<Scalar, 4, 1>> l_Ch_t(l_Ch);
 
   //T_BCt
   Eigen::Matrix<Scalar, 3, 1> p_BC_t0(T_BCt[0], T_BCt[1], T_BCt[2]);
@@ -929,7 +898,6 @@ operator()(const Scalar *const T_WBt,
   Eigen::Quaternion<Scalar> dqBCh = okvis::kinematics::expAndTheta(omega4);
   Eigen::Quaternion<Scalar> q_BC_h = dqBCh * q_BC_h0;
 
-  //okvis::kinematics::Transformation T_BC_h(p_BC_h, q_BC_h);
   Eigen::Matrix<Scalar, 4, 4> T_BC_h = Eigen::Matrix<Scalar, 4, 4>::Identity();
   T_BC_h.template topLeftCorner<3, 3>() = q_BC_h.toRotationMatrix();
   T_BC_h.template topRightCorner<3, 1>() = p_BC_h;
@@ -973,8 +941,6 @@ operator()(const Scalar *const T_WBt,
 
   p_WB_t = pairT_WB_t.first;
   q_WB_t = pairT_WB_t.second;
-  //Eigen::Matrix<Scalar, 3, 1> p_WB_t = pairT_WB_t.first;
-  //Eigen::Quaterniond<Scalar> q_WB_t = pairT_WB_t.second;
 
   // transform the point into the camera:
   Eigen::Matrix<Scalar, 3, 3> C_BC_t = q_BC_t.toRotationMatrix();
@@ -987,7 +953,7 @@ operator()(const Scalar *const T_WBt,
   Eigen::Matrix<Scalar, 4, 4> T_BW_t = Eigen::Matrix<Scalar, 4, 4>::Identity();
   T_BW_t.template topLeftCorner<3, 3>() = C_BW_t;
   T_BW_t.template topRightCorner<3, 1>() = -C_BW_t * p_WB_t;
-  Eigen::Matrix<Scalar, 4, 1> hp_W_t = (T_WB_h * T_BC_h) * hp_Ch_t; //
+  Eigen::Matrix<Scalar, 4, 1> hp_W_t = (T_WB_h * T_BC_h) * l_Ch_t;
   Eigen::Matrix<Scalar, 4, 1> hp_B_t = T_BW_t * hp_W_t;
   Eigen::Matrix<Scalar, 4, 1> hp_C_t = T_CB_t * hp_B_t;
 

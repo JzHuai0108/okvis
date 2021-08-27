@@ -89,11 +89,11 @@ template <class GEOMETRY_TYPE>
 class RSCameraReprojectionError
     : public ::ceres::SizedCostFunction<
           2 /* number of residuals */, 
-          7 /* T_WBt */, 
-          4 /* hp_Ch */,
-          7 /* T_WBh */,
-          7 /* T_BCt */,
-          7 /* T_BCh */,
+          7 /* T_WBt with PoseLocalParameterization */,
+          4 /* hp_Ch with InverseDepthParameterization */,
+          7 /* T_WBh with PoseLocalParameterization */,
+          7 /* T_BCt with PoseLocalParameterization */,
+          7 /* T_BCh with PoseLocalParameterization */,
           GEOMETRY_TYPE::NumIntrinsics,
           1 /* frame readout time */,
           1 /* camera time offset */,
@@ -116,7 +116,7 @@ class RSCameraReprojectionError
   typedef ::ceres::SizedCostFunction<
           2 /* number of residuals */, 
           7 /* T_WBt */, 
-          4 /* hp_Ch */,
+          4 /* AIDP */,
           7 /* T_WBh */,
           7 /* T_BCt */,
           7 /* T_BCh */,
@@ -131,7 +131,7 @@ class RSCameraReprojectionError
   enum Index
   {
     T_WBt = 0,
-    hp_Ch,
+    AIDP,
     T_WBh,
     T_BCt,
     T_BCh,
@@ -252,7 +252,7 @@ class RSCameraReprojectionError
       const Eigen::Matrix<double, 2, Eigen::Dynamic> &Jpi_weighted,
       const Eigen::Matrix<double, 4, 6> &dhC_deltaTWSt,
       const Eigen::Matrix<double, 4, 6> &dhC_deltaTWSh,
-      const Eigen::Matrix<double, 4, 4> &dhC_deltahpCh,
+      const Eigen::Matrix<double, 4, 4> &dhC_dlCh,
       const Eigen::Matrix<double, 4, 6> &dhC_dExtrinsict,
       const Eigen::Matrix<double, 4, 6> &dhC_dExtrinsich,
       const Eigen::Vector4d &dhC_td, double kpN,
