@@ -87,10 +87,10 @@ Estimator::~Estimator()
 
 // Add a camera to the configuration. Sensors can only be added and never removed.
 int Estimator::addCameraParameterStds(
-    const ExtrinsicsEstimationParameters & extrinsicsEstimationParameters)
+    const CameraNoiseParameters & cameraNoiseParameters)
 {
-  extrinsicsEstimationParametersVec_.push_back(extrinsicsEstimationParameters);
-  return extrinsicsEstimationParametersVec_.size() - 1;
+  cameraNoiseParametersVec_.push_back(cameraNoiseParameters);
+  return cameraNoiseParametersVec_.size() - 1;
 }
 
 void Estimator::addCameraSystem(const okvis::cameras::NCameraSystem& cameras) {
@@ -121,7 +121,7 @@ int Estimator::addImu(const ImuParameters & imuParameters)
 
 // Remove all cameras from the configuration
 void Estimator::clearCameras(){
-  extrinsicsEstimationParametersVec_.clear();
+  cameraNoiseParametersVec_.clear();
 }
 
 // Remove all IMUs from the configuration.
@@ -221,13 +221,13 @@ bool Estimator::addStates(
 
   // initialize new sensor states
   // cameras:
-  for (size_t i = 0; i < extrinsicsEstimationParametersVec_.size(); ++i) {
+  for (size_t i = 0; i < cameraNoiseParametersVec_.size(); ++i) {
 
     SpecificSensorStatesContainer cameraInfos(2);
     cameraInfos.at(CameraSensorStates::T_XCi).exists=true;
     cameraInfos.at(CameraSensorStates::Intrinsics).exists=false;
-    if(((extrinsicsEstimationParametersVec_.at(i).sigma_c_relative_translation<1e-12)||
-        (extrinsicsEstimationParametersVec_.at(i).sigma_c_relative_orientation<1e-12))&&
+    if(((cameraNoiseParametersVec_.at(i).sigma_c_relative_translation<1e-12)||
+        (cameraNoiseParametersVec_.at(i).sigma_c_relative_orientation<1e-12))&&
         (statesMap_.size() > 1)){
       // use the same block...
       cameraInfos.at(CameraSensorStates::T_XCi).id =
@@ -274,10 +274,10 @@ bool Estimator::addStates(
     //mapPtr_->isJacobianCorrect(id2,1.0e-6);
 
     // sensor states
-    for (size_t i = 0; i < extrinsicsEstimationParametersVec_.size(); ++i) {
-      double translationStdev = extrinsicsEstimationParametersVec_.at(i).sigma_absolute_translation;
+    for (size_t i = 0; i < cameraNoiseParametersVec_.size(); ++i) {
+      double translationStdev = cameraNoiseParametersVec_.at(i).sigma_absolute_translation;
       double translationVariance = translationStdev*translationStdev;
-      double rotationStdev = extrinsicsEstimationParametersVec_.at(i).sigma_absolute_orientation;
+      double rotationStdev = cameraNoiseParametersVec_.at(i).sigma_absolute_orientation;
       double rotationVariance = rotationStdev*rotationStdev;
       if(translationVariance>1.0e-16 && rotationVariance>1.0e-16){
         const okvis::kinematics::Transformation T_SC = *multiFrame->T_SC(i);
@@ -338,16 +338,16 @@ bool Estimator::addStates(
     }
 
     // add relative sensor state errors
-    for (size_t i = 0; i < extrinsicsEstimationParametersVec_.size(); ++i) {
+    for (size_t i = 0; i < cameraNoiseParametersVec_.size(); ++i) {
       if(lastElementIterator->second.sensors.at(SensorStates::Camera).at(i).at(CameraSensorStates::T_XCi).id !=
           states.sensors.at(SensorStates::Camera).at(i).at(CameraSensorStates::T_XCi).id){
         // i.e. they are different estimated variables, so link them with a temporal error term
         double dt = (states.timestamp - lastElementIterator->second.timestamp)
             .toSec();
-        double translationSigmaC = extrinsicsEstimationParametersVec_.at(i)
+        double translationSigmaC = cameraNoiseParametersVec_.at(i)
             .sigma_c_relative_translation;
         double translationVariance = translationSigmaC * translationSigmaC * dt;
-        double rotationSigmaC = extrinsicsEstimationParametersVec_.at(i)
+        double rotationSigmaC = cameraNoiseParametersVec_.at(i)
             .sigma_c_relative_orientation;
         double rotationVariance = rotationSigmaC * rotationSigmaC * dt;
         std::shared_ptr<ceres::RelativePoseError> relativeExtrinsicsError(
@@ -858,7 +858,7 @@ bool Estimator::printStatesAndStdevs(std::ostream& stream) const {
   uint64_t poseId = statesMap_.rbegin()->first;
   printNavStateAndBiases(stream, poseId);
 
-  size_t numCameras = extrinsicsEstimationParametersVec_.size();
+  size_t numCameras = cameraNoiseParametersVec_.size();
   for (size_t camIdx = 0u; camIdx < numCameras; ++camIdx) {
     Eigen::VectorXd extrinsicValues;
     getVariableCameraExtrinsics(&extrinsicValues, camIdx);
@@ -878,7 +878,7 @@ std::vector<std::string> Estimator::variableLabels() const {
       "v_WB_W_y(m/s)", "v_WB_W_z(m/s)", "b_g_x(rad/s)", "b_g_y(rad/s)",
       "b_g_z(rad/s)",  "b_a_x(m/s^2)",  "b_a_y(m/s^2)", "b_a_z(m/s^2)"};
 
-  size_t numCameras = extrinsicsEstimationParametersVec_.size();
+  size_t numCameras = cameraNoiseParametersVec_.size();
   for (size_t j = 0u; j < numCameras; ++j) {
     if (!fixCameraExtrinsicParams_[j]) {
       std::vector<std::string> camExtrinsicLabels;

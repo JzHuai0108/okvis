@@ -62,11 +62,11 @@
 namespace okvis {
 
 /// \brief Struct to define the behavior of the camera extrinsics.
-struct ExtrinsicsEstimationParameters
+struct CameraNoiseParameters
 {
   // set to 0 in order to turn off
   /// \brief Default Constructor -- fixed camera extrinsics.
-  ExtrinsicsEstimationParameters();
+  CameraNoiseParameters();
 
   /**
    * @brief Constructor.
@@ -75,7 +75,7 @@ struct ExtrinsicsEstimationParameters
    * @param sigma_c_relative_translation Relative translation noise density. [m/sqrt(Hz)]
    * @param sigma_c_relative_orientation Relative orientation noise density. [rad/sqrt(Hz)]
    */
-  ExtrinsicsEstimationParameters(double sigma_absolute_translation,
+  CameraNoiseParameters(double sigma_absolute_translation,
                                  double sigma_absolute_orientation,
                                  double sigma_c_relative_translation,
                                  double sigma_c_relative_orientation);
@@ -331,7 +331,7 @@ struct VioParameters {
   Optimization optimization;    ///< Optimization parameters.
   Visualization visualization;  ///< Visualization parameters.
   SensorsInformation sensors_information; ///< Information on camera and IMU setup.
-  ExtrinsicsEstimationParameters camera_extrinsics; ///< Camera extrinsic estimation parameters.
+  CameraNoiseParameters camera_extrinsics; ///< Camera extrinsic estimation parameters.
   okvis::cameras::NCameraSystem nCameraSystem;  ///< Camera configuration.
   ImuParameters imu;  ///< IMU parameters
   MagnetometerParameters magnetometer;  ///< Magnetometer parameters.

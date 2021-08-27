@@ -83,11 +83,11 @@ class VioBackendInterface {
   ///@{
   /**
    * @brief Add a camera to the configuration. Sensors can only be added and never removed.
-   * @param extrinsicsEstimationParameters The parameters that tell how to estimate extrinsics.
+   * @param cameraNoiseParameters The parameters that tell how to estimate extrinsics.
    * @return Index of new camera.
    */
   virtual int addCameraParameterStds(
-      const ExtrinsicsEstimationParameters& extrinsicsEstimationParameters) = 0;
+      const CameraNoiseParameters& cameraNoiseParameters) = 0;
 
   /**
    * @brief addCameraSystem add the cameraSystem to the estimator.

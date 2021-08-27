@@ -76,7 +76,7 @@ VioParametersReader::VioParametersReader(const std::string& filename) {
 
 static void parseExpandedCameraParamSigmas(
     cv::FileNode cameraParamNode,
-    ExtrinsicsEstimationParameters* camera_extrinsics) {
+    CameraNoiseParameters* camera_extrinsics) {
   if (cameraParamNode["sigma_focal_length"].isReal()) {
     cameraParamNode["sigma_focal_length"] >>
         camera_extrinsics->sigma_focal_length;

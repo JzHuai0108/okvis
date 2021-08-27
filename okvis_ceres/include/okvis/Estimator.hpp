@@ -103,11 +103,11 @@ class Estimator : public VioBackendInterface
   ///@{
   /**
    * @brief Add a camera to the configuration. Sensors can only be added and never removed.
-   * @param extrinsicsEstimationParameters The parameters that tell how to estimate extrinsics.
+   * @param cameraNoiseParameters The parameters that tell how to estimate extrinsics.
    * @return Index of new camera.
    */
-  int addCameraParameterStds(const okvis::ExtrinsicsEstimationParameters&
-                                     extrinsicsEstimationParameters) override;
+  int addCameraParameterStds(const okvis::CameraNoiseParameters&
+                                     cameraNoiseParameters) override;
   /**
    * @brief addCameraSystem add the cameraSystem to the estimator.
    * @param cameras
@@ -838,8 +838,8 @@ class Estimator : public VioBackendInterface
   mutable std::mutex statesMutex_;  ///< Regulate access of landmarksMap_.
 
   // parameters
-  std::vector<okvis::ExtrinsicsEstimationParameters,
-      Eigen::aligned_allocator<okvis::ExtrinsicsEstimationParameters> > extrinsicsEstimationParametersVec_; ///< Extrinsics parameters.
+  std::vector<okvis::CameraNoiseParameters,
+      Eigen::aligned_allocator<okvis::CameraNoiseParameters> > cameraNoiseParametersVec_; ///< Extrinsics parameters.
   std::vector<std::shared_ptr<okvis::ImuParameters>> imuParametersVec_; ///< IMU parameters.
 
   // loss function for reprojection errors

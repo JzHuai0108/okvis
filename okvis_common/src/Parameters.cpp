@@ -2,7 +2,7 @@
 #include <unordered_map>
 
 namespace okvis {
-ExtrinsicsEstimationParameters::ExtrinsicsEstimationParameters()
+CameraNoiseParameters::CameraNoiseParameters()
     : sigma_absolute_translation(0.0),
       sigma_absolute_orientation(0.0),
       sigma_c_relative_translation(0.0),
@@ -12,7 +12,7 @@ ExtrinsicsEstimationParameters::ExtrinsicsEstimationParameters()
       sigma_td(0.0),
       sigma_tr(0.0) {}
 
-ExtrinsicsEstimationParameters::ExtrinsicsEstimationParameters(
+CameraNoiseParameters::CameraNoiseParameters(
     double sigma_absolute_translation, double sigma_absolute_orientation,
     double sigma_c_relative_translation, double sigma_c_relative_orientation)
     : sigma_absolute_translation(sigma_absolute_translation),
