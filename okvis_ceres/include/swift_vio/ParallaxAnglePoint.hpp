@@ -5,6 +5,7 @@
 #include <random>
 #include <Eigen/Geometry>
 #include <okvis/kinematics/Transformation.hpp> // for optimizing a PAP point.
+#include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
 
 namespace swift_vio {
 typedef Eigen::Quaterniond QPD;
@@ -205,6 +206,91 @@ class NormalVectorElement
     return M;
   }
   const double* data() const { return q_.coeffs().data(); }
+};
+
+class NormalVectorParameterization
+    : public okvis::ceres::LocalParamizationAdditionalInterfaces {
+public:
+  static const int kGlobalDim = 3;
+  static const int kLocalDim = 2;
+  // Generalization of the addition operation,
+  //
+  //   x_plus_delta = Plus(x, delta)
+  //
+  // with the condition that Plus(x, 0) = x.
+  bool Plus(const double *x, const double *delta,
+            double *x_plus_delta) const final {
+    return plus(x, delta, x_plus_delta);
+  }
+
+  // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
+  //
+  // jacobian is a row-major GlobalSize() x LocalSize() matrix.
+  bool ComputeJacobian(const double *x, double *jacobian) const final {
+    return plusJacobian(x, jacobian);
+  }
+
+  // Size of x.
+  int GlobalSize() const final { return kGlobalDim; }
+
+  // Size of delta.
+  int LocalSize() const final { return kLocalDim; }
+
+  /// \brief Trivial destructor.
+  ~NormalVectorParameterization() final {}
+
+  /// \brief Computes the minimal difference between a variable x and a
+  /// perturbed variable x_plus_delta
+  /// @param[in] x Variable.
+  /// @param[in] x_plus_delta Perturbed variable.
+  /// @param[out] delta minimal difference.
+  /// \return True on success.
+  bool Minus(const double *x, const double *x_plus_delta,
+             double *delta) const final {
+    return minus(x, x_plus_delta, delta);
+  }
+
+  /// \brief Computes the Jacobian from minimal space to naively
+  /// overparameterised space as used by ceres.
+  /// @param[in] x Variable.
+  /// @param[out] jacobian the Jacobian (dimension minDim x dim).
+  /// \return True on success.
+  bool ComputeLiftJacobian(const double *x, double *jacobian) const final {
+    return liftJacobian(x, jacobian);
+  }
+
+  static bool liftJacobian(const double *x0, double *jacobian) {
+    Eigen::Map<const Eigen::Vector3d> vx(x0);
+    swift_vio::NormalVectorElement nve(vx);
+    Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>> j(jacobian);
+    j = nve.getM().transpose(); // This is the pinv of M.
+    return true;
+  }
+
+  static bool minus(const double *x, const double *x_plus_delta,
+                    double *delta) {
+    Eigen::Map<const Eigen::Vector3d> vxplus(x_plus_delta);
+    Eigen::Map<const Eigen::Vector3d> vx(x);
+    Eigen::Map<Eigen::Vector2d> d(delta);
+    d = swift_vio::NormalVectorElement::boxMinus(vxplus, vx);
+    return true;
+  }
+
+  static bool plus(const double *x, const double *delta, double *x_plus_delta) {
+    Eigen::Map<Eigen::Vector3d> xplus(x_plus_delta);
+    xplus = swift_vio::NormalVectorElement::boxPlus(
+        Eigen::Map<const Eigen::Vector3d>(x),
+        Eigen::Map<const Eigen::Vector2d>(delta));
+    return true;
+  }
+
+  static bool plusJacobian(const double *x0, double *jacobian) {
+    Eigen::Map<const Eigen::Vector3d> vx0(x0);
+    swift_vio::NormalVectorElement nve0(vx0);
+    Eigen::Map<Eigen::Matrix<double, 3, 2, Eigen::RowMajor>> j(jacobian);
+    j = nve0.getM();
+    return true;
+  }
 };
 
 // Angle range [0, \pi]

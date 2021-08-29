@@ -11,13 +11,13 @@ namespace okvis {
 namespace ceres {
 
 // Verifies the correctness of a inplementation.
-bool LocalParamizationAdditionalInterfaces::verify(
+int LocalParamizationAdditionalInterfaces::verify(
     const double* x_raw, double purturbation_magnitude) const
 {
   const ::ceres::LocalParameterization* casted =
       dynamic_cast<const ::ceres::LocalParameterization*>(this);
   if (!casted) {
-    return false;
+    return -1;
   }
   // verify plus/minus
   Eigen::VectorXd x(casted->GlobalSize());
@@ -29,8 +29,8 @@ bool LocalParamizationAdditionalInterfaces::verify(
   delta_x *= purturbation_magnitude;
   casted->Plus(x.data(), delta_x.data(), x_plus_delta.data());
   this->Minus(x.data(), x_plus_delta.data(), delta_x2.data());
-  if ((delta_x2 - delta_x).norm() > 1.0e-12) {
-    return false;
+  if ((delta_x2 - delta_x).norm() > 1.0e-10) {
+    return -2;
   }
 
   // plusJacobian numDiff
@@ -65,16 +65,16 @@ bool LocalParamizationAdditionalInterfaces::verify(
   Eigen::MatrixXd identity(casted->LocalSize(), casted->LocalSize());
   identity.setIdentity();
   if (((J_lift * J_plus) - identity).norm() > 1.0e-6) {
-    return false;
+    return -3;
   }
 
   // verify numDiff jacobian
   if ((J_plus - J_plus_num_diff).norm() > 1.0e-6) {
-    return false;
+    return -4;
   }
 
   // everything fine...
-  return true;
+  return 0;
 }
 
 } // namespace ceres

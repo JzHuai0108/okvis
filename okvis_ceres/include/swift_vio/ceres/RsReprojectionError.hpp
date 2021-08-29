@@ -67,8 +67,8 @@ template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL,
           class EXTRINSIC_MODEL=swift_vio::Extrinsic_p_BC_q_BC>
 class RsReprojectionError
     : public ::ceres::SizedCostFunction<
-          2 /* number of residuals */, 7 /* pose */, 4 /* landmark */,
-          7 /* variable dim of extrinsics */,
+          2 /* number of residuals */, 7 /* pose with PoseLocalParameterization */, 4 /* landmark with HomogeneousPointLocalParameterization */,
+          7 /* variable dim of extrinsics with EXTRINSIC_MODEL Parameterization */,
           PROJ_INTRINSIC_MODEL::kNumParams /* variable dim of proj intrinsics
                                               (e.g., f, cx, cy) */,
           GEOMETRY_TYPE::distortion_t::NumDistortionIntrinsics,

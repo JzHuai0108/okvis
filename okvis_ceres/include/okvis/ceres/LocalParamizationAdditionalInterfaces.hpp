@@ -73,8 +73,8 @@ class LocalParamizationAdditionalInterfaces : public ::ceres::LocalParameterizat
   /// \brief Verifies the correctness of an inplementation by means of numeric Jacobians.
   /// @param[in] x_raw Linearisation point of the variable.
   /// @param[in] purturbation_magnitude Magnitude of the delta used for numeric Jacobians.
-  /// \return True on success.
-  virtual bool verify(const double* x_raw, double purturbation_magnitude = 1.0e-6) const ;
+  /// \return 0 on success.
+  virtual int verify(const double* x_raw, double purturbation_magnitude = 1.0e-6) const;
 };
 
 }  // namespace ceres

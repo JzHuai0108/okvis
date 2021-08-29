@@ -149,3 +149,9 @@ TEST(ParallaxAnglePoint, OptimizationWithPerturbation) {
 TEST(ParallaxAnglePoint, OptimizationWithOutlier) {
   testParallaxAnglePointOptimization(true);
 }
+
+TEST(NormalVectorParameterization, verifyJacobians) {
+  swift_vio::NormalVectorParameterization nvp;
+  Eigen::Vector3d vec = Eigen::Vector3d::Random();
+  EXPECT_EQ(nvp.verify(vec.data(), 1e-6), 0);
+}

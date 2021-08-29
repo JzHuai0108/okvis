@@ -20,16 +20,15 @@ public:
   //   x_plus_delta = Plus(x, delta)
   //
   // with the condition that Plus(x, 0) = x.
-  bool Plus(const double* x, const double* delta, double* x_plus_delta) const {
+  bool Plus(const double* x, const double* delta, double* x_plus_delta) const final {
     return plus(x, delta, x_plus_delta);
   }
 
   // The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   //
   // jacobian is a row-major GlobalSize() x LocalSize() matrix.
-  bool ComputeJacobian(const double* x, double* jacobian) const {
-    plusJacobian(x, jacobian);
-    return true;
+  bool ComputeJacobian(const double* x, double* jacobian) const final {
+    return plusJacobian(x, jacobian);
   }
 
   static bool plusJacobian(const double*, double* jacobian) {
@@ -57,8 +56,7 @@ public:
 
   bool Minus(const double *x, const double *x_plus_delta,
              double *delta) const final {
-    minus(x, x_plus_delta, delta);
-    return true;
+    return minus(x, x_plus_delta, delta);
   }
 
   static bool liftJacobian(const double* /*x*/, double* jacobian) {
@@ -147,8 +145,7 @@ public:
 
   bool Minus(const double *x, const double *x_plus_delta,
              double *delta) const final {
-    minus(x, x_plus_delta, delta);
-    return true;
+    return minus(x, x_plus_delta, delta);
   }
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
