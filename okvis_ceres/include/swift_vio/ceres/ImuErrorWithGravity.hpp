@@ -25,7 +25,7 @@ class ImuErrorWithGravity :
         9 /* size of second parameter (SpeedAndBiasParameterBlock k) */,
         7 /* size of third parameter (PoseParameterBlock k+1) */,
         9 /* size of fourth parameter (SpeedAndBiasParameterBlock k+1) */,
-        3 /* gravity direction */>,
+        3 /* gravity direction in the world frame */>,
     public ErrorInterface {
  public:
 

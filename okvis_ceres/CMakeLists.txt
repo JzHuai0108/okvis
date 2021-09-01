@@ -82,6 +82,7 @@ if(BUILD_TESTS)
     test/TestHomogeneousPointError.cpp
     test/TestReprojectionError.cpp
     test/TestImuError.cpp
+    test/TestImuErrorWithGravity.cpp
     test/TestMap.cpp
     test/TestMarginalization.cpp
     test/TestPseudoInverse.cpp

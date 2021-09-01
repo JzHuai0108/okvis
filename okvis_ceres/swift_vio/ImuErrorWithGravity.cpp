@@ -1,5 +1,7 @@
 #include <swift_vio/ceres/ImuErrorWithGravity.hpp>
 
+#include <swift_vio/ParallaxAnglePoint.hpp>
+
 #include <thread>
 
 #include <glog/logging.h>
@@ -295,6 +297,9 @@ bool ImuErrorWithGravity::EvaluateWithMinimalJacobians(double const* const * par
     speedAndBiases_1[i] = parameters[3][i];
   }
 
+  Eigen::Vector3d gravityDirection;
+  memcpy(gravityDirection.data(), parameters[4], sizeof(double) * 3);
+
   // this will NOT be changed:
   const Eigen::Matrix3d C_WS_0 = T_WS_0.C();
   const Eigen::Matrix3d C_S0_W = C_WS_0.transpose();
@@ -322,15 +327,15 @@ bool ImuErrorWithGravity::EvaluateWithMinimalJacobians(double const* const * par
   // actual propagation output:
   {
     std::lock_guard<std::mutex> lock(preintegrationMutex_); // this is a bit stupid, but shared read-locks only come in C++14
-    const Eigen::Vector3d g_W = imuParameters_.g * Eigen::Vector3d(0, 0, 6371009).normalized();
+    const Eigen::Vector3d g_W = imuParameters_.g * gravityDirection;
 
     // assign Jacobian w.r.t. x0
     Eigen::Matrix<double,15,15> F0 =
         Eigen::Matrix<double,15,15>::Identity(); // holds for d/db_g, d/db_a
     const Eigen::Vector3d delta_p_est_W =
-        T_WS_0.r() - T_WS_1.r() + speedAndBiases_0.head<3>()*Delta_t - 0.5*g_W*Delta_t*Delta_t;
+        T_WS_0.r() - T_WS_1.r() + speedAndBiases_0.head<3>()*Delta_t + 0.5*g_W*Delta_t*Delta_t;
     const Eigen::Vector3d delta_v_est_W =
-        speedAndBiases_0.head<3>() - speedAndBiases_1.head<3>() - g_W*Delta_t;
+        speedAndBiases_0.head<3>() - speedAndBiases_1.head<3>() + g_W*Delta_t;
     const Eigen::Quaterniond Dq = okvis::kinematics::deltaQ(-dalpha_db_g_*Delta_b.head<3>())*Delta_q_;
     F0.block<3,3>(0,0) = C_S0_W;
     F0.block<3,3>(0,3) = C_S0_W * okvis::kinematics::crossMx(delta_p_est_W);
@@ -438,6 +443,29 @@ bool ImuErrorWithGravity::EvaluateWithMinimalJacobians(double const* const * par
             Eigen::Map<Eigen::Matrix<double, 15, 9, Eigen::RowMajor> > J3_minimal_mapped(
                 jacobiansMinimal[3]);
             J3_minimal_mapped = J3;
+          }
+        }
+      }
+      if (jacobians[4] != NULL) {
+        Eigen::Map<Eigen::Matrix<double, 15, 3, Eigen::RowMajor>> J4(
+            jacobians[4]);
+        Eigen::Matrix<double, 15, 3> de_dunitgW =
+            Eigen::Matrix<double, 15, 3>::Zero();
+        de_dunitgW.topLeftCorner<3, 3>() = 0.5 * Delta_t * Delta_t *
+                                           imuParameters_.g *
+                                           C_S0_W;
+        de_dunitgW.block<3, 3>(6, 0) = Delta_t * imuParameters_.g * C_S0_W;
+        J4 = squareRootInformation_ * de_dunitgW;
+
+        // if requested, provide minimal Jacobians
+        if (jacobiansMinimal != NULL) {
+          if (jacobiansMinimal[4] != NULL) {
+            Eigen::Map<Eigen::Matrix<double, 15, 2, Eigen::RowMajor>>
+                J4_minimal_mapped(jacobiansMinimal[4]);
+            Eigen::Matrix<double, 3, 2, Eigen::RowMajor> dunitgW_du;
+            swift_vio::NormalVectorParameterization::plusJacobian(
+                gravityDirection.data(), dunitgW_du.data());
+            J4_minimal_mapped = J4 * dunitgW_du;
           }
         }
       }

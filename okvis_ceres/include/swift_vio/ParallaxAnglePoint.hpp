@@ -284,6 +284,12 @@ public:
     return true;
   }
 
+  /**
+   * @brief plusJacobian
+   * @param x0
+   * @param jacobian  is a row-major 3 x 2 matrix.
+   * @return
+   */
   static bool plusJacobian(const double *x0, double *jacobian) {
     Eigen::Map<const Eigen::Vector3d> vx0(x0);
     swift_vio::NormalVectorElement nve0(vx0);
