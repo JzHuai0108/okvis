@@ -31,6 +31,7 @@ add_library(${PROJECT_NAME}
   swift_vio/CameraObservationModel.cpp
   swift_vio/CameraTimeParamBlock.cpp
   swift_vio/ExtrinsicModels.cpp
+  swift_vio/ImuErrorWithGravity.cpp
   swift_vio/MultipleTransformPointJacobian.cpp
   swift_vio/NormalVectorParameterBlock.cpp
   swift_vio/ParallaxAnglePoint.cpp
