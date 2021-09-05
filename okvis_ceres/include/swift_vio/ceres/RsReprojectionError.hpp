@@ -34,10 +34,6 @@ public:
 template <class GEOMETRY_TYPE>
 class LocalBearingVector;
 
-// TODO(jhuai): simplify the class to only one template argument GEOMETRY_TYPE,
-// The extrinsic model and intrinsic model can be passed as pointers to ceres::LocalParameterization.
-// Also merge the projection and distortion intrinsics into one parameter block.
-
 // The IMU model is assumed to be BG_BA which is accurate enough for predicting
 // poses in a short term, (usually less than t_r/2), also Jacobians in the
 // prediction can be computed as in SimpleImuPropagationJacobian.
@@ -55,8 +51,9 @@ class LocalBearingVector;
 template <class GEOMETRY_TYPE>
 class RsReprojectionError
     : public ::ceres::SizedCostFunction<
-          2 /* number of residuals */, 7 /* pose with PoseLocalParameterization */, 4 /* landmark with HomogeneousPointLocalParameterization */,
-          7 /* variable dim of extrinsics PoseLocalParameterization */,
+          2 /* number of residuals */, 7 /* pose with PoseLocalParameterization */,
+          4 /* landmark with HomogeneousPointLocalParameterization */,
+          7 /* variable dim of extrinsics with PoseLocalParameterization */,
           GEOMETRY_TYPE::NumIntrinsics,
           1 /* frame readout time */,
           1 /* time offset between visual and inertial data */,
