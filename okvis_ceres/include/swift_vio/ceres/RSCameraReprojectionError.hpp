@@ -110,7 +110,7 @@ class RSCameraReprojectionError
   typedef GEOMETRY_TYPE camera_geometry_t;
 
   static const int kDistortionDim = GEOMETRY_TYPE::distortion_t::NumDistortionIntrinsics;
-  static const int kIntrinsicsDim = GEOMETRY_TYPE::NumIntrinsics;
+  static const int kIntrinsicDim = GEOMETRY_TYPE::NumIntrinsics;
 
   /// \brief The base class type.
   typedef ::ceres::SizedCostFunction<

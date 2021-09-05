@@ -137,38 +137,6 @@ public:
     j->setZero();
   }
 
-  //  static void dpC_dExtrinsic_AIDP(const Eigen::Vector3d & /*pC*/,
-  //                                  const Eigen::Matrix3d & /*R_CB*/,
-  //                                  Eigen::MatrixXd *dpC_dT,
-  //                                  const Eigen::Matrix3d *R_CfCa,
-  //                                  const Eigen::Vector4d *ab1rho) {
-  //    *dpC_dT = (*ab1rho)[3] * (Eigen::Matrix3d::Identity() - (*R_CfCa));
-  //  }
-
-  //  static void dpC_dExtrinsic_HPP(const Eigen::Vector4d &hpC,
-  //                                 const Eigen::Matrix3d & /*R_CB*/,
-  //                                 Eigen::MatrixXd *dpC_dT) {
-  //    *dpC_dT = Eigen::Matrix3d::Identity() * hpC[3];
-  //  }
-
-  /**
-   * @brief dhC_dExtrinsic_HPP \f$ h^C = T_{BC}^{-1} h^B \f$
-   * dhC_dExtrinsic_HPP = dhC_dT_BC * dT_BC_dExtrinsic.
-   * \f$ h^C = [p^C, w] \f$
-   * \f$ R_{BC} = Exp(\delta\theta) \hat{R}_{BC} \f$
-   * \f$ t_{BC} = \delta t + \hat{t}_{BC} \f$
-   * @param hpC
-   * @param dhC_dExtrinsic
-   */
-  static void
-  dhC_dExtrinsic_HPP(const Eigen::Matrix<double, 4, 1> &hpC,
-                     const Eigen::Matrix<double, 3, 3> & /*R_CB*/,
-                     Eigen::Matrix<double, 4, kNumParams> *dhC_dExtrinsic) {
-    dhC_dExtrinsic->topLeftCorner<3, 3>() =
-        Eigen::Matrix3d::Identity() * hpC[3];
-    dhC_dExtrinsic->row(3).setZero();
-  }
-
   // the error state is $\delta p_B^C$ or $\delta p_S^C$
   //  static void updateState(const Eigen::Vector3d &r, const Eigen::Quaterniond
   //  &q,
@@ -431,26 +399,6 @@ public:
   //    dpC_dT->block<3, 3>(0, 3) =
   //        okvis::kinematics::crossMx(hpC.head<3>()) * R_CB;
   //  }
-
-  /**
-   * @brief dhC_dExtrinsic_HPP \f$ h^C = T_{BC}^{-1} h^B \f$
-   * dhC_dExtrinsic_HPP = dhC_dT_BC * dT_BC_dExtrinsic.
-   * \f$ h^C = [p^C, w] \f$
-   * \f$ R_{BC} = Exp(\delta\theta) \hat{R}_{BC} \f$
-   * \f$ t_{BC} = \delta t + \hat{t}_{BC} \f$
-   * @param hpC
-   * @param R_CB
-   * @param dhC_dExtrinsic
-   */
-  static void
-  dhC_dExtrinsic_HPP(const Eigen::Matrix<double, 4, 1> &hpC,
-                     const Eigen::Matrix<double, 3, 3> &R_CB,
-                     Eigen::Matrix<double, 4, kNumParams> *dhC_dExtrinsic) {
-    dhC_dExtrinsic->block<3, 3>(0, 0) = -R_CB * hpC[3];
-    dhC_dExtrinsic->block<3, 3>(0, 3) =
-        okvis::kinematics::crossMx(hpC.head<3>()) * R_CB;
-    dhC_dExtrinsic->row(3).setZero();
-  }
 };
 
 class Extrinsic_p_C0C_q_C0C final : public PoseLocalParameterizationSimplified {

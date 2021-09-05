@@ -87,7 +87,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   Eigen::Map<const Eigen::Quaterniond> q_WBh(parameters[Index::T_WBh] + 3);
   okvis::kinematics::Transformation T_WBh(p_WBh, q_WBh);
 
-  Eigen::Matrix<double, -1, 1> intrinsics = Eigen::Map<const Eigen::Matrix<double, kIntrinsicsDim, 1>>(parameters[Index::Intrinsics]); //proj intrinsics+DistortionIntrinsics
+  Eigen::Matrix<double, -1, 1> intrinsics = Eigen::Map<const Eigen::Matrix<double, kIntrinsicDim, 1>>(parameters[Index::Intrinsics]); //proj intrinsics+DistortionIntrinsics
 
   double readoutTime = parameters[Index::ReadoutTime][0]; //tr
   double cameraTd = parameters[Index::CameraTd][0];       //td
@@ -108,10 +108,10 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
   const okvis::Time t_end = targetStateTime_ + okvis::Duration(relativeFeatureTime);
   const double wedge = 5e-8;
   if (relativeFeatureTime >= wedge){
-    swift_vio::ode::predictStates(*imuMeasCanopy_, imuParameters_->g, pair_T_WBt,
+    swift_vio::ode::predictStates(*imuMeasCanopy_, imuParameters_->gravity(), pair_T_WBt,
                                   speedBgBa, t_start, t_end);
   } else if (relativeFeatureTime <= -wedge){
-    swift_vio::ode::predictStatesBackward(*imuMeasCanopy_, imuParameters_->g, pair_T_WBt,
+    swift_vio::ode::predictStatesBackward(*imuMeasCanopy_, imuParameters_->gravity(), pair_T_WBt,
                                           speedBgBa, t_start, t_end);
   }
   okvis::kinematics::Transformation T_WBt(pair_T_WBt.first, pair_T_WBt.second);
@@ -928,14 +928,13 @@ operator()(const Scalar *const T_WBt,
     imuMeasurements.push_back(imuMeas);
   }
 
+  Eigen::Matrix<Scalar, 3, 1> gW = rsre_.imuParameters_->gravity().template cast<Scalar>();
   if (relativeFeatureTime >= Scalar(5e-8))
   {
-    swift_vio::ode::predictStates(imuMeasurements, (Scalar)(rsre_.imuParameters_->g), pairT_WB_t,
+    swift_vio::ode::predictStates(imuMeasurements, gW, pairT_WB_t,
                                   speedBgBa, t_start, t_end);
-  }
-  else if (relativeFeatureTime <= Scalar(-5e-8))
-  {
-    swift_vio::ode::predictStatesBackward(imuMeasurements, (Scalar)(rsre_.imuParameters_->g),
+  } else if (relativeFeatureTime <= Scalar(-5e-8)) {
+    swift_vio::ode::predictStatesBackward(imuMeasurements, gW,
                                           pairT_WB_t, speedBgBa, t_start, t_end);
   }
 

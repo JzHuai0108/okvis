@@ -31,7 +31,7 @@ public:
   static const int kNumResiduals = 2;
 };
 
-template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL, class EXTRINSIC_MODEL>
+template <class GEOMETRY_TYPE>
 class LocalBearingVector;
 
 // TODO(jhuai): simplify the class to only one template argument GEOMETRY_TYPE,
@@ -52,29 +52,16 @@ class LocalBearingVector;
 ///     this problem should only happen to optimization-based estimator with
 ///     undelayed observations.
 /// \tparam GEOMETRY_TYPE The camera gemetry type.
-/// \tparam PROJ_INTRINSIC_MODEL describes which subset of the projection
-///     intrinsic parameters of the camera geometry model is represented and
-///     optimized in the ceres solver.
-///     It maps the subset to the full projection intrinsic parameters
-///     using additional constant values from a provided camera geometry.
-///     Its kNumParams should not be zero.
-/// \tparam EXTRINSIC_MODEL describes which subset of the extrinsic parameters,
-///     is represented and optimized in the ceres solver.
-///     It maps the subset to the full extrinsic parameters using additional
-///     constant values from a provided extrinsic entity, e.g., T_BC.
-///     Its kNumParams should not be zero.
-template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL,
-          class EXTRINSIC_MODEL=swift_vio::Extrinsic_p_BC_q_BC>
+template <class GEOMETRY_TYPE>
 class RsReprojectionError
     : public ::ceres::SizedCostFunction<
           2 /* number of residuals */, 7 /* pose with PoseLocalParameterization */, 4 /* landmark with HomogeneousPointLocalParameterization */,
-          7 /* variable dim of extrinsics with EXTRINSIC_MODEL Parameterization */,
-          PROJ_INTRINSIC_MODEL::kNumParams /* variable dim of proj intrinsics
-                                              (e.g., f, cx, cy) */,
-          GEOMETRY_TYPE::distortion_t::NumDistortionIntrinsics,
+          7 /* variable dim of extrinsics PoseLocalParameterization */,
+          GEOMETRY_TYPE::NumIntrinsics,
           1 /* frame readout time */,
           1 /* time offset between visual and inertial data */,
-          9 /* velocity and biases */
+          9 /* velocity and biases */,
+          3 /* gravity direction in a world frame */
           >,
       public RsReprojectionErrorBase {
  public:
@@ -84,33 +71,24 @@ class RsReprojectionError
   /// \brief Make the camera geometry type accessible.
   typedef GEOMETRY_TYPE camera_geometry_t;
   typedef okvis::ceres::HomogeneousPointLocalParameterization LANDMARK_MODEL;
-  static const int kDistortionDim = GEOMETRY_TYPE::distortion_t::NumDistortionIntrinsics;
-  static const int kMinProjectionIntrinsicDim = PROJ_INTRINSIC_MODEL::kNumParams;
   static const int kIntrinsicDim = GEOMETRY_TYPE::NumIntrinsics;
+
+  enum Index
+  {
+    T_WBt = 0,
+    HPP,
+    T_BCt,
+    Intrinsics,
+    ReadoutTime,
+    CameraTd,
+    SpeedAndBiases,
+    GravityDirection
+  };
 
   /// \brief The base class type.
   typedef ::ceres::SizedCostFunction<
-      2, 7, 4, 7, PROJ_INTRINSIC_MODEL::kNumParams,
-      GEOMETRY_TYPE::distortion_t::NumDistortionIntrinsics, 1, 1, 9>
+      2, 7, 4, 7, GEOMETRY_TYPE::NumIntrinsics, 1, 1, 9, 3>
       base_t;
-
-  typedef typename std::conditional<
-      (PROJ_INTRINSIC_MODEL::kNumParams > 1),
-      Eigen::Matrix<double, 2, PROJ_INTRINSIC_MODEL::kNumParams,
-                    Eigen::RowMajor>,
-      Eigen::Matrix<double, 2, PROJ_INTRINSIC_MODEL::kNumParams> >::type
-      ProjectionIntrinsicJacType;
-
-  typedef typename std::conditional<
-      (PROJ_INTRINSIC_MODEL::kNumParams > 1),
-      Eigen::Matrix<double, 4, PROJ_INTRINSIC_MODEL::kNumParams,
-                    Eigen::RowMajor>,
-      Eigen::Matrix<double, 4, PROJ_INTRINSIC_MODEL::kNumParams>>::type
-      ProjectionIntrinsicJacType4;
-
-  typedef typename std::conditional<(kDistortionDim > 1),
-      Eigen::Matrix<double, 2, kDistortionDim, Eigen::RowMajor>,
-      Eigen::Matrix<double, 2, kDistortionDim>>::type DistortionJacType;
 
   /// \brief The keypoint type (measurement type).
   typedef Eigen::Vector2d keypoint_t;
@@ -192,17 +170,6 @@ class RsReprojectionError
     return covariance_;
   }
 
-  inline void getIntrinsicsVector(const double* projectionIntrinsics, const double* distortion,
-                                  Eigen::Matrix<double, -1, 1>& intrinsics) const {
-    intrinsics.resize(kIntrinsicDim);
-    Eigen::Map<const Eigen::Matrix<double, PROJ_INTRINSIC_MODEL::kNumParams, 1>>
-        projIntrinsics(projectionIntrinsics);
-    PROJ_INTRINSIC_MODEL::localToGlobal(projIntrinsics, &intrinsics);
-    Eigen::Map<const Eigen::Matrix<double, kDistortionDim, 1>>
-        distortionIntrinsics(distortion);
-    intrinsics.tail<kDistortionDim>() = distortionIntrinsics;
-  }
-
   // error term and Jacobian implementation
   /**
    * @brief This evaluates the error term and additionally computes the Jacobians.
@@ -244,9 +211,9 @@ class RsReprojectionError
       const Eigen::Matrix<double, 2, Eigen::Dynamic>& Jpi_weighted,
       const Eigen::Matrix<double, 4, 6>& dhC_deltaTWS,
       const Eigen::Matrix<double, 4, 4>& dhC_deltahpW,
-      const Eigen::Matrix<double, 4, EXTRINSIC_MODEL::kNumParams>& dhC_dExtrinsic,
-      const Eigen::Vector4d& dhC_td, double kpN,
-      const Eigen::Matrix<double, 4, 9>& dhC_sb) const;
+      const Eigen::Matrix<double, 4, 6>& dhC_dExtrinsic,
+      const Eigen::Vector4d& dhC_td, const Eigen::Matrix<double, 4, 9>& dhC_sb,
+      double relativeFeatureTime, double kpN) const;
 
   void setJacobiansZero(double** jacobians, double** jacobiansMinimal) const;
 
@@ -277,7 +244,7 @@ class RsReprojectionError
     return "RsReprojectionError";
   }
 
-  friend class LocalBearingVector<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>;
+  friend class LocalBearingVector<GEOMETRY_TYPE>;
  protected:
 //  uint64_t cameraId_; ///< ID of the camera.
   measurement_t measurement_; ///< The (2D) measurement.
@@ -306,20 +273,20 @@ class RsReprojectionError
 // AutoDifferentiate will invoke Evaluate() if the Functor is a ceres::CostFunction
 // see ceres-solver/include/ceres/internal/variadic_evaluate.h
 // so we have to separate operator() from Evaluate()
-template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL, class EXTRINSIC_MODEL>
+template <class GEOMETRY_TYPE>
 class LocalBearingVector {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  LocalBearingVector(const RsReprojectionError<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>& rsre);
+  LocalBearingVector(const RsReprojectionError<GEOMETRY_TYPE>& rsre);
   template <typename Scalar>
   bool operator()(const Scalar* const T_WS, const Scalar* const hp_W,
                   const Scalar* const extrinsic, const Scalar* const t_r,
                   const Scalar* const t_d, const Scalar* const speedAndBiases,
-                  const Scalar* const deltaT_WS,
+                  const Scalar* const gravityDirection, const Scalar* const deltaT_WS,
                   const Scalar* const deltaExtrinsic, Scalar* hp_C) const;
 
  private:
-  const RsReprojectionError<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>& rsre_;
+  const RsReprojectionError<GEOMETRY_TYPE>& rsre_;
 };
 
 }  // namespace ceres

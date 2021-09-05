@@ -90,10 +90,10 @@ void EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
   okvis::Time t_end = stateEpoch_[index] + okvis::Duration(relativeFeatureTime);
   const double wedge = 5e-8;
   if (relativeFeatureTime >= wedge) {
-    swift_vio::ode::predictStates(*imuMeasCanopy_[index], gravityMag_, *pair_T_WB,
+    swift_vio::ode::predictStates(*imuMeasCanopy_[index], Eigen::Vector3d(0, 0, -gravityMag_), *pair_T_WB,
                                 speedBgBa, t_start, t_end);
   } else if (relativeFeatureTime <= -wedge) {
-    swift_vio::ode::predictStatesBackward(*imuMeasCanopy_[index], gravityMag_,
+    swift_vio::ode::predictStatesBackward(*imuMeasCanopy_[index], Eigen::Vector3d(0, 0, -gravityMag_),
                                         *pair_T_WB, speedBgBa, t_start, t_end);
   }
   velAndOmega->head<3>() = speedBgBa.head<3>();
