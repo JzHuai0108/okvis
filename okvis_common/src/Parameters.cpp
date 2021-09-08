@@ -10,7 +10,9 @@ CameraNoiseParameters::CameraNoiseParameters()
       sigma_focal_length(0.0),
       sigma_principal_point(0.0),
       sigma_td(0.0),
-      sigma_tr(0.0) {}
+      sigma_tr(0.0),
+      sigma_observation(1.0) {
+}
 
 CameraNoiseParameters::CameraNoiseParameters(
     double sigma_absolute_translation, double sigma_absolute_orientation,
@@ -18,7 +20,8 @@ CameraNoiseParameters::CameraNoiseParameters(
     : sigma_absolute_translation(sigma_absolute_translation),
       sigma_absolute_orientation(sigma_absolute_orientation),
       sigma_c_relative_translation(sigma_c_relative_translation),
-      sigma_c_relative_orientation(sigma_c_relative_orientation) {}
+      sigma_c_relative_orientation(sigma_c_relative_orientation) {
+}
 
 ImuParameters::ImuParameters()
     : T_BS(),

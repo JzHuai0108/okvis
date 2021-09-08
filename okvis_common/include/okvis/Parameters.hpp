@@ -62,8 +62,7 @@
 namespace okvis {
 
 /// \brief Struct to define the behavior of the camera extrinsics.
-struct CameraNoiseParameters
-{
+struct CameraNoiseParameters {
   // set to 0 in order to turn off
   /// \brief Default Constructor -- fixed camera extrinsics.
   CameraNoiseParameters();
@@ -72,28 +71,33 @@ struct CameraNoiseParameters
    * @brief Constructor.
    * @param sigma_absolute_translation Absolute translation stdev. [m]
    * @param sigma_absolute_orientation Absolute orientation stdev. [rad]
-   * @param sigma_c_relative_translation Relative translation noise density. [m/sqrt(Hz)]
-   * @param sigma_c_relative_orientation Relative orientation noise density. [rad/sqrt(Hz)]
+   * @param sigma_c_relative_translation Relative translation noise density.
+   * [m/sqrt(Hz)]
+   * @param sigma_c_relative_orientation Relative orientation noise density.
+   * [rad/sqrt(Hz)]
    */
   CameraNoiseParameters(double sigma_absolute_translation,
-                                 double sigma_absolute_orientation,
-                                 double sigma_c_relative_translation,
-                                 double sigma_c_relative_orientation);
+                        double sigma_absolute_orientation,
+                        double sigma_c_relative_translation,
+                        double sigma_c_relative_orientation);
 
- public:
+public:
   // absolute (prior) w.r.t frame S
   double sigma_absolute_translation; ///< Absolute translation stdev. [m]
   double sigma_absolute_orientation; ///< Absolute orientation stdev. [rad]
 
   // relative (temporal)
-  double sigma_c_relative_translation; ///< Relative translation noise density. [m/sqrt(Hz)]
-  double sigma_c_relative_orientation; ///< Relative orientation noise density. [rad/sqrt(Hz)]
+  double sigma_c_relative_translation; ///< Relative translation noise density.
+                                       ///< [m/sqrt(Hz)]
+  double sigma_c_relative_orientation; ///< Relative orientation noise density.
+                                       ///< [rad/sqrt(Hz)]
 
-  double sigma_focal_length;  ///< stdev. of horizontal and vertical focal lengths.
-  double sigma_principal_point;  ///< stdev. of principal point coordinates.
-  std::vector<double> sigma_distortion;  ///< stdev. of camera distortion
-  double sigma_td;                       ///< camera time delay stdev. [sec]
-  double sigma_tr;                       ///< frame readout time stdev. [sec]
+  double sigma_focal_length; ///< stdev. of horizontal and vertical focal lengths.
+  double sigma_principal_point; ///< stdev. of principal point coordinates.
+  std::vector<double> sigma_distortion; ///< stdev. of camera distortion
+  double sigma_td;                      ///< camera time delay stdev. [sec]
+  double sigma_tr;                      ///< frame readout time stdev. [sec]
+  double sigma_observation;             ///< camera observation noise std. dev. [px]
 };
 
 /*!
