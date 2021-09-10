@@ -74,6 +74,8 @@ class NCameraSystem
     EUCM
   };
 
+  static std::string DistortionTypeToKalibrModel(DistortionType dt);
+
   /// \brief Default constructor
   inline NCameraSystem();
   /// \brief Construct with vector of extrinsics and geometries
