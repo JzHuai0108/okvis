@@ -155,3 +155,17 @@ TEST(NormalVectorParameterization, verifyJacobians) {
   Eigen::Vector3d vec = Eigen::Vector3d::Random();
   EXPECT_EQ(nvp.verify(vec.data(), 1e-6), 0);
 }
+
+TEST(NormalVectorParameterization, unitVector) {
+  Eigen::Vector3d vec = Eigen::Vector3d::Random();
+  vec.normalize();
+  Eigen::Vector3d oldvec = vec;
+  Eigen::Vector2d d = Eigen::Vector2d::Random();
+  swift_vio::NormalVectorParameterization::plus(vec.data(), d.data(),
+                                                vec.data());
+  EXPECT_NEAR(vec.norm(), 1.0, 1e-6);
+  Eigen::Vector2d d2;
+  swift_vio::NormalVectorParameterization::minus(oldvec.data(), vec.data(),
+                                                 d2.data());
+  EXPECT_LT((d2 - d).norm(), 1e-6);
+}
