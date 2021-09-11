@@ -153,4 +153,23 @@ int deleteImuMeasurements(const okvis::Time& eraseUntil,
 
   return removed;
 }
+
+void padImuToLeft(okvis::Time leftTimeLimit, okvis::Duration delta,
+                  okvis::ImuMeasurementDeque *imuMeasurements) {
+  while (imuMeasurements->front().timeStamp > leftTimeLimit) {
+    okvis::ImuMeasurement meas = imuMeasurements->front();
+    meas.timeStamp -= delta;
+    imuMeasurements->push_front(meas);
+  }
+}
+
+void padImuToRight(okvis::Time rightTimeLimit, okvis::Duration delta,
+                   okvis::ImuMeasurementDeque *imuMeasurements) {
+  while (imuMeasurements->back().timeStamp < rightTimeLimit) {
+    okvis::ImuMeasurement meas = imuMeasurements->back();
+    meas.timeStamp += delta;
+    imuMeasurements->push_back(meas);
+  }
+}
+
 }  // namespace swift_vio

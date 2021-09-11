@@ -46,5 +46,11 @@ okvis::ImuMeasurementDeque getImuMeasurements(
 int deleteImuMeasurements(const okvis::Time& eraseUntil,
                           okvis::ImuMeasurementDeque& imuMeasurements_,
                           std::mutex* imuMeasurements_mutex_ = nullptr);
+
+void padImuToLeft(okvis::Time leftTimeLimit, okvis::Duration delta,
+                  okvis::ImuMeasurementDeque *imuMeasurements);
+
+void padImuToRight(okvis::Time rightTimeLimit, okvis::Duration delta,
+                   okvis::ImuMeasurementDeque *imuMeasurements);
 }  // namespace swift_vio
 #endif  // INCLUDE_SWIFT_VIO_BOUNDED_IMU_DEQUE_HPP_
