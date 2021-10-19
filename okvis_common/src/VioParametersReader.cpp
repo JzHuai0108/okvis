@@ -51,6 +51,7 @@
 #include <okvis/cameras/EUCM.hpp>
 
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/eigen.hpp>
 
 #include <okvis/VioParametersReader.hpp>
 
@@ -894,6 +895,26 @@ bool parseBoolean(cv::FileNode node, bool& val) {
     }
   }
   return false;
+}
+
+bool parseMatrixInYaml(cv::FileNode matNode, Eigen::MatrixXd *res, int rows,
+                       int cols) {
+  if (matNode.empty()) {
+    return false;
+  } else if (matNode.isSeq()) {
+    res->resize(rows, cols);
+    for (int r = 0; r < rows; ++r) {
+      for (int c = 0; c < cols; ++c) {
+        (*res)(r, c) = matNode[r * cols + c];
+      }
+    }
+    return true;
+  } else {
+    cv::Mat mat;
+    matNode >> mat;
+    cv::cv2eigen(mat, *res);
+    return true;
+  }
 }
 
 bool VioParametersReader::getCameraCalibration(

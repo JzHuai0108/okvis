@@ -176,6 +176,33 @@ class VioParametersReader{
 bool parseBoolean(cv::FileNode node, bool& val);
 
 void parseImuParameters(cv::FileNode node, ImuParameters *imuParams);
+
+/**
+ * @brief parseMatrixInYaml
+ * For a matrix attribute say T_cam_imu, two forms are supported.
+ * 1. seq form example
+ *   T_cam_imu:
+ *     [-0.9995110484978581, 0.030299116376600627, -0.0077218830287333565, -0.053697434688869734,
+ *      0.008104079263822521, 0.012511643720192351, -0.9998888851620987, -0.046131737923635924,
+ *      -0.030199136245891378, -0.9994625667418545, -0.012751072573940885, -0.07149261284195751,
+ *      0.0, 0.0, 0.0, 1.0]
+ * 2. mat form example
+ *   T_cam_imu: !!opencv-matrix
+ *     rows: 4
+ *     cols: 4
+ *     dt: d
+ *     data: [-0.9995110484978581, 0.030299116376600627, -0.0077218830287333565, -0.053697434688869734,
+ *            0.008104079263822521, 0.012511643720192351, -0.9998888851620987, -0.046131737923635924,
+ *            -0.030199136245891378, -0.9994625667418545, -0.012751072573940885, -0.07149261284195751,
+ *            0.0, 0.0, 0.0, 1.0]
+ * @param matNode
+ * @param res
+ * @param rows
+ * @param cols
+ * @return
+ */
+bool parseMatrixInYaml(cv::FileNode matNode, Eigen::MatrixXd *res, int rows,
+                       int cols);
 }
 
 #endif /* INCLUDE_OKVIS_VIOPARAMETERSREADER_HPP_ */
