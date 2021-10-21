@@ -101,7 +101,9 @@ bool Frontend::detectAndDescribe(size_t cameraIndex,
                                  const std::vector<cv::KeyPoint> * keypoints) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIndex < numCameras_, "Camera index exceeds number of cameras.");
   std::lock_guard<std::mutex> lock(*featureDetectorMutexes_[cameraIndex]);
-
+  if (!isDescriptorBasedMatching()) {
+    return false;
+  }
   // check there are no keypoints here
   OKVIS_ASSERT_TRUE(Exception, keypoints == nullptr, "external keypoints currently not supported")
 
@@ -122,9 +124,7 @@ bool Frontend::detectAndDescribe(size_t cameraIndex,
 // Matching as well as initialization of landmarks and state.
 bool Frontend::dataAssociationAndInitialization(
     okvis::Estimator& estimator,
-    okvis::kinematics::Transformation& /*T_WS_propagated*/, // TODO sleutenegger: why is this not used here?
     const okvis::VioParameters &params,
-    const std::shared_ptr<okvis::MapPointVector> /*map*/, // TODO sleutenegger: why is this not used here?
     std::shared_ptr<okvis::MultiFrame> framesInOut,
     bool *asKeyframe) {
   // match new keypoints to existing landmarks/keypoints

@@ -93,40 +93,15 @@ class VioFrontendInterface {
   /**
    * @brief Matching as well as initialization of landmarks and state.
    * @param estimator       Estimator.
-   * @param T_WS_propagated Pose of sensor at image capture time.
    * @param params          Configuration parameters.
-   * @param map             Current map.
    * @param[in, out] nframes     Multiframe including the descriptors of all the keypoints.
    * @param[out] asKeyframe Should the frame be a keyframe?
    * @return True if successful.
    */
   virtual bool dataAssociationAndInitialization(
       okvis::Estimator& estimator,
-      okvis::kinematics::Transformation& T_WS_propagated,
       const okvis::VioParameters & params,
-      const std::shared_ptr<okvis::MapPointVector> map,
       std::shared_ptr<okvis::MultiFrame> nframes, bool* asKeyframe) = 0;
-
-  /**
-   * @brief Propagates pose, speeds and biases with given IMU measurements.
-   * @see okvis::ceres::ImuError::propagation()
-   * @param[in] imuMeasurements All the IMU measurements.
-   * @param[in] imuParams The parameters to be used.
-   * @param[inout] T_WS_propagated Start pose.
-   * @param[inout] speedAndBiases Start speed and biases.
-   * @param[in] t_start Start time.
-   * @param[in] t_end End time.
-   * @param[out] covariance Covariance for GIVEN start states.
-   * @param[out] jacobian Jacobian w.r.t. start states.
-   * @return True on success.
-   */
-  virtual bool propagation(const okvis::ImuMeasurementDeque & imuMeasurements,
-                           const okvis::ImuParameters & imuParams,
-                           okvis::kinematics::Transformation& T_WS_propagated,
-                           okvis::SpeedAndBias & speedAndBiases,
-                           const okvis::Time& t_start, const okvis::Time& t_end,
-                           Eigen::Matrix<double, 15, 15>* covariance,
-                           Eigen::Matrix<double, 15, 15>* jacobian) const = 0;
 
   ///@}
 };

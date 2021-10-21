@@ -60,7 +60,7 @@ TEST(OkvisVioInterfaces, testDestructionWithImageData)
   MockVioFrontendInterface mock_frontend;
   EXPECT_CALL(mock_frontend, detectAndDescribe(_,_,_,_))
     .Times(AtLeast(1));
-  EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_,_,_,_,_,_))
+  EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_,_,_,_))
     .Times(Between(0, 10));
   EXPECT_CALL(mock_frontend, propagation(_,_,_,_,_,_,_,_))
     .Times(0);

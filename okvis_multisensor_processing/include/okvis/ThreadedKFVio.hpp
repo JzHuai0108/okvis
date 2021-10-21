@@ -244,7 +244,8 @@ class ThreadedKFVio : public VioInterface {
   /// \brief Trigger display (needed because OSX won't allow threaded display).
   void display() final;
 
-  void saveStatistics(const std::string& filename) const final;
+  /// \brief Save statistics of the backend at the end of execution.
+  void saveStatistics(const std::string& filename) final;
 
   std::string headerLine() const final { return estimator_->headerLine(); }
 
@@ -314,6 +315,7 @@ class ThreadedKFVio : public VioInterface {
   };
 
   /// \brief copy calibration parameters from estimator to optimization result.
+  /// \warning Lock estimator_mutex.
   void dumpCalibrationParameters(uint64_t latestNFrameId, OptimizationResults* result) const;
   /// \brief add loop frame and matches to queue.
   bool addLoopFrameAndMatches(std::shared_ptr<swift_vio::LoopFrameAndMatches> loopFrame);
@@ -334,7 +336,6 @@ class ThreadedKFVio : public VioInterface {
   /// \warning Duplicate of parameters_.imu
   okvis::ImuParameters imu_params_;
   okvis::kinematics::Transformation T_WS_propagated_; ///< The pose propagated by the IMU measurements
-  std::shared_ptr<okvis::MapPointVector> map_;        ///< The map. Unused.
 
   // lock lastState_mutex_ when accessing these
   /// \brief Resulting pose of the last optimization

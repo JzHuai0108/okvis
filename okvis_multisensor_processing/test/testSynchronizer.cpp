@@ -66,7 +66,7 @@ TEST(OkvisVioInterfaces, testFrameSync)
   MockVioFrontendInterface mock_frontend;
   EXPECT_CALL(mock_frontend, detectAndDescribe(_,_,_,_))
     .Times(Between(12, 17));
-  EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_,_,_,_,_,_))
+  EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_,_,_,_))
     .Times(Between(4, 6));
   EXPECT_CALL(mock_frontend, propagation(_,_,_,_,_,_,_,_))
     .Times(Between(114, 115));

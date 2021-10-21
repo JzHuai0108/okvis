@@ -316,7 +316,7 @@ class VioInterface {
    */
   virtual void display();
 
-  virtual void saveStatistics(const std::string& /*filename*/) const {}
+  virtual void saveStatistics(const std::string& /*filename*/) {}
 
   virtual std::string headerLine() const { return ""; }
 

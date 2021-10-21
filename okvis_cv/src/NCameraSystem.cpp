@@ -40,6 +40,8 @@
 
 #include "okvis/cameras/NCameraSystem.hpp"
 
+#include <glog/logging.h>
+
 #include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/cameras/EUCM.hpp>
 #include <okvis/cameras/NoDistortion.hpp>
@@ -76,6 +78,7 @@ std::string NCameraSystem::DistortionTypeToKalibrModel(DistortionType dt) {
 /// \brief compute all the overlaps of fields of view. Attention: can be expensive.
 void NCameraSystem::computeOverlaps()
 {
+  LOG(INFO) << "Computing overlaps between " << T_SC_.size() << " cameras... It may take a few seconds!";
   OKVIS_ASSERT_TRUE_DBG(
       Exception, T_SC_.size() == cameraGeometries_.size(),
       "Number of extrinsics must match number of camera models!");

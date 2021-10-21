@@ -95,18 +95,14 @@ class Frontend : public VioFrontendInterface {
    * @warning This method is not threadsafe.
    * @warning This method uses the estimator. Make sure to not access it in another thread.
    * @param estimator       Estimator.
-   * @param T_WS_propagated Pose of sensor at image capture time.
    * @param params          Configuration parameters.
-   * @param map             Unused.
    * @param framesInOut     Multiframe including the descriptors of all the keypoints.
    * @param[out] asKeyframe Should the frame be a keyframe?
    * @return True if successful.
    */
   virtual bool dataAssociationAndInitialization(
       okvis::Estimator& estimator,
-      okvis::kinematics::Transformation& T_WS_propagated,
       const okvis::VioParameters & params,
-      const std::shared_ptr<okvis::MapPointVector> map,
       std::shared_ptr<okvis::MultiFrame> framesInOut, bool* asKeyframe);
 
   /**
@@ -123,7 +119,7 @@ class Frontend : public VioFrontendInterface {
    * @param[out] jacobian Jacobian w.r.t. start states.
    * @return True on success.
    */
-  virtual bool propagation(const okvis::ImuMeasurementDeque & imuMeasurements,
+  bool propagation(const okvis::ImuMeasurementDeque & imuMeasurements,
                            const okvis::ImuParameters & imuParams,
                            okvis::kinematics::Transformation& T_WS_propagated,
                            okvis::SpeedAndBias & speedAndBiases,
@@ -334,9 +330,8 @@ class Frontend : public VioFrontendInterface {
    */
   float keyframeInsertionMatchingRatioThreshold_;  //0.2
 
-  int numNFrames_;
-
-  int numKeyframes_;
+  std::atomic_int numNFrames_;
+  std::atomic_int numKeyframes_;
 
   swift_vio::FrontendOptions frontendOptions_;
 

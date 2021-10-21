@@ -232,12 +232,6 @@ ThreadedKFVio::~ThreadedKFVio() {
   optimizationThread_.join();
   publisherThread_.join();
 
-  /*okvis::kinematics::Transformation endPosition;
-  estimator_->get_T_WS(estimator_->currentFrameId(), endPosition);
-  std::stringstream s;
-  s << endPosition.r();
-  LOG(INFO) << "Sensor end position:\n" << s.str();
-  LOG(INFO) << "Distance to origin: " << endPosition.r().norm();*/
 #ifndef DEACTIVATE_TIMERS
   LOG(INFO) << okvis::timing::Timing::print();
 #endif
@@ -460,7 +454,7 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
     }
 
     // get T_WC(camIndx) for detectAndDescribe()
-    if (estimator_->numFrames() == 0) {
+    if (frontend_->numNFrames() == 0) {
       // first frame ever
       bool success = swift_vio::initPoseFromImu(imuData, T_WS);
       {
@@ -492,11 +486,11 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
     okvis::kinematics::Transformation T_WC = T_WS
         * (*parameters_.nCameraSystem.T_SC(frame->sensorId));
     beforeDetectTimer.stop();
-    if (frontend_->isDescriptorBasedMatching()) {
-      detectTimer.start();
-      frontend_->detectAndDescribe(frame->sensorId, multiFrame, T_WC, nullptr);
-      detectTimer.stop();
-    }
+
+    detectTimer.start();
+    frontend_->detectAndDescribe(frame->sensorId, multiFrame, T_WC, nullptr);
+    detectTimer.stop();
+
     afterDetectTimer.start();
 
     bool push = false;
@@ -578,8 +572,7 @@ void ThreadedKFVio::matchingLoop() {
                           "imu data end time is smaller than begin time."
                               << "current frametimestamp " << frame->timestamp()
                               << " (id: " << frame->id() << "last timestamp "
-                              << lastAddedStateTimestamp_
-                              << " (id: " << estimator_->currentFrameId());
+                              << lastAddedStateTimestamp_);
 
     // wait until all relevant imu messages have arrived and check for termination request
     if (imuFrameSynchronizer_.waitForUpToDateImuData(
@@ -598,7 +591,8 @@ void ThreadedKFVio::matchingLoop() {
       continue;
 
     // make sure that optimization of last frame is over.
-    // TODO If we didn't actually 'pop' the _matchedFrames queue until after optimization this would not be necessary
+    // If we didn't actually 'pop' the _matchedFrames queue until after optimization this would not be necessary?
+    // jhuai: Anyway, we have to wait and lock estimator_mutex.
     {
       waitForOptimizationTimer.start();
       std::unique_lock<std::mutex> l(estimator_mutex_);
@@ -619,11 +613,9 @@ void ThreadedKFVio::matchingLoop() {
       }
 
       // -- matching keypoints, initialising landmarks etc.
-      okvis::kinematics::Transformation T_WS;
-      estimator_->get_T_WS(frame->id(), T_WS);
       matchingTimer.start();
-      frontend_->dataAssociationAndInitialization(*estimator_, T_WS, parameters_,
-                                                 map_, frame, &asKeyframe);
+      frontend_->dataAssociationAndInitialization(*estimator_, parameters_, frame, &asKeyframe);
+
       matchingTimer.stop();
       if (asKeyframe)
         estimator_->setKeyframe(frame->id(), asKeyframe);
@@ -788,47 +780,29 @@ void ThreadedKFVio::optimizationLoop() {
     std::shared_ptr<swift_vio::LoopQueryKeyframeMessage> queryKeyframe;
     {
       std::lock_guard<std::mutex> l(estimator_mutex_);
-      optimizationTimer.start();
       if (foundLoop) {
         estimator_->setLoopFrameAndMatchesList(loopFrameAndMatchesList);
       }
-      //if(frontend_->isInitialized()){
-      estimator_->optimize(parameters_.optimization.max_iterations, 2, false);
-      //}
-      /*if (estimator_->numFrames() > 0 && !frontend_->isInitialized()){
-        // undo translation
-        for(size_t n=0; n<estimator_->numFrames(); ++n){
-          okvis::kinematics::Transformation T_WS_0;
-          estimator_->get_T_WS(estimator_->frameIdByAge(n),T_WS_0);
-          Eigen::Matrix4d T_WS_0_mat = T_WS_0.T();
-          T_WS_0_mat.topRightCorner<3,1>().setZero();
-          estimator_->set_T_WS(estimator_->frameIdByAge(n),okvis::kinematics::Transformation(T_WS_0_mat));
-          okvis::SpeedAndBias sb_0 = okvis::SpeedAndBias::Zero();
-          if(estimator_->getSpeedAndBias(estimator_->frameIdByAge(n), 0, sb_0)){
-            sb_0.head<3>().setZero();
-            estimator_->setSpeedAndBias(estimator_->frameIdByAge(n), 0, sb_0);
-          }
-        }
-      }*/
 
-      optimizationTimer.stop();
-
+      bool runNonlinearEstimation = true;
+      if (!estimator_->isWellInitialized()) {
+        runNonlinearEstimation = estimator_->tryToInitialize(frame_pairs);
+      }
       // get timestamp of last frame in IMU window. Need to do this before marginalization as it will be removed there (if not keyframe)
-      /*if (estimator_->numFrames()
-          > size_t(parameters_.optimization.numImuFrames)) {
-        deleteImuMeasurementsUntil = estimator_->multiFrame(
-            estimator_->frameIdByAge(parameters_.optimization.numImuFrames))
-            ->timestamp() - temporal_imu_data_overlap;
-      }*/
       deleteImuMeasurementsUntil =
           estimator_->oldestFrameTimestamp() - Estimator::half_window_;
 
-      marginalizationTimer.start();
-      estimator_->applyMarginalizationStrategy(result.transferredLandmarks);
-      marginalizationTimer.stop();
-      afterOptimizationTimer.start();
+      if (runNonlinearEstimation) {
+        optimizationTimer.start();
+        estimator_->optimize(parameters_.optimization.max_iterations, 2, false);
+        optimizationTimer.stop();
 
-      // now actually remove measurements
+        marginalizationTimer.start();
+        estimator_->applyMarginalizationStrategy(result.transferredLandmarks);
+        marginalizationTimer.stop();
+        afterOptimizationTimer.start();
+      }
+
       swift_vio::deleteImuMeasurements(deleteImuMeasurementsUntil,
                             imuMeasurements_, &imuMeasurements_mutex_);
 
@@ -982,12 +956,13 @@ void ThreadedKFVio::publisherLoop() {
   }
 }
 
-void ThreadedKFVio::saveStatistics(const std::string &filename) const {
+void ThreadedKFVio::saveStatistics(const std::string &filename) {
   std::ofstream stream(filename, std::ios_base::app);
   if (!stream.is_open()) {
-    LOG(WARNING) << "error in opening " << filename;
+    LOG(WARNING) << "Error in opening " << filename;
     return;
   }
+  std::lock_guard<std::mutex> lock(estimator_mutex_);
   estimator_->printTrackLengthHistogram(stream);
   if (stream.is_open())
     stream.close();

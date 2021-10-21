@@ -145,6 +145,20 @@ class VioBackendInterface {
    */
   virtual bool removeObservation(uint64_t landmarkId, uint64_t poseId,  size_t camIdx,
                          size_t keypointIdx) = 0;
+
+  /**
+   * @brief is the backend well initialized for running nonlinear estimation?
+   * @return ready for running nonlinear estimation.
+   */
+  virtual bool isWellInitialized() const { return true; }
+
+  /**
+   * @brief try to initialize the backend for running nonlinear estimation,
+   * and reset variables if necessary.
+   * @return ready for running nonlinear estimation.
+   */
+  virtual bool tryToInitialize(std::shared_ptr<const okvis::MultiFrame> /*multiFrame*/) { return true; }
+
   /**
    * @brief Start optimization.
    * @param[in] numIter Maximum number of iterations.

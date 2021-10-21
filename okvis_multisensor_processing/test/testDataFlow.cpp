@@ -69,7 +69,7 @@ TEST(OkvisVioInterfaces, testDataFlow)
   MockVioFrontendInterface mock_frontend;
   EXPECT_CALL(mock_frontend, detectAndDescribe(_,_,_,_))
     .Times(Between(18, 20));
-  EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_,_,_,_,_,_))
+  EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_,_,_,_))
     .Times(Between(7, 10));
   EXPECT_CALL(mock_frontend, propagation(_,_,_,_,_,_,_,_))
     .Times(Between(99, 100));

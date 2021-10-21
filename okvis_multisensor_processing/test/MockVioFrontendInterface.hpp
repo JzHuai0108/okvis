@@ -44,8 +44,8 @@ class MockVioFrontendInterface{
  public:
   MOCK_METHOD4(detectAndDescribe,
       bool(size_t cameraIndex, std::shared_ptr<okvis::MultiFrame> frameOut, const okvis::kinematics::Transformation& T_WC, const std::vector<cv::KeyPoint> * keypoints));
-  MOCK_METHOD6(dataAssociationAndInitialization,
-      bool(okvis::VioBackendInterface& estimator, okvis::kinematics::Transformation& T_WS_propagated, const okvis::VioParameters & params, const std::shared_ptr<okvis::MapPointVector> map, std::shared_ptr<okvis::MultiFrame> framesInOut, bool* asKeyframe));
+  MOCK_METHOD4(dataAssociationAndInitialization,
+      bool(okvis::VioBackendInterface& estimator, const okvis::VioParameters & params, std::shared_ptr<okvis::MultiFrame> framesInOut, bool* asKeyframe));
   MOCK_CONST_METHOD8(propagation,
       bool(const okvis::ImuMeasurementDeque & imuMeasurements, const okvis::ImuParameters & imuParams, okvis::kinematics::Transformation& T_WS_propagated, okvis::SpeedAndBias & speedAndBiases, const okvis::Time& t_start, const okvis::Time& t_end, Eigen::Matrix<double, 15, 15>* covariance, Eigen::Matrix<double, 15, 15>* jacobian));
   MOCK_METHOD1(setBriskDetectionOctaves,
