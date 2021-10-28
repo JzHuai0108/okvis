@@ -252,8 +252,9 @@ bool Frontend::doWeNeedANewKeyframe(
     return true;
   }
 
-  if (!isInitialized_)
-    return false;
+// jhuai: The below is commented as we need a new keyframe when the view changes much with pure rotation.
+//  if (!isInitialized_)
+//    return false;
 
   double overlap = 0.0;
   double ratio = 0.0;

@@ -184,17 +184,8 @@ class Frontend : public VioFrontendInterface {
     return keyframeInsertionMatchingRatioThreshold_;
   }
 
-  /// @brief Returns true if the initialization has been completed (RANSAC with actual translation)
-  bool isInitialized() const {
-    return isInitialized_;
-  }
-
   int numNFrames() const {
     return numNFrames_;
-  }
-
-  int numKeyframes() const {
-    return numKeyframes_;
   }
 
   virtual bool isDescriptorBasedMatching() const {
