@@ -252,9 +252,10 @@ bool Frontend::doWeNeedANewKeyframe(
     return true;
   }
 
-// jhuai: The below is commented as we need a new keyframe when the view changes much with pure rotation.
-//  if (!isInitialized_)
-//    return false;
+  if (!isInitialized_) { // do not add keyframes when starting with standstill
+    // in which case matches may not be recorded due to failed triangulation.
+    return false;
+  }
 
   double overlap = 0.0;
   double ratio = 0.0;
@@ -331,7 +332,6 @@ int Frontend::matchToKeyframes(okvis::Estimator& estimator,
                                bool removeOutliers) {
   rotationOnly = true;
   if (estimator.numFrames() < 2) {
-    // just starting, so yes, we need this as a new keyframe
     return 0;
   }
 

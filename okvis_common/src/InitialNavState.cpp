@@ -3,7 +3,6 @@
 namespace swift_vio {
 InitialNavState::InitialNavState()
     : initializeToCustomPose(false),
-      startInMotion(false),
       stateTime(),
       p_WS(0, 0, 0),
       q_WS(1, 0, 0, 0),
@@ -16,7 +15,6 @@ InitialNavState::InitialNavState()
 // q_ws
 InitialNavState::InitialNavState(const InitialNavState& rhs)
     : initializeToCustomPose(rhs.initializeToCustomPose),
-      startInMotion(rhs.startInMotion),
       stateTime(rhs.stateTime),
       p_WS(rhs.p_WS),
       q_WS(rhs.q_WS),
@@ -51,7 +49,6 @@ void InitialNavState::toCovariance(
 InitialNavState& InitialNavState::operator=(const InitialNavState& other) {
   if (&other == this) return *this;
   initializeToCustomPose = other.initializeToCustomPose;
-  startInMotion = other.startInMotion;
   stateTime = other.stateTime;
   p_WS = other.p_WS;
   q_WS = other.q_WS;
@@ -70,7 +67,6 @@ std::string InitialNavState::toString() const {
   } else {
     ss << "Not initializeToCustomPose.";
   }
-  ss << " startInMotion? " << startInMotion;
   ss << " v_WS " << v_WS.transpose() << ", std " << std_v_WS.transpose()
      << "\n";
   ss << " p_WS std " << std_p_WS.transpose() << " q_WS std "

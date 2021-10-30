@@ -173,7 +173,6 @@ void parseInitialState(cv::FileNode initialStateNode,
 
   initialState->initializeToCustomPose = initializeToCustomPose;
   VLOG(2) << initialState->toString();
-
 }
 
 void parseOptimizationOptions(cv::FileNode optNode, Optimization *optParams) {

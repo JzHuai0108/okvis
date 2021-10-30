@@ -58,11 +58,10 @@
 #include <okvis/VioBackendInterface.hpp>
 #include <okvis/MultiFrame.hpp>
 
-class Estimator;
-
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
+class Estimator;
 /**
  * @brief The VioFrontendInterface class is an interface for frontends.
  */

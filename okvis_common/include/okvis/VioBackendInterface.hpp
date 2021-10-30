@@ -155,9 +155,14 @@ class VioBackendInterface {
   /**
    * @brief try to initialize the backend for running nonlinear estimation,
    * and reset variables if necessary.
+   * @param translated has the platform translated according to say the frontend?
    * @return ready for running nonlinear estimation.
    */
-  virtual bool tryToInitialize(std::shared_ptr<const okvis::MultiFrame> /*multiFrame*/) { return true; }
+  virtual bool
+  tryToInitialize(std::shared_ptr<const okvis::MultiFrame> /*multiFrame*/,
+                  bool /*translated*/) {
+    return true;
+  }
 
   /**
    * @brief Start optimization.

@@ -184,6 +184,11 @@ class Frontend : public VioFrontendInterface {
     return keyframeInsertionMatchingRatioThreshold_;
   }
 
+  /// @brief Returns true if the initialization has been completed (RANSAC with actual translation)
+  bool isInitialized() {
+    return isInitialized_;
+  }
+
   int numNFrames() const {
     return numNFrames_;
   }
@@ -278,7 +283,7 @@ class Frontend : public VioFrontendInterface {
   /// Mutexes for feature detectors and descriptors.
   std::vector<std::unique_ptr<std::mutex> > featureDetectorMutexes_;
 
-  bool isInitialized_;        ///< Is the pose initialised?
+  std::atomic_bool isInitialized_;        ///< Is the pose initialised?
   const size_t numCameras_;   ///< Number of cameras in the configuration.
 
   /// @name BRISK detection parameters
@@ -328,6 +333,9 @@ class Frontend : public VioFrontendInterface {
 
   /**
    * @brief Decision whether a new frame should be keyframe or not.
+   * Determine keyframes by checking the ratio of the area covered by feature matches and that by all features,
+   * and checking the number of feature matches and the number of features in the area of matches.
+   * This method does not work well in standstill since feature matches cannot be well initialized into landmarks.
    * @param estimator     const reference to the estimator.
    * @param currentFrame  Keyframe candidate.
    * @return True if it should be a new keyframe.
