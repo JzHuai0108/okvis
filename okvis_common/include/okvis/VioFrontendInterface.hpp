@@ -61,7 +61,7 @@
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-class Estimator;
+class EstimatorBase;
 /**
  * @brief The VioFrontendInterface class is an interface for frontends.
  */
@@ -91,14 +91,14 @@ class VioFrontendInterface {
 
   /**
    * @brief Matching as well as initialization of landmarks and state.
-   * @param estimator       Estimator.
+   * @param estimator       EstimatorBase.
    * @param params          Configuration parameters.
    * @param[in, out] nframes     Multiframe including the descriptors of all the keypoints.
    * @param[out] asKeyframe Should the frame be a keyframe?
    * @return True if successful.
    */
   virtual bool dataAssociationAndInitialization(
-      okvis::Estimator& estimator,
+      okvis::EstimatorBase& estimator,
       const okvis::VioParameters & params,
       std::shared_ptr<okvis::MultiFrame> nframes, bool* asKeyframe) = 0;
 

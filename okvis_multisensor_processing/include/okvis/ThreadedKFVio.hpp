@@ -114,7 +114,7 @@ class ThreadedKFVio : public VioInterface {
   ThreadedKFVio(okvis::VioParameters& parameters);
 
   ThreadedKFVio(okvis::VioParameters& parameters,
-                std::shared_ptr<Estimator> estimator,
+                std::shared_ptr<EstimatorBase> estimator,
                 std::shared_ptr<Frontend> frontend,
                 std::shared_ptr<swift_vio::LoopClosureMethod> loopClosureMethod);
 #endif
@@ -362,7 +362,7 @@ class ThreadedKFVio : public VioInterface {
   /// \warning Lock with frameSynchronizer_mutex_
   okvis::FrameSynchronizer frameSynchronizer_;
 
-  okvis::Time lastAddedStateTimestamp_; ///< Timestamp of the newest state in the Estimator.
+  okvis::Time lastAddedStateTimestamp_; ///< Timestamp of the newest state in the EstimatorBase.
   okvis::Time lastAddedImageTimestamp_; ///< Timestamp of the newest image added to the image input queue.
 
 
@@ -444,7 +444,7 @@ class ThreadedKFVio : public VioInterface {
   okvis::MockVioBackendInterface& estimator_;
   okvis::MockVioFrontendInterface& frontend_;
 #else
-  std::shared_ptr<okvis::Estimator> estimator_;    ///< The backend estimator.
+  std::shared_ptr<okvis::EstimatorBase> estimator_;    ///< The backend estimator.
   std::shared_ptr<okvis::Frontend> frontend_;      ///< The frontend.
 #endif
   swift_vio::LoopClosureModule loopClosureModule_;

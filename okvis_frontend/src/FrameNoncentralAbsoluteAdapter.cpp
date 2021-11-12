@@ -52,7 +52,7 @@
 
 // Constructor.
 opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::FrameNoncentralAbsoluteAdapter(
-    const okvis::Estimator & estimator,
+    const okvis::EstimatorBase & estimator,
     const okvis::cameras::NCameraSystem & nCameraSystem,
     std::shared_ptr<okvis::MultiFrame> frame) {
 

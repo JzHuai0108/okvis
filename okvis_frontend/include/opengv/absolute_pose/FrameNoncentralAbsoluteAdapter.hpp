@@ -46,7 +46,7 @@
 #include <opengv/absolute_pose/NoncentralAbsoluteAdapter.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/FrameTypedefs.hpp>
-#include <okvis/Estimator.hpp>
+#include <okvis/EstimatorBase.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
 
 /**
@@ -74,12 +74,12 @@ class FrameNoncentralAbsoluteAdapter : public AbsoluteAdapterBase {
 
   /**
    * @brief Constructor.
-   * @param estimator     Estimator.
+   * @param estimator     EstimatorBase.
    * @param nCameraSystem Camera configuration and parameters.
    * @param frame         The multiframe.
    */
   FrameNoncentralAbsoluteAdapter(
-      const okvis::Estimator & estimator,
+      const okvis::EstimatorBase & estimator,
       const okvis::cameras::NCameraSystem & nCameraSystem,
       std::shared_ptr<okvis::MultiFrame> frame);
 

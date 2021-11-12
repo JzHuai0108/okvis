@@ -1,6 +1,6 @@
 #include "swift_vio/FrameMatchingStats.hpp"
 namespace opengv {
-void findMatches(const okvis::Estimator& estimator,
+void findMatches(const okvis::EstimatorBase& estimator,
                  std::shared_ptr<okvis::MultiFrame> frameAPtr, size_t camIdA,
                  std::shared_ptr<okvis::MultiFrame> frameBPtr, size_t camIdB,
                  okvis::Matches* matches) {

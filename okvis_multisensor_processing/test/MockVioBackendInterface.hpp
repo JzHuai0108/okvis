@@ -67,7 +67,6 @@ class MockVioBackendInterface : public VioBackendInterface {
   MOCK_METHOD1(applyMarginalizationStrategy, bool(okvis::MapPointVector& removedLandmarks));
   MOCK_METHOD3(optimize,
       void(size_t, size_t, bool));
-  MOCK_METHOD0(updateSensorRigs, void());
   MOCK_METHOD2(setOptimizationTimeLimit,
       bool(double timeLimit, int minIterations));
   MOCK_CONST_METHOD1(isLandmarkAdded,

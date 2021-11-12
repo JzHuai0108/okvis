@@ -43,7 +43,7 @@
 #include <vector>
 #include <opengv/types.hpp>
 #include <opengv/relative_pose/CentralRelativeAdapter.hpp>
-#include <okvis/Estimator.hpp>
+#include <okvis/EstimatorBase.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
 #include <okvis/assert_macros.hpp>
 
@@ -77,7 +77,7 @@ class FrameRelativeAdapter : public RelativeAdapterBase {
    * @param camIdB        The camera index for the second multiframe.
    *                      in order to access the relevant frame.
    */
-  FrameRelativeAdapter(const okvis::Estimator & estimator,
+  FrameRelativeAdapter(const okvis::EstimatorBase & estimator,
                        const okvis::cameras::NCameraSystem & nCameraSystem,
                        uint64_t multiFrameIdA, size_t camIdA,
                        uint64_t multiFrameIdB, size_t camIdB);

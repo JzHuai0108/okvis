@@ -123,7 +123,7 @@ bool Frontend::detectAndDescribe(size_t cameraIndex,
 
 // Matching as well as initialization of landmarks and state.
 bool Frontend::dataAssociationAndInitialization(
-    okvis::Estimator& estimator,
+    okvis::EstimatorBase& estimator,
     const okvis::VioParameters &params,
     std::shared_ptr<okvis::MultiFrame> framesInOut,
     bool *asKeyframe) {
@@ -205,7 +205,7 @@ bool Frontend::dataAssociationAndInitialization(
 
 void Frontend::matchStereoSwitch(
     okvis::cameras::NCameraSystem::DistortionType distortionType,
-    okvis::Estimator& estimator,
+    okvis::EstimatorBase& estimator,
     std::shared_ptr<okvis::MultiFrame> framesInOut) {
   TimerSwitchable matchStereoTimer("2.4.3 matchStereo");
 
@@ -244,7 +244,7 @@ bool Frontend::propagation(const okvis::ImuMeasurementDeque & imuMeasurements,
 
 // Decision whether a new frame should be keyframe or not.
 bool Frontend::doWeNeedANewKeyframe(
-    const okvis::Estimator& estimator,
+    const okvis::EstimatorBase& estimator,
     std::shared_ptr<okvis::MultiFrame> currentFrame) {
 
   if (estimator.numFrames() < 2) {
@@ -323,7 +323,7 @@ bool Frontend::doWeNeedANewKeyframe(
 
 // Match a new multiframe to existing keyframes
 template<class MATCHING_ALGORITHM>
-int Frontend::matchToKeyframes(okvis::Estimator& estimator,
+int Frontend::matchToKeyframes(okvis::EstimatorBase& estimator,
                                const okvis::VioParameters & params,
                                const uint64_t currentFrameId,
                                bool& rotationOnly,
@@ -413,7 +413,7 @@ int Frontend::matchToKeyframes(okvis::Estimator& estimator,
 
 // Match a new multiframe to the last frame.
 template<class MATCHING_ALGORITHM>
-int Frontend::matchToLastFrame(okvis::Estimator& estimator,
+int Frontend::matchToLastFrame(okvis::EstimatorBase& estimator,
                                const okvis::VioParameters& params,
                                const uint64_t currentFrameId,
                                bool usePoseUncertainty,
@@ -471,7 +471,7 @@ int Frontend::matchToLastFrame(okvis::Estimator& estimator,
 
 // Match the frames inside the multiframe to each other to initialise new landmarks.
 template<class MATCHING_ALGORITHM>
-void Frontend::matchStereo(okvis::Estimator& estimator,
+void Frontend::matchStereo(okvis::EstimatorBase& estimator,
                            std::shared_ptr<okvis::MultiFrame> multiFrame) {
 
   const size_t camNumber = multiFrame->numFrames();
@@ -523,7 +523,7 @@ void Frontend::matchStereo(okvis::Estimator& estimator,
 // Match the frames inside the multiframe to each other to initialise new landmarks.
 template <class MATCHING_ALGORITHM>
 void Frontend::matchStereoWithEpipolarCheck(
-    okvis::Estimator& estimator,
+    okvis::EstimatorBase& estimator,
     std::shared_ptr<okvis::MultiFrame> multiFrame) {
   const size_t camNumber = multiFrame->numFrames();
   const uint64_t mfId = multiFrame->id();
@@ -562,7 +562,7 @@ void Frontend::matchStereoWithEpipolarCheck(
 }
 
 // Perform 3D/2D RANSAC.
-int Frontend::runRansac3d2d(okvis::Estimator& estimator,
+int Frontend::runRansac3d2d(okvis::EstimatorBase& estimator,
                             const okvis::cameras::NCameraSystem& nCameraSystem,
                             std::shared_ptr<okvis::MultiFrame> currentFrame,
                             bool removeOutliers) {
@@ -632,7 +632,7 @@ int Frontend::runRansac3d2d(okvis::Estimator& estimator,
 }
 
 // Perform 2D/2D RANSAC.
-int Frontend::runRansac2d2d(okvis::Estimator& estimator,
+int Frontend::runRansac2d2d(okvis::EstimatorBase& estimator,
                             const okvis::VioParameters& params,
                             uint64_t currentFrameId, uint64_t olderFrameId,
                             bool initializePose,
@@ -834,7 +834,7 @@ void Frontend::initialiseBriskFeatureDetectors() {
 
 void Frontend::matchStereoWithEpipolarCheckSwitch(
     okvis::cameras::NCameraSystem::DistortionType distortionType,
-    okvis::Estimator& estimator,
+    okvis::EstimatorBase& estimator,
     std::shared_ptr<okvis::MultiFrame> framesInOut) {
   // do stereo match to get new landmarks
   TimerSwitchable matchStereoTimer("2.4.3 matchStereo");

@@ -59,7 +59,7 @@ namespace okvis {
 // Constructor.
 template<class CAMERA_GEOMETRY_T>
 VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::VioKeyframeWindowMatchingAlgorithm(
-    okvis::Estimator& estimator, int matchingType, float distanceThreshold,
+    okvis::EstimatorBase& estimator, int matchingType, float distanceThreshold,
     bool usePoseUncertainty) {
   matchingType_ = matchingType;
   distanceThreshold_ = distanceThreshold;

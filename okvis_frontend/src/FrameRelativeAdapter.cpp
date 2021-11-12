@@ -54,7 +54,7 @@
 
 // Constructor.
 opengv::relative_pose::FrameRelativeAdapter::FrameRelativeAdapter(
-    const okvis::Estimator & estimator,
+    const okvis::EstimatorBase & estimator,
     const okvis::cameras::NCameraSystem & nCameraSystem, uint64_t multiFrameIdA,
     size_t camIdA, uint64_t multiFrameIdB, size_t camIdB) {
 

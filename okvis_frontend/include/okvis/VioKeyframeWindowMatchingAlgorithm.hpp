@@ -45,7 +45,7 @@
 
 #include <okvis/DenseMatcher.hpp>
 #include <okvis/MatchingAlgorithm.hpp>
-#include <okvis/Estimator.hpp>
+#include <okvis/EstimatorBase.hpp>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/triangulation/ProbabilisticStereoTriangulator.hpp>
 #include <okvis/MultiFrame.hpp>
@@ -73,12 +73,12 @@ class VioKeyframeWindowMatchingAlgorithm : public okvis::MatchingAlgorithm {
 
   /**
    * @brief Constructor.
-   * @param estimator           Estimator.
+   * @param estimator           EstimatorBase.
    * @param matchingType        Matching type. See MatchingTypes enum.
    * @param distanceThreshold   Descriptor distance threshold.
    * @param usePoseUncertainty  Use the pose uncertainty for matching.
    */
-  VioKeyframeWindowMatchingAlgorithm(okvis::Estimator& estimator,
+  VioKeyframeWindowMatchingAlgorithm(okvis::EstimatorBase& estimator,
                                      int matchingType, float distanceThreshold,
                                      bool usePoseUncertainty = true);
 
@@ -169,7 +169,7 @@ class VioKeyframeWindowMatchingAlgorithm : public okvis::MatchingAlgorithm {
 
  private:
   /// \brief This is essentially the map.
-  okvis::Estimator* estimator_;
+  okvis::EstimatorBase* estimator_;
 
   /// \name Which frames to take
   /// \{

@@ -43,7 +43,7 @@
 
 #include <mutex>
 #include <okvis/assert_macros.hpp>
-#include <okvis/Estimator.hpp>
+#include <okvis/EstimatorBase.hpp>
 #include <okvis/VioFrontendInterface.hpp>
 #include <okvis/timing/Timer.hpp>
 #include <okvis/DenseMatcher.hpp>
@@ -94,14 +94,14 @@ class Frontend : public VioFrontendInterface {
    * @brief Matching as well as initialization of landmarks and state.
    * @warning This method is not threadsafe.
    * @warning This method uses the estimator. Make sure to not access it in another thread.
-   * @param estimator       Estimator.
+   * @param estimator       EstimatorBase.
    * @param params          Configuration parameters.
    * @param framesInOut     Multiframe including the descriptors of all the keypoints.
    * @param[out] asKeyframe Should the frame be a keyframe?
    * @return True if successful.
    */
   virtual bool dataAssociationAndInitialization(
-      okvis::Estimator& estimator,
+      okvis::EstimatorBase& estimator,
       const okvis::VioParameters & params,
       std::shared_ptr<okvis::MultiFrame> framesInOut, bool* asKeyframe);
 
@@ -340,14 +340,14 @@ class Frontend : public VioFrontendInterface {
    * @param currentFrame  Keyframe candidate.
    * @return True if it should be a new keyframe.
    */
-  bool doWeNeedANewKeyframe(const okvis::Estimator& estimator,
+  bool doWeNeedANewKeyframe(const okvis::EstimatorBase& estimator,
                             std::shared_ptr<okvis::MultiFrame> currentFrame);  // based on some overlap area heuristics
 
   /**
    * @brief Match a new multiframe to existing keyframes
    * @tparam MATCHING_ALGORITHM Algorithm to match new keypoints to existing landmarks
    * @warning As this function uses the estimator it is not threadsafe
-   * @param      estimator              Estimator.
+   * @param      estimator              EstimatorBase.
    * @param[in]  params                 Parameter struct.
    * @param[in]  currentFrameId         ID of the current frame that should be matched against keyframes.
    * @param[out] rotationOnly           Was the rotation only RANSAC motion model good enough to
@@ -358,7 +358,7 @@ class Frontend : public VioFrontendInterface {
    * @return The number of matches in total.
    */
   template<class MATCHING_ALGORITHM>
-  int matchToKeyframes(okvis::Estimator& estimator,
+  int matchToKeyframes(okvis::EstimatorBase& estimator,
                        const okvis::VioParameters& params,
                        const uint64_t currentFrameId, bool& rotationOnly,
                        bool usePoseUncertainty = true,
@@ -369,7 +369,7 @@ class Frontend : public VioFrontendInterface {
    * @brief Match a new multiframe to the last frame.
    * @tparam MATCHING_ALGORITHM Algorithm to match new keypoints to existing landmarks
    * @warning As this function uses the estimator it is not threadsafe.
-   * @param estimator           Estimator.
+   * @param estimator           EstimatorBase.
    * @param params              Parameter struct.
    * @param currentFrameId      ID of the current frame that should be matched against the last one.
    * @param usePoseUncertainty  Use the pose uncertainty for the matching.
@@ -377,7 +377,7 @@ class Frontend : public VioFrontendInterface {
    * @return The number of matches in total.
    */
   template<class MATCHING_ALGORITHM>
-  int matchToLastFrame(okvis::Estimator& estimator,
+  int matchToLastFrame(okvis::EstimatorBase& estimator,
                        const okvis::VioParameters& params,
                        const uint64_t currentFrameId,
                        bool usePoseUncertainty = true,
@@ -387,23 +387,23 @@ class Frontend : public VioFrontendInterface {
    * @brief Match the frames inside the multiframe to each other to initialise new landmarks.
    * @tparam MATCHING_ALGORITHM Algorithm to match new keypoints to existing landmarks.
    * @warning As this function uses the estimator it is not threadsafe.
-   * @param estimator   Estimator.
+   * @param estimator   EstimatorBase.
    * @param multiFrame  Multiframe containing the frames to match.
    */
   template<class MATCHING_ALGORITHM>
-  void matchStereo(okvis::Estimator& estimator,
+  void matchStereo(okvis::EstimatorBase& estimator,
                    std::shared_ptr<okvis::MultiFrame> multiFrame);
 
   /**
    * @brief Perform 3D/2D RANSAC.
    * @warning As this function uses the estimator it is not threadsafe.
-   * @param estimator       Estimator.
+   * @param estimator       EstimatorBase.
    * @param nCameraSystem   Camera configuration and parameters.
    * @param currentFrame    Frame with the new potential matches.
    * @param removeOutliers  Remove observation of outliers in estimator.
    * @return Number of inliers.
    */
-  int runRansac3d2d(okvis::Estimator& estimator,
+  int runRansac3d2d(okvis::EstimatorBase& estimator,
                     const okvis::cameras::NCameraSystem &nCameraSystem,
                     std::shared_ptr<okvis::MultiFrame> currentFrame,
                     bool removeOutliers);
@@ -411,7 +411,7 @@ class Frontend : public VioFrontendInterface {
   /**
    * @brief Perform 2D/2D RANSAC.
    * @warning As this function uses the estimator it is not threadsafe.
-   * @param estimator         Estimator.
+   * @param estimator         EstimatorBase.
    * @param params            Parameter struct.
    * @param currentFrameId    ID of the new multiframe containing matches with the frame with ID olderFrameId.
    * @param olderFrameId      ID of the multiframe to which the current frame has been matched against.
@@ -420,7 +420,7 @@ class Frontend : public VioFrontendInterface {
    * @param[out] rotationOnly Was the rotation only RANSAC model enough to explain the matches.
    * @return Number of inliers.
    */
-  int runRansac2d2d(okvis::Estimator& estimator,
+  int runRansac2d2d(okvis::EstimatorBase& estimator,
                     const okvis::VioParameters& params, uint64_t currentFrameId,
                     uint64_t olderFrameId, bool initializePose,
                     bool removeOutliers, bool &rotationOnly);
@@ -430,17 +430,17 @@ class Frontend : public VioFrontendInterface {
 
   void matchStereoSwitch(
       okvis::cameras::NCameraSystem::DistortionType distortionType,
-      okvis::Estimator& estimator,
+      okvis::EstimatorBase& estimator,
       std::shared_ptr<okvis::MultiFrame> framesInOut);
 
   template <class MATCHING_ALGORITHM>
   void matchStereoWithEpipolarCheck(
-      okvis::Estimator& estimator,
+      okvis::EstimatorBase& estimator,
       std::shared_ptr<okvis::MultiFrame> multiFrame);
 
   void matchStereoWithEpipolarCheckSwitch(
       okvis::cameras::NCameraSystem::DistortionType distortionType,
-      okvis::Estimator& estimator,
+      okvis::EstimatorBase& estimator,
       std::shared_ptr<okvis::MultiFrame> framesInOut);
 };
 

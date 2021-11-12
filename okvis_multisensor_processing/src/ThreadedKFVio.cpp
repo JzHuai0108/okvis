@@ -105,7 +105,7 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters)
 }
 
 ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters,
-                             std::shared_ptr<Estimator> estimator,
+                             std::shared_ptr<okvis::EstimatorBase> estimator,
                              std::shared_ptr<okvis::Frontend> frontend, 
                              std::shared_ptr<swift_vio::LoopClosureMethod> loopClosureMethod)
     : speedAndBiases_propagated_(okvis::SpeedAndBias::Zero()),
@@ -149,8 +149,8 @@ void ThreadedKFVio::init() {
             << std::endl;
 
   lastOptimizedCameraSystem_ = parameters_.nCameraSystem.deepCopy();
-  lastOptimizedStateTimestamp_ = okvis::Time(0.0) + Estimator::half_window_;;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
-  lastAddedStateTimestamp_ = okvis::Time(0.0) + Estimator::half_window_;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
+  lastOptimizedStateTimestamp_ = okvis::Time(0.0) + EstimatorBase::half_window_;;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
+  lastAddedStateTimestamp_ = okvis::Time(0.0) + EstimatorBase::half_window_;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
 
   estimator_->addImu(parameters_.imu);
   estimator_->addCameraSystem(parameters_.nCameraSystem);
@@ -424,7 +424,7 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
     // the predicted time of the new frame per the IMU clock.
     okvis::Time predictedFrameTime = multiFrame->timestamp(cameraIndex) + lastImageDelay;
     okvis::Time imuDataEndTime = predictedFrameTime + temporal_imu_data_overlap;
-    okvis::Time imuDataBeginTime = lastTimestamp - Estimator::half_window_;
+    okvis::Time imuDataBeginTime = lastTimestamp - EstimatorBase::half_window_;
 
     OKVIS_ASSERT_TRUE_DBG(Exception,imuDataBeginTime < imuDataEndTime,"imu data end time is smaller than begin time.");
 
@@ -466,7 +466,7 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
         lastOptimizedStateTimestamp_ =
             multiFrame->timestamp() +
             okvis::Duration(lastOptimizedCameraSystem_
-                                ->cameraGeometry(Estimator::kMainCameraIndex)
+                                ->cameraGeometry(EstimatorBase::kMainCameraIndex)
                                 ->imageDelay());
       }
       OKVIS_ASSERT_TRUE_DBG(Exception, success,
@@ -545,7 +545,7 @@ void ThreadedKFVio::matchingLoop() {
     okvis::Time latestFrameTime(0);
     {
       std::lock_guard<std::mutex> lock(lastState_mutex_);
-      lastMainCameraDelay.fromSec(lastOptimizedCameraSystem_->cameraGeometry(Estimator::kMainCameraIndex)->imageDelay());
+      lastMainCameraDelay.fromSec(lastOptimizedCameraSystem_->cameraGeometry(EstimatorBase::kMainCameraIndex)->imageDelay());
 
       for (size_t i = 0u; i < lastOptimizedCameraSystem_->numCameras(); ++i) {
         latestFrameTime = std::max(
@@ -558,9 +558,9 @@ void ThreadedKFVio::matchingLoop() {
       frame->setCameraSystem(*lastOptimizedCameraSystem_);
     }
     okvis::Time imuDataEndTime = latestFrameTime + temporal_imu_data_overlap;
-    okvis::Time imuDataBeginTime = lastAddedStateTimestamp_ - Estimator::half_window_;
+    okvis::Time imuDataBeginTime = lastAddedStateTimestamp_ - EstimatorBase::half_window_;
     if (imuDataBeginTime.toSec() == 0.0) {  // first state not yet added
-      imuDataBeginTime = minusSafe(frame->timestamp(), Estimator::half_window_);
+      imuDataBeginTime = minusSafe(frame->timestamp(), EstimatorBase::half_window_);
     }
     // at maximum Duration(.) sec of data is allowed
     if (imuDataEndTime - imuDataBeginTime > Duration(8)) {
@@ -604,7 +604,7 @@ void ThreadedKFVio::matchingLoop() {
       bool asKeyframe = false;
       if (estimator_->addStates(frame, imuData, asKeyframe)) {
         // We are strict with the timestamps, though lastAddedStateTimestamp does not need to be so precise.
-        lastAddedStateTimestamp_ = frame->timestamp(Estimator::kMainCameraIndex) + lastMainCameraDelay;
+        lastAddedStateTimestamp_ = frame->timestamp(EstimatorBase::kMainCameraIndex) + lastMainCameraDelay;
         addStateTimer.stop();
       } else {
         LOG(ERROR) << "Failed to add state! will drop multiframe.";
@@ -790,7 +790,7 @@ void ThreadedKFVio::optimizationLoop() {
       }
       // get timestamp of last frame in IMU window. Need to do this before marginalization as it will be removed there (if not keyframe)
       deleteImuMeasurementsUntil =
-          estimator_->oldestFrameTimestamp() - Estimator::half_window_;
+          estimator_->oldestFrameTimestamp() - EstimatorBase::half_window_;
 
       if (runNonlinearEstimation) {
         optimizationTimer.start();

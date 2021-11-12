@@ -1,7 +1,7 @@
 #ifndef INCLUDE_SWIFT_VIO_FRAME_MATCHING_STATS_HPP_
 #define INCLUDE_SWIFT_VIO_FRAME_MATCHING_STATS_HPP_
 
-#include <okvis/Estimator.hpp>
+#include <okvis/EstimatorBase.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
 
 namespace opengv {
@@ -14,7 +14,7 @@ namespace opengv {
  * @param camIdB
  * @param matches[out]
  */
-void findMatches(const okvis::Estimator& estimator,
+void findMatches(const okvis::EstimatorBase& estimator,
                  std::shared_ptr<okvis::MultiFrame> frameAPtr, size_t camIdA,
                  std::shared_ptr<okvis::MultiFrame> frameBPtr, size_t camIdB,
                  okvis::Matches* matches);

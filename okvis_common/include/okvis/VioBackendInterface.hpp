@@ -184,8 +184,6 @@ class VioBackendInterface {
   virtual bool
   applyMarginalizationStrategy(okvis::MapPointVector &removedLandmarks) = 0;
 
-  virtual void updateSensorRigs() = 0;
-
   /**
    * @brief Checks whether the landmark is added to the estimator.
    * @param landmarkId The ID.

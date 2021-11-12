@@ -61,7 +61,7 @@ namespace okvis {
 // Constructor.
 template<class CAMERA_GEOMETRY_T>
 StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::StereoMatchingAlgorithm(
-    okvis::Estimator& estimator, int matchingType, float distanceThreshold,
+    okvis::EstimatorBase& estimator, int matchingType, float distanceThreshold,
     bool usePoseUncertainty) {
   matchingType_ = matchingType;
   distanceThreshold_ = distanceThreshold;
