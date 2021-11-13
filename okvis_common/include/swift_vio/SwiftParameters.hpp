@@ -25,22 +25,55 @@ EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description);
 
 std::string EstimatorAlgorithmIdToName(EstimatorAlgorithm id);
 
+enum class FeatureTrackingScheme {
+  KeyframeDescriptorMatching = 0,   ///< default, keyframe and back-to-back frame matching
+  FramewiseKLT,  ///< KLT back-to-back frame matching,
+  FramewiseDescriptorMatching, ///< back-to-back descriptor-based frame matching
+  /// KLT tends to have longer feature tracks than descriptor-based matching.
+};
+
 struct FrontendOptions {
+  int featureTrackingMethod;
+
+  bool useMedianFilter;     ///< Use a Median filter over captured image?
+  int detectionOctaves;     ///< Number of keypoint detection octaves.
+  double detectionThreshold;  ///< Keypoint detection threshold.
+  int maxNoKeypoints;       ///< Restrict to a maximum of this many keypoints per image (strongest ones).
+
+  // parameter to check motion of a feature for triangulation.
+  double triangulationTranslationThreshold;
+  double triangulationMaxDepth;
+
+  /**
+   * @brief If the hull-area around all matched keypoints of the current frame (with existing landmarks)
+   *        divided by the hull-area around all keypoints in the current frame is lower than
+   *        this threshold it should be a new keyframe.
+   * @see   doWeNeedANewKeyframe()
+   */
+  float keyframeInsertionOverlapThreshold;
+  /**
+   * @brief If the number of matched keypoints of the current frame with an older frame
+   *        divided by the amount of points inside the convex hull around all keypoints
+   *        is lower than the threshold it should be a keyframe.
+   * @see   doWeNeedANewKeyframe()
+   */
+  float keyframeInsertionMatchingRatioThreshold;
+
   ///< stereo matching with epipolar check and landmark fusion or
   /// the okvis stereo matching 2d-2d + 3d-2d + 3d-2d?
   bool stereoMatchWithEpipolarCheck;
 
   double epipolarDistanceThreshold;
 
-  ///< 0 default okvis brisk keyframe and back-to-back frame matching
-  ///< 1 KLT back-to-back frame matching,
-  ///< 2 brisk back-to-back frame matching
-  int featureTrackingMethod;
-
-  FrontendOptions(bool initWithoutEnoughParallax = true,
+  FrontendOptions(int featureTrackingMethod = 0, bool useMedianFilter = false,
+                  int detectionOctaves = 0, double detectionThreshold = 40,
+                  int maxNoKeypoints = 400,
+                  double triangulationTranslationThreshold = -1.0,
+                  double triangulationMaxDepth = 1000,
+                  float keyframeInsertionOverlapThreshold = 0.6,
+                  float keyframeInsertionMatchingRatioThreshold = 0.2,
                   bool stereoWithEpipolarCheck = true,
-                  double epipolarDistanceThreshold = 2.5,
-                  int featureTrackingMethod = 0);
+                  double epipolarDistanceThreshold = 2.5);
 };
 
 struct PointLandmarkOptions {

@@ -105,40 +105,18 @@ class Frontend : public VioFrontendInterface {
       const okvis::VioParameters & params,
       std::shared_ptr<okvis::MultiFrame> framesInOut, bool* asKeyframe);
 
-  /**
-   * @brief Propagates pose, speeds and biases with given IMU measurements.
-   * @see okvis::ceres::ImuError::propagation()
-   * @remark This method is threadsafe.
-   * @param[in] imuMeasurements All the IMU measurements.
-   * @param[in] imuParams The parameters to be used.
-   * @param[inout] T_WS_propagated Start pose.
-   * @param[inout] speedAndBiases Start speed and biases.
-   * @param[in] t_start Start time.
-   * @param[in] t_end End time.
-   * @param[out] covariance Covariance for GIVEN start states.
-   * @param[out] jacobian Jacobian w.r.t. start states.
-   * @return True on success.
-   */
-  bool propagation(const okvis::ImuMeasurementDeque & imuMeasurements,
-                           const okvis::ImuParameters & imuParams,
-                           okvis::kinematics::Transformation& T_WS_propagated,
-                           okvis::SpeedAndBias & speedAndBiases,
-                           const okvis::Time& t_start, const okvis::Time& t_end,
-                           Eigen::Matrix<double, 15, 15>* covariance,
-                           Eigen::Matrix<double, 15, 15>* jacobian) const;
-
   ///@}
   /// @name Getters related to the BRISK detector
   /// @{
 
   /// @brief Get the number of octaves of the BRISK detector.
   size_t getBriskDetectionOctaves() const {
-    return briskDetectionOctaves_;
+    return frontendOptions_.detectionOctaves;
   }
 
   /// @brief Get the detection threshold of the BRISK detector.
   double getBriskDetectionThreshold() const {
-    return briskDetectionThreshold_;
+    return frontendOptions_.detectionThreshold;
   }
 
   /// @brief Get the absolute threshold of the BRISK detector.
@@ -148,7 +126,7 @@ class Frontend : public VioFrontendInterface {
 
   /// @brief Get the maximum amount of keypoints of the BRISK detector.
   size_t getBriskDetectionMaximumKeypoints() const {
-    return briskDetectionMaximumKeypoints_;
+    return frontendOptions_.maxNoKeypoints;
   }
 
   ///@}
@@ -166,103 +144,13 @@ class Frontend : public VioFrontendInterface {
   }
 
   ///@}
-  /// @name Other getters
-  /// @{
 
-  /// @brief Get the matching threshold.
-  double getBriskMatchingThreshold() const {
-    return briskMatchingThreshold_;
-  }
-
-  /// @brief Get the area overlap threshold under which a new keyframe is inserted.
-  float getKeyframeInsertionOverlapThershold() const {
-    return keyframeInsertionOverlapThreshold_;
-  }
-
-  /// @brief Get the matching ratio threshold under which a new keyframe is inserted.
-  float getKeyframeInsertionMatchingRatioThreshold() const {
-    return keyframeInsertionMatchingRatioThreshold_;
-  }
-
-  /// @brief Returns true if the initialization has been completed (RANSAC with actual translation)
-  bool isInitialized() {
-    return isInitialized_;
-  }
-
-  int numNFrames() const {
-    return numNFrames_;
-  }
-
-  virtual bool isDescriptorBasedMatching() const {
-    return true;
-  }
-  /// @}
-  /// @name Setters related to the BRISK detector
-  /// @{
-
-  /// @brief Set the number of octaves of the BRISK detector.
-  void setBriskDetectionOctaves(size_t octaves) {
-    briskDetectionOctaves_ = octaves;
-    initialiseBriskFeatureDetectors();
-  }
-
-  /// @brief Set the detection threshold of the BRISK detector.
-  void setBriskDetectionThreshold(double threshold) {
-    briskDetectionThreshold_ = threshold;
-    initialiseBriskFeatureDetectors();
-  }
-
-  /// @brief Set the absolute threshold of the BRISK detector.
-  void setBriskDetectionAbsoluteThreshold(double threshold) {
-    briskDetectionAbsoluteThreshold_ = threshold;
-    initialiseBriskFeatureDetectors();
-  }
-
-  /// @brief Set the maximum number of keypoints of the BRISK detector.
-  void setBriskDetectionMaximumKeypoints(size_t maxKeypoints) {
-    briskDetectionMaximumKeypoints_ = maxKeypoints;
-    initialiseBriskFeatureDetectors();
-  }
-
-  /// @}
-  /// @name Setters related to the BRISK descriptor
-  /// @{
-
-  /// @brief Set the rotation invariance setting of the BRISK descriptor.
-  void setBriskDescriptionRotationInvariance(bool invariance) {
-    briskDescriptionRotationInvariance_ = invariance;
-    initialiseBriskFeatureDetectors();
-  }
-
-  /// @brief Set the scale invariance setting of the BRISK descriptor.
-  void setBriskDescriptionScaleInvariance(bool invariance) {
-    briskDescriptionScaleInvariance_ = invariance;
-    initialiseBriskFeatureDetectors();
-  }
-
-  ///@}
   /// @name Other setters
   /// @{
 
   /// @brief Set the matching threshold.
   void setBriskMatchingThreshold(double threshold) {
     briskMatchingThreshold_ = threshold;
-  }
-
-  /// @brief Set the area overlap threshold under which a new keyframe is inserted.
-  void setKeyframeInsertionOverlapThreshold(float threshold) {
-    keyframeInsertionOverlapThreshold_ = threshold;
-  }
-
-  /// @brief Set the matching ratio threshold under which a new keyframe is inserted.
-  void setKeyframeInsertionMatchingRatioThreshold(float threshold) {
-    keyframeInsertionMatchingRatioThreshold_ = threshold;
-  }
-
-  virtual void setLandmarkTriangulationParameters(
-      double /*triangulationTranslationThreshold*/,
-      double /*triangulationMaxDepth*/) {
-
   }
 
   /// @}
@@ -283,16 +171,10 @@ class Frontend : public VioFrontendInterface {
   /// Mutexes for feature detectors and descriptors.
   std::vector<std::unique_ptr<std::mutex> > featureDetectorMutexes_;
 
-  std::atomic_bool isInitialized_;        ///< Is the pose initialised?
-  const size_t numCameras_;   ///< Number of cameras in the configuration.
-
   /// @name BRISK detection parameters
   /// @{
 
-  size_t briskDetectionOctaves_;            ///< The set number of brisk octaves.
-  double briskDetectionThreshold_;          ///< The set BRISK detection threshold.
   double briskDetectionAbsoluteThreshold_;  ///< The set BRISK absolute detection threshold.
-  size_t briskDetectionMaximumKeypoints_;   ///< The set maximum number of keypoints.
 
   /// @}
   /// @name BRISK descriptor extractor parameters
@@ -310,24 +192,6 @@ class Frontend : public VioFrontendInterface {
   ///@}
 
   std::unique_ptr<okvis::DenseMatcher> matcher_; ///< Matcher object.
-
-  /**
-   * @brief If the hull-area around all matched keypoints of the current frame (with existing landmarks)
-   *        divided by the hull-area around all keypoints in the current frame is lower than
-   *        this threshold it should be a new keyframe.
-   * @see   doWeNeedANewKeyframe()
-   */
-  float keyframeInsertionOverlapThreshold_;  //0.6
-  /**
-   * @brief If the number of matched keypoints of the current frame with an older frame
-   *        divided by the amount of points inside the convex hull around all keypoints
-   *        is lower than the threshold it should be a keyframe.
-   * @see   doWeNeedANewKeyframe()
-   */
-  float keyframeInsertionMatchingRatioThreshold_;  //0.2
-
-  std::atomic_int numNFrames_;
-  std::atomic_int numKeyframes_;
 
   swift_vio::FrontendOptions frontendOptions_;
 

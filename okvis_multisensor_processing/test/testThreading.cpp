@@ -40,11 +40,6 @@ TEST(OkvisVioInterfaces, testConstructionDestruction)
     parameters.nCameraSystem = TestDataGenerator::getTestCameraSystem(2);
     // start with mock
 
-    EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_))
-        .Times(1);
-    EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_))
-        .Times(1);
-
     ThreadedKFVio vio(parameters);
 }
 
@@ -62,8 +57,6 @@ TEST(OkvisVioInterfaces, testDestructionWithImageData)
     .Times(AtLeast(1));
   EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_,_,_,_))
     .Times(Between(0, 10));
-  EXPECT_CALL(mock_frontend, propagation(_,_,_,_,_,_,_,_))
-    .Times(0);
 
   okvis::VioParameters parameters;
   parameters.nCameraSystem = TestDataGenerator::getTestCameraSystem(2);
@@ -117,12 +110,6 @@ TEST(OkvisVioInterfaces, testDestructionWithIMUData)
   MockVioFrontendInterface mock_frontend;
   EXPECT_CALL(mock_frontend, detectAndDescribe(_,_,_,_))
     .Times(0);
-  EXPECT_CALL(mock_frontend, propagation(_,_,_,_,_,_,_,_))
-    .Times(Between(9, 10));
-  EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_))
-    .Times(1);
-  EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_))
-    .Times(1);
 
   okvis::VioParameters parameters;
   parameters.nCameraSystem = TestDataGenerator::getTestCameraSystem(2);

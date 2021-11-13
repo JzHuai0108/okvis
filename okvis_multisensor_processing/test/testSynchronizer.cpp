@@ -68,12 +68,6 @@ TEST(OkvisVioInterfaces, testFrameSync)
     .Times(Between(12, 17));
   EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_,_,_,_))
     .Times(Between(4, 6));
-  EXPECT_CALL(mock_frontend, propagation(_,_,_,_,_,_,_,_))
-    .Times(Between(114, 115));
-  EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_))
-      .Times(1);
-  EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_))
-      .Times(1);
 
   // start with mock
   ThreadedKFVio vio(parameters);
@@ -135,8 +129,6 @@ TEST(OkvisVioInterfaces, testImuFrameSync)
 //    .Times(AtLeast(2));
 //  EXPECT_CALL(dummy, backendProcessing())
 //    .Times(AtLeast(1));
-//  EXPECT_CALL(dummy, propagation(_,_,_,_,_,_,_,_))
-//    .Times(Between(99, 100));
 //
 //  ImuFrameSynchronizer syncer();
 //

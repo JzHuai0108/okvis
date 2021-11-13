@@ -99,14 +99,14 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters)
                             parameters.imu.rate /
                             parameters.sensors_information.cameraRate) {
   estimator_.reset(new okvis::Estimator());
-  configureBackendAndFrontendPartly(parameters);
+  configureBackend(parameters);
   setBlocking(false);
   init();
 }
 
 ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters,
                              std::shared_ptr<okvis::EstimatorBase> estimator,
-                             std::shared_ptr<okvis::Frontend> frontend, 
+                             std::shared_ptr<okvis::VioFrontendInterface> frontend,
                              std::shared_ptr<swift_vio::LoopClosureMethod> loopClosureMethod)
     : speedAndBiases_propagated_(okvis::SpeedAndBias::Zero()),
       imu_params_(parameters.imu),
@@ -122,7 +122,7 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters,
       maxImuInputQueueSize_(
           2 * max_camera_input_queue_size * parameters.imu.rate
               / parameters.sensors_information.cameraRate) {
-  configureBackendAndFrontendPartly(parameters);
+  configureBackend(parameters);
   setBlocking(false);
   init();
 }
@@ -133,20 +133,6 @@ void ThreadedKFVio::init() {
   assert(parameters_.nCameraSystem.numCameras() > 0);
   numCameras_ = parameters_.nCameraSystem.numCameras();
   numCameraPairs_ = 1;
-
-  frontend_->setBriskDetectionOctaves(parameters_.optimization.detectionOctaves);
-  frontend_->setBriskDetectionThreshold(parameters_.optimization.detectionThreshold);
-  frontend_->setBriskDetectionMaximumKeypoints(parameters_.optimization.maxNoKeypoints);
-
-  frontend_->setKeyframeInsertionOverlapThreshold(
-      parameters_.optimization.keyframeInsertionOverlapThreshold);
-  frontend_->setKeyframeInsertionMatchingRatioThreshold(
-      parameters_.optimization.keyframeInsertionMatchingRatioThreshold);
-  VLOG(2) << "Keyframe insertion overlap threshold "
-            << frontend_->getKeyframeInsertionOverlapThershold()
-            << " matching ratio threshold "
-            << frontend_->getKeyframeInsertionMatchingRatioThreshold()
-            << std::endl;
 
   lastOptimizedCameraSystem_ = parameters_.nCameraSystem.deepCopy();
   lastOptimizedStateTimestamp_ = okvis::Time(0.0) + EstimatorBase::half_window_;;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
@@ -675,9 +661,16 @@ void ThreadedKFVio::imuConsumerLoop() {
       Eigen::Matrix<double, 15, 15> covariance;
       Eigen::Matrix<double, 15, 15> jacobian;
 
-      frontend_->propagation(imuMeasurements_, imu_params_, T_WS_propagated_,
-                            speedAndBiases_propagated_, start, *end, &covariance,
-                            &jacobian);
+      if (imuMeasurements_.size() < 2) {
+        LOG(WARNING) << "- Skipping propagation as only one IMU measurement "
+                        "has been given to frontend."
+                     << " Normal when starting up.";
+      } else {
+        okvis::ceres::ImuError::propagation(
+            imuMeasurements_, imu_params_, T_WS_propagated_,
+            speedAndBiases_propagated_, start, *end, &covariance, &jacobian);
+      }
+
       OptimizationResults result;
       result.stamp = *end;
       result.T_WS = T_WS_propagated_;
@@ -968,15 +961,12 @@ void ThreadedKFVio::saveStatistics(const std::string &filename) {
     stream.close();
 }
 
-void ThreadedKFVio::configureBackendAndFrontendPartly(okvis::VioParameters& parameters) {
+void ThreadedKFVio::configureBackend(okvis::VioParameters& parameters) {
   swift_vio::doesExtrinsicModelFitImuModel(parameters.nCameraSystem.extrinsicOptRep(0u),
                                 parameters.imu.model_type);
   swift_vio::doesExtrinsicModelFitOkvisBackend(parameters.nCameraSystem,
                                     parameters.optimization.algorithm);
 
-  frontend_->setLandmarkTriangulationParameters(
-      parameters.optimization.triangulationTranslationThreshold,
-      parameters.optimization.triangulationMaxDepth);
   estimator_->setInitialNavState(parameters.initialState);
   estimator_->setOptimizationOptions(parameters.optimization);
   estimator_->setPointLandmarkOptions(parameters.pointLandmarkOptions);

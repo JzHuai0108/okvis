@@ -71,20 +71,13 @@ namespace okvis {
 
 // Constructor.
 Frontend::Frontend(size_t numCameras, const swift_vio::FrontendOptions& frontendOptions)
-    : isInitialized_(false),
-      numCameras_(numCameras),
-      briskDetectionOctaves_(0),
-      briskDetectionThreshold_(50.0),
+    : VioFrontendInterface(numCameras),
       briskDetectionAbsoluteThreshold_(800.0),
-      briskDetectionMaximumKeypoints_(450),
       briskDescriptionRotationInvariance_(true),
       briskDescriptionScaleInvariance_(false),
       briskMatchingThreshold_(60.0),
       matcher_(
           std::unique_ptr<okvis::DenseMatcher>(new okvis::DenseMatcher(4))),
-      keyframeInsertionOverlapThreshold_(0.6),
-      keyframeInsertionMatchingRatioThreshold_(0.2),
-      numNFrames_(0), numKeyframes_(0),
       frontendOptions_(frontendOptions) {
   // create mutexes for feature detectors and descriptor extractors
   for (size_t i = 0; i < numCameras_; ++i) {
@@ -101,9 +94,6 @@ bool Frontend::detectAndDescribe(size_t cameraIndex,
                                  const std::vector<cv::KeyPoint> * keypoints) {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIndex < numCameras_, "Camera index exceeds number of cameras.");
   std::lock_guard<std::mutex> lock(*featureDetectorMutexes_[cameraIndex]);
-  if (!isDescriptorBasedMatching()) {
-    return false;
-  }
   // check there are no keypoints here
   OKVIS_ASSERT_TRUE(Exception, keypoints == nullptr, "external keypoints currently not supported")
 
@@ -220,28 +210,6 @@ void Frontend::matchStereoSwitch(
   matchStereoTimer.stop();
 }
 
-
-// Propagates pose, speeds and biases with given IMU measurements.
-bool Frontend::propagation(const okvis::ImuMeasurementDeque & imuMeasurements,
-                           const okvis::ImuParameters & imuParams,
-                           okvis::kinematics::Transformation& T_WS_propagated,
-                           okvis::SpeedAndBias & speedAndBiases,
-                           const okvis::Time& t_start, const okvis::Time& t_end,
-                           Eigen::Matrix<double, 15, 15>* covariance,
-                           Eigen::Matrix<double, 15, 15>* jacobian) const {
-  if (imuMeasurements.size() < 2) {
-    LOG(WARNING)
-        << "- Skipping propagation as only one IMU measurement has been given to frontend."
-        << " Normal when starting up.";
-    return 0;
-  }
-  int measurements_propagated = okvis::ceres::ImuError::propagation(
-      imuMeasurements, imuParams, T_WS_propagated, speedAndBiases, t_start,
-      t_end, covariance, jacobian);
-
-  return measurements_propagated > 0;
-}
-
 // Decision whether a new frame should be keyframe or not.
 bool Frontend::doWeNeedANewKeyframe(
     const okvis::EstimatorBase& estimator,
@@ -314,8 +282,8 @@ bool Frontend::doWeNeedANewKeyframe(
   }
 
   // take a decision
-  if (overlap > keyframeInsertionOverlapThreshold_
-      && ratio > keyframeInsertionMatchingRatioThreshold_)
+  if (overlap > frontendOptions_.keyframeInsertionOverlapThreshold
+      && ratio > frontendOptions_.keyframeInsertionMatchingRatioThreshold)
     return false;
   else
     return true;
@@ -812,13 +780,13 @@ void Frontend::initialiseBriskFeatureDetectors() {
         std::shared_ptr<cv::FeatureDetector>(
 #ifdef __ARM_NEON__
             new cv::GridAdaptedFeatureDetector( 
-            new cv::FastFeatureDetector(briskDetectionThreshold_),
-                briskDetectionMaximumKeypoints_, 7, 4 ))); // from config file, except the 7x4...
+            new cv::FastFeatureDetector(frontendOptions_.detectionThreshold),
+                frontendOptions_.maxNoKeypoints, 7, 4 ))); // from config file, except the 7x4...
 #else
             new brisk::ScaleSpaceFeatureDetector<brisk::HarrisScoreCalculator>(
-                briskDetectionThreshold_, briskDetectionOctaves_, 
+                frontendOptions_.detectionThreshold, frontendOptions_.detectionOctaves,
                 briskDetectionAbsoluteThreshold_,
-                briskDetectionMaximumKeypoints_)));
+                frontendOptions_.maxNoKeypoints)));
 #endif
     descriptorExtractors_.push_back(
         std::shared_ptr<cv::DescriptorExtractor>(

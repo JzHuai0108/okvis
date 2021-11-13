@@ -41,6 +41,7 @@
 #ifndef INCLUDE_OKVIS_VIOFRONTENDINTERFACE_HPP_
 #define INCLUDE_OKVIS_VIOFRONTENDINTERFACE_HPP_
 
+#include <atomic>
 #include <vector>
 #include <memory>
 
@@ -67,8 +68,12 @@ class EstimatorBase;
  */
 class VioFrontendInterface {
  public:
-  VioFrontendInterface() {
+  VioFrontendInterface(size_t numCameras) :
+    numNFrames_(0), numKeyframes_(0),
+    isInitialized_(false),
+    numCameras_(numCameras) {
   }
+
   virtual ~VioFrontendInterface() {
   }
   /// @name
@@ -103,6 +108,26 @@ class VioFrontendInterface {
       std::shared_ptr<okvis::MultiFrame> nframes, bool* asKeyframe) = 0;
 
   ///@}
+
+  /// @brief Returns true if the initialization has been completed (RANSAC with actual translation)
+  bool isInitialized() {
+    return isInitialized_;
+  }
+
+  int numNFrames() const {
+    return numNFrames_;
+  }
+
+  int numKeyframes() const {
+    return numKeyframes_;
+  }
+
+  std::atomic_int numNFrames_;
+  std::atomic_int numKeyframes_;
+
+  std::atomic_bool isInitialized_;        ///< Is the pose initialised?
+  const size_t numCameras_;   ///< Number of cameras in the configuration.
+
 };
 
 }

@@ -52,13 +52,26 @@ std::string EstimatorAlgorithmIdToName(EstimatorAlgorithm id) {
   }
 }
 
-FrontendOptions::FrontendOptions(bool initWithoutEnoughParallax,
-                                 bool stereoWithEpipolarCheck,
-                                 double epipolarDistanceThresh,
-                                 int featureTrackingApproach)
-    : stereoMatchWithEpipolarCheck(stereoWithEpipolarCheck),
-      epipolarDistanceThreshold(epipolarDistanceThresh),
-      featureTrackingMethod(featureTrackingApproach) {}
+FrontendOptions::FrontendOptions(int _featureTrackingMethod,
+                                 bool _useMedianFilter, int _detectionOctaves,
+                                 double _detectionThreshold,
+                                 int _maxNoKeypoints,
+                                 double _triangulationTranslationThreshold,
+                                 double _triangulationMaxDepth,
+                                 float _keyframeInsertionOverlapThreshold,
+                                 float _keyframeInsertionMatchingRatioThreshold,
+                                 bool _stereoWithEpipolarCheck,
+                                 double _epipolarDistanceThreshold)
+    : featureTrackingMethod(_featureTrackingMethod),
+      useMedianFilter(_useMedianFilter), detectionOctaves(_detectionOctaves),
+      detectionThreshold(_detectionThreshold), maxNoKeypoints(_maxNoKeypoints),
+      triangulationTranslationThreshold(_triangulationTranslationThreshold),
+      triangulationMaxDepth(_triangulationMaxDepth),
+      keyframeInsertionOverlapThreshold(_keyframeInsertionOverlapThreshold),
+      keyframeInsertionMatchingRatioThreshold(
+          _keyframeInsertionMatchingRatioThreshold),
+      stereoMatchWithEpipolarCheck(_stereoWithEpipolarCheck),
+      epipolarDistanceThreshold(_epipolarDistanceThreshold) {}
 
 PoseGraphOptions::PoseGraphOptions()
     : maxOdometryConstraintForAKeyframe(3), minDistance(0.1), minAngle(0.1) {}

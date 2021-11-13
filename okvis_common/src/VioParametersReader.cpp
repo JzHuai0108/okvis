@@ -176,50 +176,13 @@ void parseInitialState(cv::FileNode initialStateNode,
 }
 
 void parseOptimizationOptions(cv::FileNode optNode, Optimization *optParams) {
-  if (optNode["keyframeInsertionOverlapThreshold"].isReal()) {
-    optNode["keyframeInsertionOverlapThreshold"] >>
-        optParams->keyframeInsertionOverlapThreshold;
-  } else {
-    optParams->keyframeInsertionOverlapThreshold = 0.6;
-  }
-  if (optNode["keyframeInsertionMatchingRatioThreshold"].isReal()) {
-    optNode["keyframeInsertionMatchingRatioThreshold"] >>
-        optParams->keyframeInsertionMatchingRatioThreshold;
-  } else {
-    optParams->keyframeInsertionMatchingRatioThreshold = 0.2;
-  }
   if (optNode["algorithm"].isString()) {
     std::string description = (std::string)optNode["algorithm"];
     optParams->algorithm = swift_vio::EstimatorAlgorithmNameToId(description);
   } else {
     optParams->algorithm = swift_vio::EstimatorAlgorithm::OKVIS;
   }
-  if (optNode["keyframeTranslationThreshold"].isReal()) {
-    optNode["keyframeTranslationThreshold"] >> optParams->translationThreshold;
-  } else {
-    optParams->translationThreshold = 0.4;
-  }
-  if (optNode["keyframeRotationThreshold"].isReal()) {
-    optNode["keyframeRotationThreshold"] >> optParams->rotationThreshold;
-  } else {
-    optParams->rotationThreshold = 0.2618;
-  }
-  if (optNode["keyframeTrackingRateThreshold"].isReal()) {
-    optNode["keyframeTrackingRateThreshold"] >> optParams->trackingRateThreshold;
-  } else {
-    optParams->trackingRateThreshold = 0.5;
-  }
-  if (optNode["triangulationTranslationThreshold"].isReal()) {
-    optNode["triangulationTranslationThreshold"] >>
-        optParams->triangulationTranslationThreshold;
-  } else {
-    const double threshold = -1.0;
-    optParams->triangulationTranslationThreshold = threshold;
-  }
-  if (optNode["triangulationMaxDepth"].isReal()) {
-    optNode["triangulationMaxDepth"] >>
-        optParams->triangulationMaxDepth;
-  }
+
   optParams->useEpipolarConstraint = optParams->useEpipolarConstraint;
   parseBoolean(optNode["useEpipolarConstraint"], optParams->useEpipolarConstraint);
 
@@ -238,6 +201,16 @@ void parseOptimizationOptions(cv::FileNode optNode, Optimization *optParams) {
 
 void parseFrontendOptions(cv::FileNode frontendNode,
                           swift_vio::FrontendOptions* frontendOptions) {
+  parseBoolean(frontendNode["useMedianFilter"],
+               frontendOptions->useMedianFilter);
+  if (frontendNode["keyframeInsertionOverlapThreshold"].isReal()) {
+    frontendNode["keyframeInsertionOverlapThreshold"] >>
+        frontendOptions->keyframeInsertionOverlapThreshold;
+  }
+  if (frontendNode["keyframeInsertionMatchingRatioThreshold"].isReal()) {
+    frontendNode["keyframeInsertionMatchingRatioThreshold"] >>
+        frontendOptions->keyframeInsertionMatchingRatioThreshold;
+  }
   parseBoolean(frontendNode["stereoMatchWithEpipolarCheck"],
                frontendOptions->stereoMatchWithEpipolarCheck);
   LOG(INFO) << "Stereo match with epipolar check? "
@@ -254,6 +227,45 @@ void parseFrontendOptions(cv::FileNode frontendNode,
   }
   LOG(INFO) << "Feature tracking method in frontend: "
             << frontendOptions->featureTrackingMethod;
+
+  if (frontendNode["triangulationTranslationThreshold"].isReal()) {
+    frontendNode["triangulationTranslationThreshold"] >>
+        frontendOptions->triangulationTranslationThreshold;
+  }
+  if (frontendNode["triangulationMaxDepth"].isReal()) {
+    frontendNode["triangulationMaxDepth"] >>
+        frontendOptions->triangulationMaxDepth;
+  }
+}
+
+void parseDetectionOptions(cv::FileNode detectionNode,
+                           swift_vio::FrontendOptions* frontendOptions) {
+  // detection threshold
+  bool success = detectionNode["threshold"].isReal();
+  OKVIS_ASSERT_TRUE(
+      std::runtime_error, success,
+      "'detection threshold' parameter missing in configuration file.");
+  detectionNode["threshold"] >> frontendOptions->detectionThreshold;
+
+  // detection octaves
+  success = detectionNode["octaves"].isInt();
+  OKVIS_ASSERT_TRUE(
+      std::runtime_error, success,
+      "'detection octaves' parameter missing in configuration file.");
+  detectionNode["octaves"] >> frontendOptions->detectionOctaves;
+  OKVIS_ASSERT_TRUE(std::runtime_error,
+                    frontendOptions->detectionOctaves >= 0,
+                    "Invalid parameter value.");
+
+  // maximum detections
+  success = detectionNode["maxNoKeypoints"].isInt();
+  OKVIS_ASSERT_TRUE(
+      std::runtime_error, success,
+      "'detection maxNoKeypoints' parameter missing in configuration file.");
+  detectionNode["maxNoKeypoints"] >> frontendOptions->maxNoKeypoints;
+  OKVIS_ASSERT_TRUE(std::runtime_error,
+                    frontendOptions->maxNoKeypoints >= 0,
+                    "Invalid parameter value.");
 }
 
 void parsePointLandmarkOptions(cv::FileNode plNode,
@@ -307,7 +319,6 @@ void parsePoseGraphOptions(cv::FileNode pgNode, swift_vio::PoseGraphOptions* pgO
 
 // Read and parse a config file.
 void VioParametersReader::readConfigFile(const std::string& filename) {
-  vioParameters_.optimization.useMedianFilter = false;
   vioParameters_.optimization.timeReserve.fromSec(0.005);
 
   // reads
@@ -338,6 +349,8 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
       file["optimization"], &vioParameters_.optimization);
 
   parseFrontendOptions(file["frontend"], &vioParameters_.frontendOptions);
+
+  parseDetectionOptions(file["detection_options"], &vioParameters_.frontendOptions);
 
   parsePointLandmarkOptions(file["point_landmark"], &vioParameters_.pointLandmarkOptions);
 
@@ -380,33 +393,6 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
                          vioParameters_.visualization.displayImages);
   OKVIS_ASSERT_TRUE(Exception, success,
                     "'displayImages' parameter missing in configuration file.");
-
-  // detection threshold
-  success = file["detection_options"]["threshold"].isReal();
-  OKVIS_ASSERT_TRUE(
-      Exception, success,
-      "'detection threshold' parameter missing in configuration file.");
-  file["detection_options"]["threshold"] >> vioParameters_.optimization.detectionThreshold;
-
-  // detection octaves
-  success = file["detection_options"]["octaves"].isInt();
-  OKVIS_ASSERT_TRUE(
-      Exception, success,
-      "'detection octaves' parameter missing in configuration file.");
-  file["detection_options"]["octaves"] >> vioParameters_.optimization.detectionOctaves;
-  OKVIS_ASSERT_TRUE(Exception,
-                    vioParameters_.optimization.detectionOctaves >= 0,
-                    "Invalid parameter value.");
-
-  // maximum detections
-  success = file["detection_options"]["maxNoKeypoints"].isInt();
-  OKVIS_ASSERT_TRUE(
-      Exception, success,
-      "'detection maxNoKeypoints' parameter missing in configuration file.");
-  file["detection_options"]["maxNoKeypoints"] >> vioParameters_.optimization.maxNoKeypoints;
-  OKVIS_ASSERT_TRUE(Exception,
-                    vioParameters_.optimization.maxNoKeypoints >= 0,
-                    "Invalid parameter value.");
 
   // image delay
   success = file["imageDelay"].isReal();

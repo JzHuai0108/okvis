@@ -115,7 +115,7 @@ class ThreadedKFVio : public VioInterface {
 
   ThreadedKFVio(okvis::VioParameters& parameters,
                 std::shared_ptr<EstimatorBase> estimator,
-                std::shared_ptr<Frontend> frontend,
+                std::shared_ptr<VioFrontendInterface> frontend,
                 std::shared_ptr<swift_vio::LoopClosureMethod> loopClosureMethod);
 #endif
 
@@ -257,7 +257,7 @@ class ThreadedKFVio : public VioInterface {
   /// \brief Initialises settings and calls startThreads().
   void init();
 
-  void configureBackendAndFrontendPartly(okvis::VioParameters& parameters);
+  void configureBackend(okvis::VioParameters& parameters);
 
  private:
 
@@ -445,7 +445,7 @@ class ThreadedKFVio : public VioInterface {
   okvis::MockVioFrontendInterface& frontend_;
 #else
   std::shared_ptr<okvis::EstimatorBase> estimator_;    ///< The backend estimator.
-  std::shared_ptr<okvis::Frontend> frontend_;      ///< The frontend.
+  std::shared_ptr<VioFrontendInterface> frontend_;      ///< The frontend.
 #endif
   swift_vio::LoopClosureModule loopClosureModule_;
   /// @}

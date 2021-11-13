@@ -263,23 +263,11 @@ struct Optimization{
   int min_iterations; ///< Minimum iterations the optimization should perform.
   double timeLimitForMatchingAndOptimization; ///< The time limit for both matching and optimization. [s]
   okvis::Duration timeReserve; ///< Store a little more on the beginning and end of the IMU buffer. [s]
-  double detectionThreshold;  ///< Keypoint detection threshold.
-  bool useMedianFilter;     ///< Use a Median filter over captured image?
-  int detectionOctaves;     ///< Number of keypoint detection octaves.
-  int maxNoKeypoints;       ///< Restrict to a maximum of this many keypoints per image (strongest ones).
+
   int numKeyframes; ///< Number of keyframes.
   int numImuFrames; ///< Number of IMU frames.
-  float keyframeInsertionOverlapThreshold;
-  float keyframeInsertionMatchingRatioThreshold;
-  swift_vio::EstimatorAlgorithm algorithm;
-  // parameters for determining keyframes in swift_vio.
-  double translationThreshold;
-  double rotationThreshold;
-  double trackingRateThreshold;
 
-  // parameter to check motion of a feature for triangulation.
-  double triangulationTranslationThreshold;
-  double triangulationMaxDepth;
+  swift_vio::EstimatorAlgorithm algorithm;
 
   bool useEpipolarConstraint;
   int cameraObservationModelId;

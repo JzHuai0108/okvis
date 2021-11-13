@@ -46,12 +46,6 @@ class MockVioFrontendInterface{
       bool(size_t cameraIndex, std::shared_ptr<okvis::MultiFrame> frameOut, const okvis::kinematics::Transformation& T_WC, const std::vector<cv::KeyPoint> * keypoints));
   MOCK_METHOD4(dataAssociationAndInitialization,
       bool(okvis::VioBackendInterface& estimator, const okvis::VioParameters & params, std::shared_ptr<okvis::MultiFrame> framesInOut, bool* asKeyframe));
-  MOCK_CONST_METHOD8(propagation,
-      bool(const okvis::ImuMeasurementDeque & imuMeasurements, const okvis::ImuParameters & imuParams, okvis::kinematics::Transformation& T_WS_propagated, okvis::SpeedAndBias & speedAndBiases, const okvis::Time& t_start, const okvis::Time& t_end, Eigen::Matrix<double, 15, 15>* covariance, Eigen::Matrix<double, 15, 15>* jacobian));
-  MOCK_METHOD1(setBriskDetectionOctaves,
-      void(size_t octaves));
-  MOCK_METHOD1(setBriskDetectionThreshold,
-      void(double threshold));
 };
 
 }  // namespace okvis

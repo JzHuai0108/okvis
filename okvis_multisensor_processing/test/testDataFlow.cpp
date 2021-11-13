@@ -71,12 +71,6 @@ TEST(OkvisVioInterfaces, testDataFlow)
     .Times(Between(18, 20));
   EXPECT_CALL(mock_frontend, dataAssociationAndInitialization(_,_,_,_))
     .Times(Between(7, 10));
-  EXPECT_CALL(mock_frontend, propagation(_,_,_,_,_,_,_,_))
-    .Times(Between(99, 100));
-  EXPECT_CALL(mock_frontend, setBriskDetectionOctaves(_))
-      .Times(1);
-  EXPECT_CALL(mock_frontend, setBriskDetectionThreshold(_))
-      .Times(1);
 
   // start with mock
   ThreadedKFVio vio(parameters);

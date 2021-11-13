@@ -184,7 +184,6 @@ cv::Mat VioVisualizer::drawMatches(VisualizationData::Ptr& data,
 
 cv::Mat VioVisualizer::drawColoredKeypoints(
     VisualizationData::Ptr& data, size_t image_number) const {
-  // KLT usually enjoys long track length, but descriptor matching is poor in this respect.
   const size_t slidingWindowSize = (parameters_.optimization.numKeyframes +
                                     parameters_.optimization.numImuFrames) / 2;
   std::shared_ptr<okvis::MultiFrame> frame = data->currentFrames;
