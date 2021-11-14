@@ -112,8 +112,6 @@ class StereoMatchingAlgorithm : public okvis::MatchingAlgorithm {
   /// \brief Set the distance threshold for which matches exceeding it will not be returned as matches.
   void setDistanceThreshold(float distanceThreshold);
 
-  virtual float epipolarDistanceThreshold() const;
-
   void setEpipolarDistanceThreshold(float distanceThreshold);
 
   /// \brief Should we skip the item in list A? This will be called once for each item in the list

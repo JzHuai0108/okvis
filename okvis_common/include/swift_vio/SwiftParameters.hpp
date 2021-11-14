@@ -40,8 +40,6 @@ struct FrontendOptions {
   double detectionThreshold;  ///< Keypoint detection threshold.
   int maxNoKeypoints;       ///< Restrict to a maximum of this many keypoints per image (strongest ones).
 
-  // parameter to check motion of a feature for triangulation.
-  double triangulationTranslationThreshold;
   double triangulationMaxDepth;
 
   /**
@@ -68,7 +66,6 @@ struct FrontendOptions {
   FrontendOptions(int featureTrackingMethod = 0, bool useMedianFilter = false,
                   int detectionOctaves = 0, double detectionThreshold = 40,
                   int maxNoKeypoints = 400,
-                  double triangulationTranslationThreshold = -1.0,
                   double triangulationMaxDepth = 1000,
                   float keyframeInsertionOverlapThreshold = 0.6,
                   float keyframeInsertionMatchingRatioThreshold = 0.2,

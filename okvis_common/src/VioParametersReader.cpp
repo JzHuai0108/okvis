@@ -228,10 +228,6 @@ void parseFrontendOptions(cv::FileNode frontendNode,
   LOG(INFO) << "Feature tracking method in frontend: "
             << frontendOptions->featureTrackingMethod;
 
-  if (frontendNode["triangulationTranslationThreshold"].isReal()) {
-    frontendNode["triangulationTranslationThreshold"] >>
-        frontendOptions->triangulationTranslationThreshold;
-  }
   if (frontendNode["triangulationMaxDepth"].isReal()) {
     frontendNode["triangulationMaxDepth"] >>
         frontendOptions->triangulationMaxDepth;

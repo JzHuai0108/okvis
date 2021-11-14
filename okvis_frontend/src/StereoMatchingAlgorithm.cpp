@@ -34,8 +34,7 @@
 /**
  * @file StereoMatchingAlgorithm.cpp
  * @brief Source file for the StereoMatchingAlgorithm class.
- * @author Stefan Leutenegger
- * @author Andreas Forster
+ * @author
  */
 
 #include <okvis/StereoMatchingAlgorithm.hpp>
@@ -45,6 +44,7 @@
 #include <okvis/MultiFrame.hpp>
 
 #include <swift_vio/TwoViewGeometry.hpp>
+
 // cameras and distortions
 #include <okvis/cameras/EUCM.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
@@ -57,8 +57,6 @@
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
-
-// Constructor.
 template<class CAMERA_GEOMETRY_T>
 StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::StereoMatchingAlgorithm(
     okvis::EstimatorBase& estimator, int matchingType, float distanceThreshold,
@@ -96,8 +94,6 @@ void StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::setFrames(
   fA_ = frameA_->geometryAs<CAMERA_GEOMETRY_T>(camIdA_)->focalLengthU();
   fB_ = frameB_->geometryAs<CAMERA_GEOMETRY_T>(camIdB_)->focalLengthU();
 
-  // calculate the relative transformations and uncertainties
-  // TODO donno, if and what we need here - I'll see
   estimator_->getCameraSensorExtrinsics(mfIdA_, camIdA, T_SaCa_);
   estimator_->getCameraSensorExtrinsics(mfIdB_, camIdB, T_SbCb_);
   estimator_->get_T_WS(mfIdA_, T_WSa_);
@@ -124,7 +120,6 @@ void StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::setMatchingType(
 // This will be called exactly once for each call to DenseMatcher::match().
 template<class CAMERA_GEOMETRY_T>
 void StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
-
   // setup stereo triangulator
   // first, let's get the relative uncertainty.
   okvis::kinematics::Transformation T_CaCb;
@@ -134,15 +129,7 @@ void StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
   } else {
     UOplus.setIdentity();
     UOplus.bottomRightCorner<3, 3>() *= 1e-8;
-//    uint64_t currentId = estimator_->currentFrameId();
-//    if (estimator_->isInImuWindow(currentId) && (mfIdA_ != mfIdB_)) {
-//      okvis::SpeedAndBias speedAndBias;
-//      estimator_->getSpeedAndBias(currentId, 0, speedAndBias);
-//      double scale = std::max(1.0, speedAndBias.head<3>().norm());
-//      UOplus.topLeftCorner<3, 3>() *= (scale * scale) * 1.0e-2;
-//    } else {
-      UOplus.topLeftCorner<3, 3>() *= 4e-8;
-//    }
+    UOplus.topLeftCorner<3, 3>() *= 4e-8;
   }
 
   // now set the frames and uncertainty
@@ -157,126 +144,25 @@ void StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
   skipA_.clear();
   skipA_.resize(numA, false);
   raySigmasA_.resize(numA);
-  // calculate projections only once
-//  if (matchingType_ == Match3D2D) {
-//    // allocate a matrix to store projections
-//    projectionsIntoB_ = Eigen::Matrix<double, Eigen::Dynamic, 2>::Zero(sizeA(),
-//                                                                       2);
-//    projectionsIntoBUncertainties_ =
-//        Eigen::Matrix<double, Eigen::Dynamic, 2>::Zero(sizeA() * 2, 2);
 
-//    // do the projections for each keypoint, if applicable
-//    for (size_t k = 0; k < numA; ++k) {
-//      uint64_t lm_id = frameA_->landmarkId(camIdA_, k);
+  for (size_t k = 0; k < numA; ++k) {
+    double keypointAStdDev;
+    frameA_->getKeypointSize(camIdA_, k, keypointAStdDev);
+    keypointAStdDev = 0.8 * keypointAStdDev / 12.0;
+    raySigmasA_[k] = sqrt(sqrt(2)) * keypointAStdDev / fA_;
+  }
 
-//      if (lm_id == 0 || !estimator_->isLandmarkAdded(lm_id)) {
-//        // this can happen, if you called the 2D-2D version just before,
-//        // without inserting the landmark into the graph
-//        skipA_[k] = true;
-//        continue;
-//      }
-
-//      okvis::MapPoint landmark;
-//      estimator_->getLandmark(lm_id, landmark);
-//      Eigen::Vector4d hp_W = landmark.pointHomog;
-
-//      if (!estimator_->isLandmarkInitialized(lm_id)) {
-//        skipA_[k] = true;
-//        continue;
-//      }
-
-//      // project (distorted)
-//      Eigen::Vector2d kptB;
-//      const Eigen::Vector4d hp_Cb = T_CbW_ * hp_W;
-//      if (frameB_->geometryAs<CAMERA_GEOMETRY_T>(camIdB_)->projectHomogeneous(
-//          hp_Cb, &kptB)
-//          != okvis::cameras::CameraBase::ProjectionStatus::Successful) {
-//        skipA_[k] = true;
-//        continue;
-//      }
-
-//      if (landmark.observations.size() < 2) {
-//        estimator_->setLandmarkInitialized(lm_id, false);
-//        skipA_[k] = true;
-//        continue;
-//      }
-
-//      // project and get uncertainty
-//      Eigen::Matrix<double, 2, 4> jacobian;
-//      Eigen::Matrix4d P_C = Eigen::Matrix4d::Zero();
-//      P_C.topLeftCorner<3, 3>() = UOplus.topLeftCorner<3, 3>();  // get from before -- velocity scaled
-//      frameB_->geometryAs<CAMERA_GEOMETRY_T>(camIdB_)->projectHomogeneous(
-//          hp_Cb, &kptB, &jacobian);
-//      projectionsIntoBUncertainties_.block<2, 2>(2 * k, 0) = jacobian * P_C
-//          * jacobian.transpose();
-//      projectionsIntoB_.row(k) = kptB;
-
-//      // precalculate ray uncertainties
-//      double keypointAStdDev;
-//      frameA_->getKeypointSize(camIdA_, k, keypointAStdDev);
-//      keypointAStdDev = 0.8 * keypointAStdDev / 12.0;
-//      raySigmasA_[k] = sqrt(sqrt(2)) * keypointAStdDev / fA_;  // (sqrt(MeasurementCovariance.norm()) / _fA)
-//    }
-//  } else {
-    for (size_t k = 0; k < numA; ++k) {
-      double keypointAStdDev;
-      frameA_->getKeypointSize(camIdA_, k, keypointAStdDev);
-      keypointAStdDev = 0.8 * keypointAStdDev / 12.0;
-      raySigmasA_[k] = sqrt(sqrt(2)) * keypointAStdDev / fA_;
-//      if (frameA_->landmarkId(camIdA_, k) == 0) {
-//        continue;
-//      }
-//      if (estimator_->isLandmarkAdded(frameA_->landmarkId(camIdA_, k))) {
-//        if (estimator_->isLandmarkInitialized(
-//            frameA_->landmarkId(camIdA_, k))) {
-//          skipA_[k] = true;
-//        }
-//      }
-    }
-//  }
   const size_t numB = frameB_->numKeypoints(camIdB_);
   skipB_.clear();
   skipB_.reserve(numB);
   raySigmasB_.resize(numB);
-  // do the projections for each keypoint, if applicable
-//  if (matchingType_ == Match3D2D) {
-//    for (size_t k = 0; k < numB; ++k) {
-//      okvis::MapPoint landmark;
-//      if (frameB_->landmarkId(camIdB_, k) != 0
-//          && estimator_->isLandmarkAdded(frameB_->landmarkId(camIdB_, k))) {
-//        estimator_->getLandmark(frameB_->landmarkId(camIdB_, k), landmark);
-//        skipB_.push_back(
-//            landmark.observations.find(
-//                okvis::KeypointIdentifier(mfIdB_, camIdB_, k))
-//                != landmark.observations.end());
-//      } else {
-//        skipB_.push_back(false);
-//      }
-//      double keypointBStdDev;
-//      frameB_->getKeypointSize(camIdB_, k, keypointBStdDev);
-//      keypointBStdDev = 0.8 * keypointBStdDev / 12.0;
-//      raySigmasB_[k] = sqrt(sqrt(2)) * keypointBStdDev / fB_;
-//    }
-//  } else {
-    for (size_t k = 0; k < numB; ++k) {
-      double keypointBStdDev;
-      frameB_->getKeypointSize(camIdB_, k, keypointBStdDev);
-      keypointBStdDev = 0.8 * keypointBStdDev / 12.0;
-      raySigmasB_[k] = sqrt(sqrt(2)) * keypointBStdDev / fB_;
 
-//      if (frameB_->landmarkId(camIdB_, k) == 0) {
-//        skipB_.push_back(false);
-//        continue;
-//      }
-//      if (estimator_->isLandmarkAdded(frameB_->landmarkId(camIdB_, k))) {
-//        skipB_.push_back(
-//            estimator_->isLandmarkInitialized(frameB_->landmarkId(camIdB_, k)));  // old: isSet - check.
-//      } else {
-//        skipB_.push_back(false);
-//      }
-    }
-//  }
-
+  for (size_t k = 0; k < numB; ++k) {
+    double keypointBStdDev;
+    frameB_->getKeypointSize(camIdB_, k, keypointBStdDev);
+    keypointBStdDev = 0.8 * keypointBStdDev / 12.0;
+    raySigmasB_[k] = sqrt(sqrt(2)) * keypointBStdDev / fB_;
+  }
 }
 
 // What is the size of list A?
@@ -308,11 +194,6 @@ void StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::setEpipolarDistanceThreshold(
     float distanceThreshold) {
   epipolarDistanceThreshold_ = distanceThreshold;
   epipolarDistanceThresholdSquared_ = distanceThreshold * distanceThreshold;
-}
-
-template<class CAMERA_GEOMETRY_T>
-float StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::epipolarDistanceThreshold() const {
-  return epipolarDistanceThreshold_;
 }
 
 // Geometric verification of a match.
@@ -348,40 +229,6 @@ bool StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::verifyMatch(
       return false;
     }
   }
-
-  //  if (matchingType_ == Match2D2D) {
-
-  //    // potential 2d2d match - verify by triangulation
-  //    Eigen::Vector4d hP;
-  //    bool canBeInitialized;
-  //    bool valid = probabilisticStereoTriangulator_.stereoTriangulate(
-  //        indexA, indexB, hP, canBeInitialized, std::max(raySigmasA_[indexA],
-  //        raySigmasB_[indexB]));
-  //    if (valid) {
-  //      return true;
-  //    }
-  //  } else {
-  //    // get projection into B
-  //    Eigen::Vector2d kptB = projectionsIntoB_.row(indexA);
-
-  //    // uncertainty
-  //    double keypointBStdDev;
-  //    frameB_->getKeypointSize(camIdB_, indexB, keypointBStdDev);
-  //    keypointBStdDev = 0.8 * keypointBStdDev / 12.0;
-  //    Eigen::Matrix2d U = Eigen::Matrix2d::Identity() * keypointBStdDev
-  //        * keypointBStdDev
-  //        + projectionsIntoBUncertainties_.block<2, 2>(2 * indexA, 0);
-
-  //    Eigen::Vector2d keypointBMeasurement;
-  //    frameB_->getKeypoint(camIdB_, indexB, keypointBMeasurement);
-  //    Eigen::Vector2d err = kptB - keypointBMeasurement;
-  //    const int chi2 = err.transpose() * U.inverse() * err;
-
-  //    if (chi2 < 4.0) {
-  //      return true;
-  //    }
-  //  }
-  //  return false;
 }
 
 // A function that tells you how many times setMatching() will be called.
@@ -494,9 +341,6 @@ void StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
   const okvis::MapPoint &landmark = estimator_->getLandmarkUnsafe(lmId);
   bool observedEarlierA = landmark.hasObservationInImage(mfIdA_, camIdA_);
   if (insertA && !observedEarlierA) {  // ensure no double observations...
-          // TODO hp_Sa NOT USED!
-    Eigen::Vector4d hp_Sa(T_SaCa_ * hP_Ca);
-    hp_Sa.normalize();
     frameA_->setLandmarkId(camIdA_, indexA, lmId);
     lmIdA = lmId;
     // initialize in graph
@@ -509,8 +353,6 @@ void StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
   // in image B
   bool observedEarlierB = landmark.hasObservationInImage(mfIdB_, camIdB_);
   if (insertB && !observedEarlierB) {  // ensure no double observations...
-    Eigen::Vector4d hp_Sb(T_SbCb_ * T_CbCa_ * hP_Ca);
-    hp_Sb.normalize();
     frameB_->setLandmarkId(camIdB_, indexB, lmId);
     lmIdB = lmId;
     // initialize in graph

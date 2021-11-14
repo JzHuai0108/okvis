@@ -447,9 +447,6 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
     auto landmarkRef = estimator_->getLandmarkUnsafe(lmId);
     bool observedEarlierA = landmarkRef.hasObservationInImage(mfIdA_, camIdA_);
     if (insertA && !observedEarlierA) {  // ensure no double observations...
-            // TODO hp_Sa NOT USED!
-      Eigen::Vector4d hp_Sa(T_SaCa_ * hP_Ca);
-      hp_Sa.normalize();
       frameA_->setLandmarkId(camIdA_, indexA, lmId);
       lmIdA = lmId;
       // initialize in graph
@@ -462,8 +459,6 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setBestMatch(
     // in image B
     bool observedEarlierB = landmarkRef.hasObservationInImage(mfIdB_, camIdB_);
     if (insertB && !observedEarlierB) {  // ensure no double observations...
-      Eigen::Vector4d hp_Sb(T_SbCb_ * T_CbCa_ * hP_Ca);
-      hp_Sb.normalize();
       frameB_->setLandmarkId(camIdB_, indexB, lmId);
       lmIdB = lmId;
       // initialize in graph
