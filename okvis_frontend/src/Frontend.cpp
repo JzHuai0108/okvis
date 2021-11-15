@@ -87,6 +87,11 @@ Frontend::Frontend(size_t numCameras, const swift_vio::FrontendOptions& frontend
   initialiseBriskFeatureDetectors();
 }
 
+Frontend::~Frontend() {
+  LOG(INFO) << "Frontend associated " << numNFrames_
+            << " NFrames, and selected " << numKeyframes_ << " keyframes.";
+}
+
 // Detection and descriptor extraction on a per image basis.
 bool Frontend::detectAndDescribe(size_t cameraIndex,
                                  std::shared_ptr<okvis::MultiFrame> frameOut,
@@ -187,7 +192,12 @@ bool Frontend::dataAssociationAndInitialization(
 
 
   // do stereo match to get new landmarks
-  matchStereoSwitch(distortionType, estimator, framesInOut);
+  if (frontendOptions_.stereoMatchWithEpipolarCheck) {
+    matchStereoWithEpipolarCheckSwitch(distortionType, estimator, framesInOut);
+  } else {
+    matchStereoSwitch(distortionType, estimator, framesInOut);
+  }
+
   ++numNFrames_;
   numKeyframes_ += (*asKeyframe ? 1 : 0);
   return true;

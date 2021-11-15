@@ -69,8 +69,7 @@ class Frontend : public VioFrontendInterface {
    * @param numCameras Number of cameras in the sensor configuration.
    */
   Frontend(size_t numCameras, const swift_vio::FrontendOptions& frontendOptions);
-  virtual ~Frontend() {
-  }
+  virtual ~Frontend();
 
   ///@{
   /**
