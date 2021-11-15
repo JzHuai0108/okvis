@@ -56,7 +56,6 @@ FrontendOptions::FrontendOptions(int _featureTrackingMethod,
                                  bool _useMedianFilter, int _detectionOctaves,
                                  double _detectionThreshold,
                                  int _maxNoKeypoints,
-                                 double _triangulationMaxDepth,
                                  float _keyframeInsertionOverlapThreshold,
                                  float _keyframeInsertionMatchingRatioThreshold,
                                  bool _stereoWithEpipolarCheck,
@@ -64,40 +63,37 @@ FrontendOptions::FrontendOptions(int _featureTrackingMethod,
     : featureTrackingMethod(_featureTrackingMethod),
       useMedianFilter(_useMedianFilter), detectionOctaves(_detectionOctaves),
       detectionThreshold(_detectionThreshold), maxNoKeypoints(_maxNoKeypoints),
-      triangulationMaxDepth(_triangulationMaxDepth),
       keyframeInsertionOverlapThreshold(_keyframeInsertionOverlapThreshold),
       keyframeInsertionMatchingRatioThreshold(
           _keyframeInsertionMatchingRatioThreshold),
       stereoMatchWithEpipolarCheck(_stereoWithEpipolarCheck),
       epipolarDistanceThreshold(_epipolarDistanceThreshold) {}
 
-PoseGraphOptions::PoseGraphOptions()
-    : maxOdometryConstraintForAKeyframe(3), minDistance(0.1), minAngle(0.1) {}
-
-PointLandmarkOptions::PointLandmarkOptions()
-    : landmarkModelId(0), minTrackLengthForMsckf(3u),
-      maxHibernationFrames(3u),
-      minTrackLengthForSlam(11u), maxInStateLandmarks(50),
-      maxMarginalizedLandmarks(50) {}
+PoseGraphOptions::PoseGraphOptions(int _maxOdometryConstraintForAKeyframe,
+                                   double _minDistance, double _minAngle)
+    : maxOdometryConstraintForAKeyframe(_maxOdometryConstraintForAKeyframe),
+      minDistance(_minDistance), minAngle(_minAngle) {}
 
 PointLandmarkOptions::PointLandmarkOptions(
-    int lmkModelId, size_t minMsckfTrackLength,
-    size_t hibernationFrames, size_t minSlamTrackLength, int maxStateLandmarks,
-    int maxMargedLandmarks)
+    int lmkModelId, size_t minMsckfTrackLength, size_t hibernationFrames,
+    size_t minSlamTrackLength, int maxStateLandmarks, int maxMargedLandmarks,
+    double _triangulationMaxDepth)
     : landmarkModelId(lmkModelId), minTrackLengthForMsckf(minMsckfTrackLength),
       maxHibernationFrames(hibernationFrames),
       minTrackLengthForSlam(minSlamTrackLength),
       maxInStateLandmarks(maxStateLandmarks),
-      maxMarginalizedLandmarks(maxMargedLandmarks) {}
+      maxMarginalizedLandmarks(maxMargedLandmarks),
+      triangulationMaxDepth(_triangulationMaxDepth) {}
 
 std::string PointLandmarkOptions::toString(std::string lead) const {
   std::stringstream ss(lead);
   ss << "Landmark model id " << landmarkModelId << "\n#hibernation frames "
      << maxHibernationFrames << " track length for MSCKF "
      << minTrackLengthForMsckf << " for SLAM " << minTrackLengthForSlam
-     << ". Max landmarks in state " << maxInStateLandmarks
+     << ".\nMax landmarks in state " << maxInStateLandmarks
      << ", max landmarks marginalized in one update step "
-     << maxMarginalizedLandmarks << ".";
+     << maxMarginalizedLandmarks << ", max depth in triangulation "
+     << triangulationMaxDepth << ".";
   return ss.str();
 }
 }  // namespace swift_vio

@@ -29,6 +29,7 @@ enum class FeatureTrackingScheme {
   KeyframeDescriptorMatching = 0,   ///< default, keyframe and back-to-back frame matching
   FramewiseKLT,  ///< KLT back-to-back frame matching,
   FramewiseDescriptorMatching, ///< back-to-back descriptor-based frame matching
+  SingleThreadKeyframeDescMatching
   /// KLT tends to have longer feature tracks than descriptor-based matching.
 };
 
@@ -39,8 +40,6 @@ struct FrontendOptions {
   int detectionOctaves;     ///< Number of keypoint detection octaves.
   double detectionThreshold;  ///< Keypoint detection threshold.
   int maxNoKeypoints;       ///< Restrict to a maximum of this many keypoints per image (strongest ones).
-
-  double triangulationMaxDepth;
 
   /**
    * @brief If the hull-area around all matched keypoints of the current frame (with existing landmarks)
@@ -66,7 +65,6 @@ struct FrontendOptions {
   FrontendOptions(int featureTrackingMethod = 0, bool useMedianFilter = false,
                   int detectionOctaves = 0, double detectionThreshold = 40,
                   int maxNoKeypoints = 400,
-                  double triangulationMaxDepth = 1000,
                   float keyframeInsertionOverlapThreshold = 0.6,
                   float keyframeInsertionMatchingRatioThreshold = 0.2,
                   bool stereoWithEpipolarCheck = true,
@@ -80,10 +78,12 @@ struct PointLandmarkOptions {
   size_t minTrackLengthForSlam;  ///< min track length of a landmark to be included in state.
   int maxInStateLandmarks;       ///< max number of landmarks in the state vector.
   int maxMarginalizedLandmarks;  ///< max number of marginalized landmarks in one update step.
-  PointLandmarkOptions();
-  PointLandmarkOptions(int lmkModelId, size_t minMsckfTrackLength,
-                       size_t hibernationFrames, size_t minSlamTrackLength,
-                       int maxInStateLandmarks, int maxMarginalizedLandmarks);
+  double triangulationMaxDepth;
+
+  PointLandmarkOptions(int lmkModelId = 0, size_t minMsckfTrackLength = 3u,
+                       size_t hibernationFrames = 3u, size_t minSlamTrackLength = 11u,
+                       int maxInStateLandmarks = 50, int maxMarginalizedLandmarks = 50,
+                       double triangulationMaxDepth = 1000);
   std::string toString(std::string lead) const;
 };
 
@@ -91,7 +91,8 @@ struct PoseGraphOptions {
   int maxOdometryConstraintForAKeyframe;
   double minDistance;
   double minAngle;
-  PoseGraphOptions();
+  PoseGraphOptions(int maxOdometryConstraintForAKeyframe = 3,
+                   double minDistance = 0.1, double minAngle = 0.1);
 };
 
 struct InputData {

@@ -227,11 +227,6 @@ void parseFrontendOptions(cv::FileNode frontendNode,
   }
   LOG(INFO) << "Feature tracking method in frontend: "
             << frontendOptions->featureTrackingMethod;
-
-  if (frontendNode["triangulationMaxDepth"].isReal()) {
-    frontendNode["triangulationMaxDepth"] >>
-        frontendOptions->triangulationMaxDepth;
-  }
 }
 
 void parseDetectionOptions(cv::FileNode detectionNode,
@@ -294,6 +289,10 @@ void parsePointLandmarkOptions(cv::FileNode plNode,
     plOptions->maxMarginalizedLandmarks = static_cast<int>(plNode["maxMarginalizedLandmarks"]);
   }
 
+  if (plNode["triangulationMaxDepth"].isReal()) {
+    plNode["triangulationMaxDepth"] >>
+        plOptions->triangulationMaxDepth;
+  }
   LOG(INFO) << plOptions->toString("Point landmark options: ");
 }
 
