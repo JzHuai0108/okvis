@@ -25,6 +25,14 @@ EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description) {
   }
 }
 
+std::ostream &operator<<(std::ostream &strm, EstimatorAlgorithm a) {
+  const std::string names[] = {
+      "OKVIS",        "SlidingWindowSmoother", "RiSlidingWindowSmoother",
+      "HybridFilter", "CalibrationFilter",     "MSCKF",
+      "TFVIO"};
+  return strm << names[static_cast<int>(a)];
+}
+
 struct EstimatorAlgorithmHash {
   template <typename T>
   std::size_t operator()(T t) const {
@@ -52,7 +60,14 @@ std::string EstimatorAlgorithmIdToName(EstimatorAlgorithm id) {
   }
 }
 
-FrontendOptions::FrontendOptions(int _featureTrackingMethod,
+std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s) {
+  const std::string names[] = {"KeyframeDescriptorMatching", "FramewiseKLT",
+                               "FramewiseDescriptorMatching",
+                               "SingleThreadKeyframeDescMatching"};
+  return strm << names[static_cast<int>(s)];
+}
+
+FrontendOptions::FrontendOptions(FeatureTrackingScheme _featureTrackingMethod,
                                  bool _useMedianFilter, int _detectionOctaves,
                                  double _detectionThreshold,
                                  int _maxNoKeypoints,

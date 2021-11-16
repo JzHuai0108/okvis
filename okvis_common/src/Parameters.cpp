@@ -76,7 +76,7 @@ Optimization::Optimization()
 
 std::string Optimization::toString(std::string lead) const {
   std::stringstream ss(lead);
-  ss << "Algorithm " << EstimatorAlgorithmIdToName(algorithm)
+  ss << "Algorithm " << algorithm
      << " numKeyframes " << numKeyframes << " numImuFrames " << numImuFrames
      << "\nUse epipolar constraint? " << useEpipolarConstraint
      << " Camera observation model Id " << cameraObservationModelId

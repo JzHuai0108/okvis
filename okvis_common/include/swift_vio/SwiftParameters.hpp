@@ -9,6 +9,7 @@
 #define INCLUDE_SWIFT_VIO_PARAMETERS_HPP_
 
 #include <string>
+#include <iostream>
 
 namespace swift_vio {
 enum class EstimatorAlgorithm {
@@ -23,6 +24,8 @@ enum class EstimatorAlgorithm {
 
 EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description);
 
+std::ostream &operator<<(std::ostream &strm, EstimatorAlgorithm a);
+
 std::string EstimatorAlgorithmIdToName(EstimatorAlgorithm id);
 
 enum class FeatureTrackingScheme {
@@ -30,11 +33,12 @@ enum class FeatureTrackingScheme {
   FramewiseKLT,  ///< KLT back-to-back frame matching,
   FramewiseDescriptorMatching, ///< back-to-back descriptor-based frame matching
   SingleThreadKeyframeDescMatching
-  /// KLT tends to have longer feature tracks than descriptor-based matching.
 };
 
+std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s);
+
 struct FrontendOptions {
-  int featureTrackingMethod;
+  FeatureTrackingScheme featureTrackingMethod;
 
   bool useMedianFilter;     ///< Use a Median filter over captured image?
   int detectionOctaves;     ///< Number of keypoint detection octaves.
@@ -62,9 +66,10 @@ struct FrontendOptions {
 
   double epipolarDistanceThreshold;
 
-  FrontendOptions(int featureTrackingMethod = 0, bool useMedianFilter = false,
-                  int detectionOctaves = 0, double detectionThreshold = 40,
-                  int maxNoKeypoints = 400,
+  FrontendOptions(FeatureTrackingScheme featureTrackingMethod =
+                      FeatureTrackingScheme::KeyframeDescriptorMatching,
+                  bool useMedianFilter = false, int detectionOctaves = 0,
+                  double detectionThreshold = 40, int maxNoKeypoints = 400,
                   float keyframeInsertionOverlapThreshold = 0.6,
                   float keyframeInsertionMatchingRatioThreshold = 0.2,
                   bool stereoWithEpipolarCheck = true,

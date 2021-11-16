@@ -222,8 +222,10 @@ void parseFrontendOptions(cv::FileNode frontendNode,
   LOG(INFO) << "Epipolar distance threshold in stereo matching: "
             << frontendOptions->epipolarDistanceThreshold;
   if (frontendNode["featureTrackingMethod"].isInt()) {
-    frontendNode["featureTrackingMethod"] >>
-        frontendOptions->featureTrackingMethod;
+    int trackingMethod;
+    frontendNode["featureTrackingMethod"] >> trackingMethod;
+    frontendOptions->featureTrackingMethod =
+        static_cast<swift_vio::FeatureTrackingScheme>(trackingMethod);
   }
   LOG(INFO) << "Feature tracking method in frontend: "
             << frontendOptions->featureTrackingMethod;
