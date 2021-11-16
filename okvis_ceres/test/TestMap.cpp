@@ -118,7 +118,7 @@ public:
       ::ceres::ResidualBlockId id = map.addResidualBlock(
           cost_function, useCauchyLoss ? lossFunction.get() : nullptr, poseParameterBlock_ptr,
           homogeneousPointParameterBlock_ptr, extrinsicsParameterBlock_ptr);
-      EXPECT_TRUE(map.isJacobianCorrect(id)) <<"wrong Jacobian";
+      EXPECT_TRUE(map.isJacobianCorrect(id)) <<"Possibly wrong Jacobian for " << i << "th point of " << N;
 
       if (i % 10 == 0) {
         if (i % 20 == 0)
@@ -141,16 +141,16 @@ public:
     //map.options.check_gradients=true;
     //map.options.numeric_derivative_relative_step_size = 1e-6;
     //map.options.gradient_check_relative_precision=1e-2;
-    map.options.minimizer_progress_to_stdout = true;
+    map.options.minimizer_progress_to_stdout = false;
     map.options.max_num_iterations = 10;
     ::FLAGS_stderrthreshold = google::WARNING;  // enable console warnings (Jacobian verification)
     map.solve();
 
     // print some infos about the optimization
     //std::cout << map.summary.FullReport() << "\n";
-    std::cout << "initial T_WS : " << T_WS_init.T() << "\n" << "optimized T_WS : "
-              << poseParameterBlock_ptr->estimate().T() << "\n"
-              << "correct T_WS : " << T_WS.T() << "\n";
+//    std::cout << "initial T_WS : " << T_WS_init.T() << "\n" << "optimized T_WS : "
+//              << poseParameterBlock_ptr->estimate().T() << "\n"
+//              << "correct T_WS : " << T_WS.T() << "\n";
 
     // make sure it converged
     EXPECT_LT(2*(T_WS.q() * poseParameterBlock_ptr->estimate().q().inverse()).vec().norm(), 1e-2) <<
