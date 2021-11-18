@@ -196,6 +196,9 @@ void parseOptimizationOptions(cv::FileNode optNode, Optimization *optParams) {
   if (optNode["maxProjectionErrorTol"].isInt()) {
     optNode["maxProjectionErrorTol"] >> optParams->maxProjectionErrorTol;
   }
+  if (optNode["delayFilterInitByFrames"].isInt()) {
+    optNode["delayFilterInitByFrames"] >> optParams->delayFilterInitByFrames;
+  }
   LOG(INFO) << optParams->toString("Optimization parameters: ");
 }
 

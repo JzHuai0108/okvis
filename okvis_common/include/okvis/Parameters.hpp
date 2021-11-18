@@ -281,7 +281,19 @@ struct Optimization{
   // Max allowed projection error for an image feature to check outliers in the reprojection error scheme.
   double maxProjectionErrorTol;
 
-  Optimization();
+  // The number of frames to delay the nonlinear filter initialization since motion is detected?
+  int delayFilterInitByFrames;
+
+  Optimization(int _max_iterations = 10, int _min_iterations = 3,
+               double _timeLimitForMatchingAndOptimization = 0.035,
+               okvis::Duration _timeReserve = okvis::Duration(0.005),
+               int _numKeyframes = 5, int _numImuFrames = 3,
+               swift_vio::EstimatorAlgorithm _algorithm =
+                   swift_vio::EstimatorAlgorithm::OKVIS,
+               bool _useEpipolarConstraint = false,
+               int _cameraObservationModelId = 0, bool _computeOkvisNees = false,
+               bool _useMahalanobisGating = true,
+               double _maxProjectionErrorTol = 7, int _delayFilterInitByFrames = 3);
 
   std::string toString(std::string lead) const;
 };

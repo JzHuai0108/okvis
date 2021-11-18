@@ -65,24 +65,36 @@ void ImuParameters::setGravityDirection(
   normalGravity = gravityDirection;
 }
 
-Optimization::Optimization()
-    : max_iterations(10), min_iterations(3),
-      timeLimitForMatchingAndOptimization(0.035), timeReserve(0.005),
-      numKeyframes(5), numImuFrames(3),
-      algorithm(swift_vio::EstimatorAlgorithm::OKVIS),
-      useEpipolarConstraint(false),
-      cameraObservationModelId(0), computeOkvisNees(false),
-      useMahalanobisGating(true), maxProjectionErrorTol(7) {}
+Optimization::Optimization(int _max_iterations, int _min_iterations,
+                           double _timeLimitForMatchingAndOptimization,
+                           okvis::Duration _timeReserve, int _numKeyframes,
+                           int _numImuFrames,
+                           swift_vio::EstimatorAlgorithm _algorithm,
+                           bool _useEpipolarConstraint,
+                           int _cameraObservationModelId,
+                           bool _computeOkvisNees, bool _useMahalanobisGating,
+                           double _maxProjectionErrorTol,
+                           int _delayInitByFrames)
+    : max_iterations(_max_iterations), min_iterations(_min_iterations),
+      timeLimitForMatchingAndOptimization(_timeLimitForMatchingAndOptimization),
+      timeReserve(_timeReserve), numKeyframes(_numKeyframes),
+      numImuFrames(_numImuFrames), algorithm(_algorithm),
+      useEpipolarConstraint(_useEpipolarConstraint),
+      cameraObservationModelId(_cameraObservationModelId),
+      computeOkvisNees(_computeOkvisNees),
+      useMahalanobisGating(_useMahalanobisGating),
+      maxProjectionErrorTol(_maxProjectionErrorTol),
+      delayFilterInitByFrames(_delayInitByFrames) {}
 
 std::string Optimization::toString(std::string lead) const {
   std::stringstream ss(lead);
-  ss << "Algorithm " << algorithm
-     << " numKeyframes " << numKeyframes << " numImuFrames " << numImuFrames
-     << "\nUse epipolar constraint? " << useEpipolarConstraint
-     << " Camera observation model Id " << cameraObservationModelId
-     << " compute OKVIS NEES? " << computeOkvisNees
-     << " Mahalanobis gating? " << useMahalanobisGating
-     << " Max projection error " << maxProjectionErrorTol << " (px)";
+  ss << "Algorithm " << algorithm << " numKeyframes " << numKeyframes
+     << " numImuFrames " << numImuFrames << "\nUse epipolar constraint? "
+     << useEpipolarConstraint << " Camera observation model Id "
+     << cameraObservationModelId << " compute OKVIS NEES? " << computeOkvisNees
+     << "\nMahalanobis gating? " << useMahalanobisGating
+     << " Max projection error " << maxProjectionErrorTol
+     << " (px)\nDelay filter initialization by #frames " << delayFilterInitByFrames;
   return ss.str();
 }
 }  // namespace okvis
