@@ -74,7 +74,8 @@ FrontendOptions::FrontendOptions(FeatureTrackingScheme _featureTrackingMethod,
                                  float _keyframeInsertionOverlapThreshold,
                                  float _keyframeInsertionMatchingRatioThreshold,
                                  bool _stereoWithEpipolarCheck,
-                                 double _epipolarDistanceThreshold)
+                                 double _epipolarDistanceThreshold,
+                                 int _numThreads)
     : featureTrackingMethod(_featureTrackingMethod),
       useMedianFilter(_useMedianFilter), detectionOctaves(_detectionOctaves),
       detectionThreshold(_detectionThreshold), maxNoKeypoints(_maxNoKeypoints),
@@ -82,7 +83,8 @@ FrontendOptions::FrontendOptions(FeatureTrackingScheme _featureTrackingMethod,
       keyframeInsertionMatchingRatioThreshold(
           _keyframeInsertionMatchingRatioThreshold),
       stereoMatchWithEpipolarCheck(_stereoWithEpipolarCheck),
-      epipolarDistanceThreshold(_epipolarDistanceThreshold) {}
+      epipolarDistanceThreshold(_epipolarDistanceThreshold),
+      numThreads(_numThreads) {}
 
 PoseGraphOptions::PoseGraphOptions(int _maxOdometryConstraintForAKeyframe,
                                    double _minDistance, double _minAngle)

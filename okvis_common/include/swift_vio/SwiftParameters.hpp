@@ -66,6 +66,8 @@ struct FrontendOptions {
 
   double epipolarDistanceThreshold;
 
+  int numThreads;
+
   FrontendOptions(FeatureTrackingScheme featureTrackingMethod =
                       FeatureTrackingScheme::KeyframeDescriptorMatching,
                   bool useMedianFilter = false, int detectionOctaves = 0,
@@ -73,7 +75,7 @@ struct FrontendOptions {
                   float keyframeInsertionOverlapThreshold = 0.6,
                   float keyframeInsertionMatchingRatioThreshold = 0.2,
                   bool stereoWithEpipolarCheck = true,
-                  double epipolarDistanceThreshold = 2.5);
+                  double epipolarDistanceThreshold = 2.5, int numThreads = 4);
 };
 
 struct PointLandmarkOptions {

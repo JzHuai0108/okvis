@@ -77,7 +77,7 @@ Frontend::Frontend(size_t numCameras, const swift_vio::FrontendOptions& frontend
       briskDescriptionScaleInvariance_(false),
       briskMatchingThreshold_(60.0),
       matcher_(
-          std::unique_ptr<okvis::DenseMatcher>(new okvis::DenseMatcher(4))),
+          std::unique_ptr<okvis::DenseMatcher>(new okvis::DenseMatcher(frontendOptions.numThreads))),
       frontendOptions_(frontendOptions) {
   // create mutexes for feature detectors and descriptor extractors
   for (size_t i = 0; i < numCameras_; ++i) {

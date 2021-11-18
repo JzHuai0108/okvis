@@ -227,6 +227,9 @@ void parseFrontendOptions(cv::FileNode frontendNode,
     frontendOptions->featureTrackingMethod =
         static_cast<swift_vio::FeatureTrackingScheme>(trackingMethod);
   }
+  if (frontendNode["numThreads"].isInt()) {
+    frontendNode["numThreads"] >> frontendOptions->numThreads;
+  }
   LOG(INFO) << "Feature tracking method in frontend: "
             << frontendOptions->featureTrackingMethod;
 }

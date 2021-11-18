@@ -1,4 +1,5 @@
 #include "swift_vio/InitialNavState.hpp"
+#include <glog/logging.h>
 
 namespace swift_vio {
 InitialNavState::InitialNavState()
@@ -115,6 +116,10 @@ void initBiasesFromStaticImu(const okvis::ImuMeasurementDeque &imuMeasurements,
   for (const auto &imudata : imuMeasurements) {
     gyroSum += imudata.measurement.gyroscopes;
     accelSum += imudata.measurement.accelerometers;
+  }
+  if (imuMeasurements.size() == 0u) {
+    LOG(WARNING) << "No IMU data found to initialize biases!";
+    return;
   }
   double invnum = 1.0 / imuMeasurements.size();
   biases->measurement.gyroscopes = gyroSum * invnum;

@@ -123,7 +123,7 @@ void EstimatorBase::clearImus(){
 // Add a landmark.
 bool EstimatorBase::addLandmark(uint64_t landmarkId,
                             const Eigen::Vector4d & landmark) {
-  // Landmark parameter blocks will be added by the estimator.
+  // Landmark parameter blocks will be added by the derived estimators.
 //  std::shared_ptr<okvis::ceres::HomogeneousPointParameterBlock> pointParameterBlock(
 //      new okvis::ceres::HomogeneousPointParameterBlock(landmark, landmarkId));
 //  if (!mapPtr_->addParameterBlock(pointParameterBlock,
