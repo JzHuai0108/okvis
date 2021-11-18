@@ -218,6 +218,26 @@ bool Estimator::addStates(
     states.sensors.at(SensorStates::Imu).push_back(imuInfo);
   }
 
+  addPriorAndRelativeTerms(imuMeasurements);
+  return true;
+}
+
+void Estimator::addPriorAndRelativeTerms(const okvis::ImuMeasurementDeque &imuMeasurements) {
+  std::map<uint64_t, States>::reverse_iterator lastElementIterator = statesMap_.rbegin();
+  const States &states = lastElementIterator->second;
+  lastElementIterator++;
+  uint64_t id = states.global.at(GlobalStates::T_WS).id;
+  std::shared_ptr<okvis::ceres::PoseParameterBlock> poseParameterBlock =
+      std::static_pointer_cast<okvis::ceres::PoseParameterBlock>(
+          mapPtr_->parameterBlockPtr(id));
+  kinematics::Transformation T_WS = poseParameterBlock->estimate();
+
+  uint64_t sbid = states.sensors.at(SensorStates::Imu).at(0).at(ImuSensorStates::SpeedAndBias).id;
+  std::shared_ptr<okvis::ceres::SpeedAndBiasParameterBlock> speedAndBiasParameterBlock =
+      std::static_pointer_cast<okvis::ceres::SpeedAndBiasParameterBlock>(
+          mapPtr_->parameterBlockPtr(sbid));
+  SpeedAndBiases speedAndBias = speedAndBiasParameterBlock->estimate();
+
   // depending on whether or not this is the very beginning, we will add priors or relative terms to the last state:
   if (statesMap_.size() == 1) {
     // let's add a prior
@@ -234,7 +254,7 @@ bool Estimator::addStates(
       double rotationStdev = cameraNoiseParametersVec_.at(i).sigma_absolute_orientation;
       double rotationVariance = rotationStdev*rotationStdev;
       if(translationVariance>1.0e-16 && rotationVariance>1.0e-16){
-        const okvis::kinematics::Transformation T_SC = *multiFrame->T_SC(i);
+        const okvis::kinematics::Transformation T_SC = cameraRig_.getCameraExtrinsic(i);
         std::shared_ptr<ceres::PoseError > cameraPoseError(
               new ceres::PoseError(T_SC, translationVariance, rotationVariance));
         // add to map
@@ -267,8 +287,7 @@ bool Estimator::addStates(
               states.sensors.at(SensorStates::Imu).at(i).at(ImuSensorStates::SpeedAndBias).id));
       //mapPtr_->isJacobianCorrect(id,1.0e-6);
     }
-  }
-  else{
+  } else {
     // add IMU error terms
     for (size_t i = 0; i < imuParametersVec_.size(); ++i) {
       std::shared_ptr<ceres::ImuError> imuError(
@@ -323,8 +342,6 @@ bool Estimator::addStates(
     // a term for global states as well as for the sensor-internal ones (i.e. biases).
     // TODO: magnetometer, pressure, ...
   }
-
-  return true;
 }
 
 // Remove an observation from a landmark.

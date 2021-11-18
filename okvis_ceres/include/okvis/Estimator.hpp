@@ -109,14 +109,7 @@ class Estimator : public EstimatorBase
    */
   bool addStates(okvis::MultiFramePtr multiFrame,
                  const okvis::ImuMeasurementDeque & imuMeasurements,
-                 bool asKeyframe) final;
-
-  /**
-   * @brief Prints state information to buffer.
-   * @param poseId The pose Id for which to print.
-   * @param buffer The puffer to print into.
-   */
-  void printStates(uint64_t poseId, std::ostream & buffer) const;
+                 bool asKeyframe) override;
 
   /**
    * @brief Applies the dropping/marginalization strategy according to the RSS'13/IJRR'14 paper.
@@ -134,8 +127,6 @@ class Estimator : public EstimatorBase
    */
   void optimize(size_t numIter, size_t numThreads = 1, bool verbose = false) override;
 
-  void updateSensorRigs();
-
   /**
    * @brief Set a time limit for the optimization process.
    * @param[in] timeLimit Time limit in seconds. If timeLimit < 0 the time limit is removed.
@@ -145,6 +136,50 @@ class Estimator : public EstimatorBase
    */
   bool setOptimizationTimeLimit(double timeLimit, int minIterations) final;
 
+  /**
+   * @brief Prints state information to buffer.
+   * @param poseId The pose Id for which to print.
+   * @param buffer The puffer to print into.
+   */
+  void printStates(uint64_t poseId, std::ostream & buffer) const;
+
+  /**
+   * @brief computeCovariance compute covariance by okvis marginalization module
+   * which handles rank deficiency caused by low-disparity landmarks.
+   * @param cov covariance of p_WS, q_WS, v_WS, b_g, b_a.
+   * @return true if covariance is computed successfully, false otherwise.
+   */
+  bool computeCovariance(Eigen::MatrixXd* cov) const override;
+
+  /**
+   * @brief computeCovarianceCeres compute covariance by ceres::Covariance which
+   * can handle rank deficiency if DENSE_SVD is used.
+   * @param[out] cov covariance of p_WS, q_WS, v_WS, b_g, b_a.
+   * @param[in] covAlgorithm SPARSE_QR or DENSE_SVD. DENSE_SVD is slow but
+   * handles rank deficiency.
+   * @return true if covariance is computed successfully, false otherwise.
+   */
+  bool
+  computeCovarianceCeres(Eigen::MatrixXd *cov,
+                         ::ceres::CovarianceAlgorithmType covAlgorithm) const;
+
+
+  std::vector<std::string> variableLabels() const override;
+
+  std::vector<std::string> perturbationLabels() const override;
+
+  /// @name Getters
+  /// @{
+  /**
+   * @brief get std. dev. of state for nav state (p,q,v), imu(bg ba), and optionally
+   * imu augmented intrinsic parameters, camera extrinsic, intrinsic, td, tr.
+   * @param stateStd
+   * @return true if std. dev. of states are computed successfully.
+   */
+  bool getStateStd(Eigen::Matrix<double, Eigen::Dynamic, 1>* stateStd) const override;
+  ///@}
+
+ private:
   /**
    * @brief addReprojectionFactors add reprojection factors for all observations
    * of landmarks whose residuals are NULL.
@@ -170,45 +205,12 @@ class Estimator : public EstimatorBase
    * @return
    */
   bool addReprojectionFactors();
-  ///@}
 
-  /**
-   * @brief computeCovariance compute covariance by okvis marginalization module
-   * which handles rank deficiency caused by low-disparity landmarks.
-   * @param cov covariance of p_WS, q_WS, v_WS, b_g, b_a.
-   * @return true if covariance is computed successfully, false otherwise.
-   */
-  bool computeCovariance(Eigen::MatrixXd* cov) const final;
-
-  /**
-   * @brief computeCovarianceCeres compute covariance by ceres::Covariance which
-   * can handle rank deficiency if DENSE_SVD is used.
-   * @param[out] cov covariance of p_WS, q_WS, v_WS, b_g, b_a.
-   * @param[in] covAlgorithm SPARSE_QR or DENSE_SVD. DENSE_SVD is slow but
-   * handles rank deficiency.
-   * @return true if covariance is computed successfully, false otherwise.
-   */
-  bool
-  computeCovarianceCeres(Eigen::MatrixXd *cov,
-                         ::ceres::CovarianceAlgorithmType covAlgorithm) const;
-
-
-  std::vector<std::string> variableLabels() const final;
-
-  std::vector<std::string> perturbationLabels() const final;
-
-  /// @name Getters
-  /// @{
-  /**
-   * @brief get std. dev. of state for nav state (p,q,v), imu(bg ba), and optionally
-   * imu augmented intrinsic parameters, camera extrinsic, intrinsic, td, tr.
-   * @param stateStd
-   * @return true if std. dev. of states are computed successfully.
-   */
-  bool getStateStd(Eigen::Matrix<double, Eigen::Dynamic, 1>* stateStd) const final;
-  ///@}
+  void updateSensorRigs();
 
  protected:
+
+  void addPriorAndRelativeTerms(const okvis::ImuMeasurementDeque &imuMeasurements);
 
   template <class GEOMETRY_TYPE>
   ::ceres::ResidualBlockId addPointFrameResidual(uint64_t landmarkId,
