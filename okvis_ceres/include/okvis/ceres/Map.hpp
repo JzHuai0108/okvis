@@ -229,6 +229,8 @@ class Map {
    */
   bool removeResidualBlock(::ceres::ResidualBlockId id);
 
+  size_t removeAllResidualBlocks();
+
   /// @}
 
   /// @name Set constant/variable/local parameterization

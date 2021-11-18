@@ -107,7 +107,7 @@ class EstimatorBase : public VioBackendInterface
    * @return Index of new camera.
    */
   int addCameraParameterStds(const okvis::CameraNoiseParameters&
-                                     cameraNoiseParameters) override;
+                                     cameraNoiseParameters) final;
   /**
    * @brief addCameraSystem add the cameraSystem to the estimator.
    * @param cameras
@@ -212,7 +212,7 @@ class EstimatorBase : public VioBackendInterface
    * @param landmarkId The ID.
    * @return True if added.
    */
-  bool isLandmarkAdded(uint64_t landmarkId) const override {
+  bool isLandmarkAdded(uint64_t landmarkId) const final {
     bool isAdded = landmarksMap_.find(landmarkId) != landmarksMap_.end();
 //    OKVIS_ASSERT_TRUE_DBG(Exception, isAdded == mapPtr_->parameterBlockExists(landmarkId),
 //                   "id="<<landmarkId<<" inconsistent. isAdded = " << isAdded);
@@ -224,7 +224,7 @@ class EstimatorBase : public VioBackendInterface
    * @param landmarkId The ID.
    * @return True if initialised.
    */
-  bool isLandmarkInitialized(uint64_t landmarkId) const override;
+  bool isLandmarkInitialized(uint64_t landmarkId) const final;
 
   /**
    * @brief Get a specific landmark's first observation.
@@ -242,7 +242,7 @@ class EstimatorBase : public VioBackendInterface
    * @param[out] mapPoint Landmark information, such as quality, coordinates etc.
    * @return True if successful.
    */
-  bool getLandmark(uint64_t landmarkId, okvis::MapPoint& mapPoint) const override;
+  bool getLandmark(uint64_t landmarkId, okvis::MapPoint& mapPoint) const final;
 
   /**
    * @brief Get a copy of all the landmarks as a PointMap.
@@ -262,7 +262,7 @@ class EstimatorBase : public VioBackendInterface
 
   /// @brief Get the number of landmarks in the estimator
   /// \return The number of landmarks.
-  size_t numLandmarks() const override {
+  size_t numLandmarks() const final {
     return landmarksMap_.size();
   }
 
@@ -278,12 +278,12 @@ class EstimatorBase : public VioBackendInterface
   /// @param[in] landmarkId The landmark ID.
   /// @param[in] landmark Homogeneous coordinates of landmark in W-frame.
   /// @return True if successful.
-  bool setLandmark(uint64_t landmarkId, const Eigen::Vector4d & landmark) override;
+  bool setLandmark(uint64_t landmarkId, const Eigen::Vector4d & landmark) final;
 
   /// @brief Set the landmark initialization state.
   /// @param[in] landmarkId The landmark ID.
   /// @param[in] initialized Whether or not initialised.
-  void setLandmarkInitialized(uint64_t landmarkId, bool initialized) override;
+  void setLandmarkInitialized(uint64_t landmarkId, bool initialized) final;
 
 
   /**
@@ -301,7 +301,7 @@ class EstimatorBase : public VioBackendInterface
    * @param frameId ID of desired multiframe.
    * @return Shared pointer to multiframe.
    */
-  okvis::MultiFramePtr multiFrame(uint64_t frameId) const override {
+  okvis::MultiFramePtr multiFrame(uint64_t frameId) const final {
     OKVIS_ASSERT_TRUE_DBG(Exception, multiFramePtrMap_.find(frameId)!=multiFramePtrMap_.end(),
                        "Requested multi-frame does not exist in estimator.");
     return multiFramePtrMap_.at(frameId);
@@ -313,7 +313,7 @@ class EstimatorBase : public VioBackendInterface
    * @param[out] T_WS Homogeneous transformation of this pose.
    * @return True if successful.
    */
-  bool get_T_WS(uint64_t poseId, okvis::kinematics::Transformation & T_WS) const override;
+  bool get_T_WS(uint64_t poseId, okvis::kinematics::Transformation & T_WS) const final;
 
   // the following access the optimization graph, so are not very fast.
   // Feel free to implement caching for them...
@@ -325,7 +325,7 @@ class EstimatorBase : public VioBackendInterface
    * @param[out] speedAndBias Speed And bias requested.
    * @return True if successful.
    */
-  bool getSpeedAndBias(uint64_t poseId, uint64_t imuIdx, okvis::SpeedAndBias & speedAndBias) const override;
+  bool getSpeedAndBias(uint64_t poseId, uint64_t imuIdx, okvis::SpeedAndBias & speedAndBias) const final;
 
   /**
    * @brief Get camera states for a given pose ID.
@@ -338,11 +338,11 @@ class EstimatorBase : public VioBackendInterface
    * @return True if successful.
    */
   bool getCameraSensorStates(uint64_t poseId, size_t cameraIdx,
-                             okvis::kinematics::Transformation & T_XCi) const override;
+                             okvis::kinematics::Transformation & T_XCi) const final;
 
   /// @brief Get the number of states/frames in the estimator.
   /// \return The number of frames.
-  size_t numFrames() const override {
+  size_t numFrames() const final {
     return statesMap_.size();
   }
 
@@ -359,7 +359,7 @@ class EstimatorBase : public VioBackendInterface
 
   /// @brief Get the ID of the newest frame added to the state.
   /// \return The ID of the current frame.
-  uint64_t currentFrameId() const override;
+  uint64_t currentFrameId() const final;
 
   okvis::Time currentFrameTimestamp() const;
 
@@ -413,7 +413,7 @@ class EstimatorBase : public VioBackendInterface
    * @param[in] frameId ID of frame.
    * @return Timestamp of frame.
    */
-  okvis::Time timestamp(uint64_t frameId) const override {
+  okvis::Time timestamp(uint64_t frameId) const final {
     return statesMap_.at(frameId).timestamp;
   }
 
@@ -422,7 +422,7 @@ class EstimatorBase : public VioBackendInterface
    * @param[in] frameId ID of frame to check.
    * @return True if the frame is a keyframe.
    */
-  bool isKeyframe(uint64_t frameId) const override {
+  bool isKeyframe(uint64_t frameId) const final {
     return statesMap_.at(frameId).isKeyframe;
   }
 
@@ -533,7 +533,7 @@ class EstimatorBase : public VioBackendInterface
    * @param[in] T_WS new homogeneous transformation.
    * @return True if successful.
    */
-  bool set_T_WS(uint64_t poseId, const okvis::kinematics::Transformation & T_WS) override;
+  bool set_T_WS(uint64_t poseId, const okvis::kinematics::Transformation & T_WS) final;
 
   /**
    * @brief Set the speeds and IMU biases for a given pose ID.
@@ -543,20 +543,20 @@ class EstimatorBase : public VioBackendInterface
    * @param[in] speedAndBias new speeds and biases.
    * @return True if successful.
    */
-  bool setSpeedAndBias(uint64_t poseId, size_t imuIdx, const okvis::SpeedAndBias & speedAndBias) override;
+  bool setSpeedAndBias(uint64_t poseId, size_t imuIdx, const okvis::SpeedAndBias & speedAndBias) final;
 
   void setPositionVelocityLin(uint64_t poseId, const Eigen::Matrix<double, 6, 1>& posVelLin) final;
 
   /// @brief Set whether a frame is a keyframe or not.
   /// @param[in] frameId The frame ID.
   /// @param[in] isKeyframe Whether or not keyrame.
-  void setKeyframe(uint64_t frameId, bool isKeyframe) override {
+  void setKeyframe(uint64_t frameId, bool isKeyframe) final {
     statesMap_.at(frameId).isKeyframe = isKeyframe;
   }
 
   /// @brief set ceres map
   /// @param[in] mapPtr The pointer to the okvis::ceres::Map.
-  void setMap(std::shared_ptr<okvis::ceres::Map> mapPtr) override {
+  void setMap(std::shared_ptr<okvis::ceres::Map> mapPtr) final {
     mapPtr_ = mapPtr;
   }
 

@@ -566,6 +566,21 @@ bool Map::removeResidualBlock(::ceres::ResidualBlockId residualBlockId) {
   return true;
 }
 
+size_t Map::removeAllResidualBlocks() {
+  size_t numResiduals = 0u;
+  while (1) {
+    const okvis::ceres::Map::ResidualBlockId2ResidualBlockSpec_Map
+        &residualMap = residualBlockId2ResidualBlockSpecMap();
+    if (residualMap.size()) {
+      auto iter = residualMap.begin();
+      removeResidualBlock(iter->first);
+    } else {
+      break;
+    }
+  }
+  return numResiduals;
+}
+
 // Do not optimise a certain parameter block.
 bool Map::setParameterBlockConstant(uint64_t parameterBlockId) {
   if (!parameterBlockExists(parameterBlockId))
