@@ -962,23 +962,10 @@ bool Estimator::getStateStd(
 void Estimator::updateSensorRigs() {
   size_t numCameras = cameraRig_.numberCameras();
   const uint64_t currFrameId = currentFrameId();
-  okvis::kinematics::Transformation T_BC0;
-  getCameraSensorStates(currFrameId, kMainCameraIndex, T_BC0);
-
   for (size_t camIdx = 0u; camIdx < numCameras; ++camIdx) {
-    int extrinsicModelId = cameraRig_.getExtrinsicOptMode(camIdx);
     okvis::kinematics::Transformation T_XCi;
-    switch (extrinsicModelId) {
-    case swift_vio::Extrinsic_p_CB::kModelId:
-    case swift_vio::Extrinsic_p_BC_q_BC::kModelId:
-      getCameraSensorStates(currFrameId, camIdx, T_XCi);
-      cameraRig_.setCameraExtrinsic(camIdx, T_XCi);
-      break;
-    case swift_vio::Extrinsic_p_C0C_q_C0C::kModelId:
-      getCameraSensorStates(currFrameId, camIdx, T_XCi);
-      cameraRig_.setCameraExtrinsic(camIdx, T_BC0 * T_XCi);
-      break;
-    }
+    getCameraSensorStates(currFrameId, camIdx, T_XCi);
+    cameraRig_.setCameraExtrinsic(camIdx, T_XCi);
   }
 }
 
