@@ -587,6 +587,10 @@ class EstimatorBase : public VioBackendInterface
           loopFrameAndMatchesList) {
     loopFrameAndMatchesList_ = loopFrameAndMatchesList;
   }
+
+  void setInitializationStatus(InitializationStatus status) {
+    initStatus_ = status;
+  }
   ///@}
 
   template<class PARAMETER_BLOCK_T>
@@ -819,6 +823,7 @@ class EstimatorBase : public VioBackendInterface
 
   swift_vio::PoseGraphOptions poseGraphOptions_;
 
+  InitializationStatus initStatus_;
 };
 }  // namespace okvis
 #include "okvis/implementation/EstimatorBase.hpp"

@@ -64,13 +64,15 @@ namespace okvis {
 EstimatorBase::EstimatorBase(
     std::shared_ptr<okvis::ceres::Map> mapPtr)
     : mapPtr_(mapPtr),
-      referencePoseId_(0) {
+      referencePoseId_(0), 
+      initStatus_(InitializationStatus::Ongoing) {
 }
 
 // The default constructor.
 EstimatorBase::EstimatorBase()
     : mapPtr_(new okvis::ceres::Map()),
-      referencePoseId_(0) {
+      referencePoseId_(0), 
+      initStatus_(InitializationStatus::Ongoing) {
 }
 
 EstimatorBase::~EstimatorBase() {

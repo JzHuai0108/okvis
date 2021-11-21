@@ -73,10 +73,10 @@ class VioBackendInterface {
   virtual ~VioBackendInterface() {}
 
   /// @brief Enum to define the status of initialization
-  enum class InitializationStatus{
-    NotStarted = 0, ///< Initialization not started
-    Ongoing = 1, ///< Initialization ongoing
-    Complete = 2 ///< Initialization complete
+  enum class InitializationStatus {
+    NotStarted = 0,
+    Ongoing = 1,
+    RunningNonlinEst,
   };
 
   /// @name Sensor configuration related
