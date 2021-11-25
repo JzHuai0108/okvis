@@ -793,9 +793,8 @@ void ThreadedKFVio::optimizationLoop() {
         marginalizationTimer.start();
         estimator_->applyMarginalizationStrategy(result.transferredLandmarks);
         marginalizationTimer.stop();
-        afterOptimizationTimer.start();
       }
-
+      afterOptimizationTimer.start();
       swift_vio::deleteImuMeasurements(deleteImuMeasurementsUntil,
                             imuMeasurements_, &imuMeasurements_mutex_);
 
