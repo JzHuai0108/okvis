@@ -160,6 +160,18 @@ class DynamicImuError :
                                     double* residuals, double** jacobians,
                                     double** jacobiansMinimal) const;
 
+  template <size_t Start, size_t End>
+  void fillNumericJacLoop(double const *const *parameters, double **jacobians,
+                          double **jacobiansMinimal,
+                          const ImuModelT &imuModel) const;
+
+  bool
+  EvaluateWithMinimalJacobiansNumeric(double *const *parameters,
+                                      double *residuals, double **jacobians,
+                                      double **jacobiansMinimal) const final;
+
+  bool checkJacobians(double *const *parameters) final;
+
   // sizes
   /// \brief Residual dimension.
   size_t residualDim() const {

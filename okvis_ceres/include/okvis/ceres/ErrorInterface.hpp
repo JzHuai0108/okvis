@@ -95,6 +95,20 @@ class ErrorInterface {
       double const* const * parameters, double* residuals, double** jacobians,
       double** jacobiansMinimal) const = 0;
 
+  virtual bool EvaluateWithMinimalJacobiansNumeric(
+      double *const * /*parameters*/, double* /*residuals*/, double** /*jacobians*/,
+      double** /*jacobiansMinimal*/) const {
+    return false;
+  }
+
+  /**
+   * @brief check analytic Jacobians against numeric Jacobians.
+   * @param parameters
+   * @param residuals
+   * @return true if Jacobians are very close.
+   */
+  virtual bool checkJacobians(double *const * /*parameters*/) { return false; }
+
   /// @brief Residual block type as string
   virtual std::string typeInfo() const = 0;
 };

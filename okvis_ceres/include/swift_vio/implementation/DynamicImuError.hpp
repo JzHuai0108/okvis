@@ -279,23 +279,23 @@ bool DynamicImuError<ImuModelT>::Evaluate(double const* const * parameters, doub
 }
 
 template <size_t Start, size_t End, class ImuModelT>
-constexpr void constexpr_loop(double **jacobians, double **jacobiansMinimal, const ImuModelT&imuModel) {
+void fillAnalyticJacLoop(double **jacobians, double **jacobiansMinimal, const ImuModelT&imuModel) {
   if constexpr (Start < End) {
-    if (jacobians[5 + Start] != NULL) {
+    if (jacobians != NULL && jacobians[5 + Start] != NULL) {
       Eigen::Map<Eigen::Matrix<double, 15, ImuModelT::kXBlockDims[Start], Eigen::RowMajor>> J(jacobians[5 + Start]);
       J.block<3, ImuModelT::kXBlockDims[Start]>(0, 0) = imuModel.dp_dx(Start);
       J.block<3, ImuModelT::kXBlockDims[Start]>(3, 0) = imuModel.dR_dx(Start);
       J.block<3, ImuModelT::kXBlockDims[Start]>(6, 0) = imuModel.dv_dx(Start);
-      J.block<6, ImuModelT::kXBlockDims[Start]>(9, 0) = Eigen::Matrix<double, 6, ImuModelT::kXBlockDims[Start]>::Zero();
+      J.template bottomRows<6>(9).setZero();
       if (jacobiansMinimal != NULL && jacobiansMinimal[5 + Start] != NULL) {
         Eigen::Map<Eigen::Matrix<double, 15, ImuModelT::kXBlockDims[Start], Eigen::RowMajor>> Jm(jacobiansMinimal[5 + Start]);
         J.block<3, ImuModelT::kXBlockDims[Start]>(0, 0) = imuModel.dp_dx_minimal(Start);
         J.block<3, ImuModelT::kXBlockDims[Start]>(3, 0) = imuModel.dalpha_dx_minimal(Start);
         J.block<3, ImuModelT::kXBlockDims[Start]>(6, 0) = imuModel.dv_dx_minimal(Start);
-        J.block<6, ImuModelT::kXBlockDims[Start]>(9, 0) = Eigen::Matrix<double, 6, ImuModelT::kXBlockDims[Start]>::Zero();
+        J.template bottomRows<6>(9).setZero();
       }
     }
-    constexpr_loop<Start + 1, End>(jacobians, jacobiansMinimal, imuModel);
+    fillAnalyticJacLoop<Start + 1, End>(jacobians, jacobiansMinimal, imuModel);
   }
 }
 
@@ -496,10 +496,339 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
         }
       }
 
-      constexpr_loop<0, ImuModelT::kXBlockDims.size(), ImuModelT>(jacobians, jacobiansMinimal, imuModel_);
+      fillAnalyticJacLoop<0, ImuModelT::kXBlockDims.size(), ImuModelT>(jacobians, jacobiansMinimal, imuModel_);
     }
   }
   return true;
+}
+
+template <typename ImuModelT>
+template <size_t Start, size_t End>
+void DynamicImuError<ImuModelT>::fillNumericJacLoop(double const *const * parameters,
+                                  double **jacobians,
+                                  double **jacobiansMinimal,
+                                  const ImuModelT &imuModel) const {
+  if constexpr (Start < End) {
+    double dx = 1e-6;
+    if (jacobians != NULL && jacobians[5 + Start] != NULL) {
+      constexpr size_t blockDim = ImuModelT::kXBlockDims[Start];
+      Eigen::Map<Eigen::Matrix<double, 15, blockDim,
+                               Eigen::RowMajor>>
+          J(jacobians[5 + Start]);
+      double originalParams[ImuModelT::kXBlockDims[Start]];
+      memcpy(originalParams, parameters[5 + Start], sizeof(double) * blockDim);
+      Eigen::Map<Eigen::Matrix<double, blockDim, 1>> parameterBlock(parameters[5 + Start]);
+      for (size_t i = 0; i <blockDim; ++i) {
+        Eigen::Matrix<double, blockDim, 1> ds_0;
+        Eigen::Matrix<double, 15, 1> residuals_p;
+        Eigen::Matrix<double, 15, 1> residuals_m;
+        ds_0.setZero();
+        ds_0[i] = dx;
+        parameterBlock += ds_0;
+        Evaluate(parameters, residuals_p.data(), NULL);
+        memcpy(parameters[5 + Start], originalParams, sizeof(double) * blockDim); // reset
+        ds_0[i] = -dx;
+        parameterBlock += ds_0;
+        Evaluate(parameters, residuals_m.data(), NULL);
+        memcpy(parameters[5 + Start], originalParams, sizeof(double) * blockDim); // reset
+        J.col(i) = (residuals_p - residuals_m) * (1.0 / (2 * dx));
+      }
+
+      if (jacobiansMinimal != NULL && jacobiansMinimal[5 + Start] != NULL) {
+        constexpr size_t minBlockDim = ImuModelT::kXBlockMinDims[Start];
+        Eigen::Map<Eigen::Matrix<double, 15, minBlockDim,
+                                 Eigen::RowMajor>>
+            Jm(jacobiansMinimal[5 + Start]);
+        for (size_t i = 0; i < minBlockDim; ++i) {
+          Eigen::Matrix<double, minBlockDim, 1> ds_0;
+          Eigen::Matrix<double, 15, 1> residuals_p;
+          Eigen::Matrix<double, 15, 1> residuals_m;
+          ds_0.setZero();
+          ds_0[i] = dx;
+          imuModel.plus<Start>(parameters[5 + Start], ds_0.data(), parameters[5 + Start]);
+          Evaluate(parameters, residuals_p.data(), NULL);
+          memcpy(parameters[5 + Start], originalParams, sizeof(double) * blockDim); // reset
+          ds_0[i] = -dx;
+          imuModel.plus<Start>(parameters[5 + Start], ds_0.data(), parameters[5 + Start]);
+          Evaluate(parameters, residuals_m.data(), NULL);
+          memcpy(parameters[5 + Start], originalParams, sizeof(double) * blockDim); // reset
+          Jm.col(i) = (residuals_p - residuals_m) * (1.0 / (2 * dx));
+        }
+      }
+    }
+    fillNumericJacLoop<Start + 1, End>(parameters, jacobians, jacobiansMinimal, imuModel);
+  }
+}
+
+template <typename ImuModelT>
+bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobiansNumeric(
+    double *const *parameters, double *residuals, double **jacobians,
+    double **jacobiansMinimal) const {
+  double dx = 1e-6;
+  if (jacobiansMinimal) {
+    Eigen::Map<Eigen::Matrix<double, 15, 6, Eigen::RowMajor>> J0minNumeric(jacobiansMinimal[0]);
+    double T_WS[7];
+    memcpy(T_WS, parameters[0], sizeof(double) * 7);
+    for (size_t i = 0; i < 6; ++i) {
+      Eigen::Matrix<double, 6, 1> dp_0;
+      Eigen::Matrix<double, 15, 1> residuals_p;
+      Eigen::Matrix<double, 15, 1> residuals_m;
+      dp_0.setZero();
+      dp_0[i] = dx;
+      PoseLocalParameterization::plus(parameters[0], dp_0.data(),
+                                      parameters[0]);
+      // std::cout<<poseParameterBlock_0.estimate().T()<<std::endl;
+      Evaluate(parameters, residuals_p.data(), NULL);
+      // std::cout<<residuals_p.transpose()<<std::endl;
+      memcpy(parameters[0], T_WS, sizeof(double) * 7); // reset
+      dp_0[i] = -dx;
+      // std::cout<<residuals.transpose()<<std::endl;
+      PoseLocalParameterization::plus(parameters[0], dp_0.data(),
+                                      parameters[0]);
+      // std::cout<<poseParameterBlock_0.estimate().T()<<std::endl;
+      Evaluate(parameters, residuals_m.data(), NULL);
+      // std::cout<<residuals_m.transpose()<<std::endl;
+      memcpy(parameters[0], T_WS, sizeof(double) * 7); // reset
+      J0minNumeric.col(i) = (residuals_p - residuals_m) * (1.0 / (2 * dx));
+    }
+    if (jacobians) {
+      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
+      PoseLocalParameterization::liftJacobian(parameters[0], J_lift.data());
+      Eigen::Map<Eigen::Matrix<double, 15, 7, Eigen::RowMajor>> J0Numeric(jacobians[0]);
+      J0Numeric = J0minNumeric * J_lift;
+    }
+  }
+
+  if (jacobians) {
+    Eigen::Map<Eigen::Matrix<double, 15, 9, Eigen::RowMajor>> J1_numDiff(jacobians[1]);
+    Eigen::Map<Eigen::Matrix<double, 9, 1>> speedAndBiasParameterBlock_0(parameters[1]);
+    Eigen::Matrix<double, 9, 1> speedAndBias_0 = speedAndBiasParameterBlock_0;
+    for (size_t i = 0; i < 9; ++i) {
+      Eigen::Matrix<double, 9, 1> ds_0;
+      Eigen::Matrix<double, 15, 1> residuals_p;
+      Eigen::Matrix<double, 15, 1> residuals_m;
+      ds_0.setZero();
+      ds_0[i] = dx;
+      Eigen::Matrix<double, 9, 1> plussed = speedAndBias_0 + ds_0;
+      speedAndBiasParameterBlock_0 = plussed;
+      Evaluate(parameters, residuals_p.data(), NULL);
+      ds_0[i] = -dx;
+      plussed = speedAndBias_0 + ds_0;
+      speedAndBiasParameterBlock_0 = plussed;
+      Evaluate(parameters, residuals_m.data(), NULL);
+      speedAndBiasParameterBlock_0 = speedAndBias_0; // reset
+      J1_numDiff.col(i) = (residuals_p - residuals_m) * (1.0 / (2 * dx));
+    }
+    if (jacobiansMinimal) {
+      Eigen::Map<Eigen::Matrix<double, 15, 9, Eigen::RowMajor>> J1(jacobiansMinimal[1]);
+      J1 = J1_numDiff;
+    }
+  }
+
+  if (jacobiansMinimal) {
+    Eigen::Map<Eigen::Matrix<double, 15, 6, Eigen::RowMajor>> J2minNumeric(jacobiansMinimal[2]);
+    double T_WS[7];
+    memcpy(T_WS, parameters[2], sizeof(double) * 7);
+    for (size_t i = 0; i < 6; ++i) {
+      Eigen::Matrix<double, 6, 1> dp_1;
+      Eigen::Matrix<double, 15, 1> residuals_p;
+      Eigen::Matrix<double, 15, 1> residuals_m;
+      dp_1.setZero();
+      dp_1[i] = dx;
+      PoseLocalParameterization::plus(parameters[2], dp_1.data(),
+                                      parameters[2]);
+      Evaluate(parameters, residuals_p.data(), NULL);
+      memcpy(parameters[2], T_WS, sizeof(double) * 7); // reset
+      dp_1[i] = -dx;
+      PoseLocalParameterization::plus(parameters[2], dp_1.data(),
+                                      parameters[2]);
+      Evaluate(parameters, residuals_m.data(), NULL);
+      memcpy(parameters[2], T_WS, sizeof(double) * 7); // reset
+      J2minNumeric.col(i) = (residuals_p - residuals_m) * (1.0 / (2 * dx));
+    }
+
+    if (jacobians) {
+      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
+      PoseLocalParameterization::liftJacobian(parameters[2], J_lift.data());
+      Eigen::Map<Eigen::Matrix<double, 15, 7, Eigen::RowMajor>> J2(jacobians[2]);
+      J2 = J2minNumeric * J_lift;
+    }
+  }
+
+  if (jacobians) {
+    Eigen::Map<Eigen::Matrix<double, 15, 9, Eigen::RowMajor>> J3_numDiff(jacobians[3]);
+    Eigen::Map<Eigen::Matrix<double, 9, 1>> speedAndBiasParameterBlock_1(parameters[3]);
+    Eigen::Matrix<double, 9, 1> speedAndBias_1 = speedAndBiasParameterBlock_1;
+    for (size_t i = 0; i < 9; ++i) {
+      Eigen::Matrix<double, 9, 1> ds_1;
+      Eigen::Matrix<double, 15, 1> residuals_p;
+      Eigen::Matrix<double, 15, 1> residuals_m;
+      ds_1.setZero();
+      ds_1[i] = dx;
+      Eigen::Matrix<double, 9, 1> plussed = speedAndBias_1 + ds_1;
+      speedAndBiasParameterBlock_1 = plussed;
+      Evaluate(parameters, residuals_p.data(), NULL);
+      ds_1[i] = -dx;
+      plussed = speedAndBias_1 + ds_1;
+      speedAndBiasParameterBlock_1 = plussed;
+      Evaluate(parameters, residuals_m.data(), NULL);
+      speedAndBiasParameterBlock_1 = speedAndBias_1; // reset
+      J3_numDiff.col(i) = (residuals_p - residuals_m) * (1.0 / (2 * dx));
+    }
+    if (jacobiansMinimal) {
+      Eigen::Map<Eigen::Matrix<double, 15, 9, Eigen::RowMajor>> J3(jacobiansMinimal[3]);
+      J3 = J3_numDiff;
+    }
+  }
+
+  if (jacobiansMinimal) {
+    Eigen::Map<Eigen::Matrix<double, 15, 2, Eigen::RowMajor>> J4_minNumDiff(jacobiansMinimal[4]);
+    double gravityDirectionBlock[3];
+    memcpy(gravityDirectionBlock, parameters[4], sizeof(double) * 3);
+    for (size_t i = 0; i < 2; ++i) {
+      Eigen::Matrix<double, 2, 1> du;
+      Eigen::Matrix<double, 15, 1> residuals_p;
+      Eigen::Matrix<double, 15, 1> residuals_m;
+      du.setZero();
+      du[i] = dx;
+      swift_vio::NormalVectorParameterization::plus(parameters[4], du.data(),
+                                         parameters[4]);
+      Evaluate(parameters, residuals_p.data(), NULL);
+      memcpy(parameters[4], gravityDirectionBlock, sizeof(double) * 3); // reset
+      du[i] = -dx;
+      swift_vio::NormalVectorParameterization::plus(parameters[4], du.data(),
+                                         parameters[4]);
+      Evaluate(parameters, residuals_m.data(), NULL);
+      memcpy(parameters[4], gravityDirectionBlock, sizeof(double) * 3); // reset
+      J4_minNumDiff.col(i) = (residuals_p - residuals_m) * (1.0 / (2 * dx));
+    }
+  }
+
+  if (jacobians) {
+    Eigen::Map<Eigen::Matrix<double, 15, 3, Eigen::RowMajor>> J4_numDiff(jacobians[4]);
+    double gravityDirectionBlock[3];
+    memcpy(gravityDirectionBlock, parameters[4], sizeof(double) * 3);
+    for (size_t i = 0; i < 3; ++i) {
+      Eigen::Matrix<double, 3, 1> du;
+      Eigen::Matrix<double, 15, 1> residuals_p;
+      Eigen::Matrix<double, 15, 1> residuals_m;
+      du.setZero();
+      du[i] = dx;
+      Eigen::Map<Eigen::Vector3d> val(parameters[4]);
+      val += du;
+      Evaluate(parameters, residuals_p.data(), NULL);
+      memcpy(parameters[4], gravityDirectionBlock, sizeof(double) * 3); // reset
+      du[i] = -dx;
+      val += du;
+      Evaluate(parameters, residuals_m.data(), NULL);
+      memcpy(parameters[4], gravityDirectionBlock, sizeof(double) * 3); // reset
+      J4_numDiff.col(i) = (residuals_p - residuals_m) * (1.0 / (2 * dx));
+    }
+  }
+
+  fillNumericJacLoop<0, ImuModelT::kXBlockDims.size()>(
+      parameters, jacobians, jacobiansMinimal, imuModel_);
+  return true;
+}
+
+template <typename ImuModelT>
+bool DynamicImuError<ImuModelT>::checkJacobians(double *const * parameters) {
+	double* jacobians[5];
+	Eigen::Matrix<double,15,7,Eigen::RowMajor> J0;
+	Eigen::Matrix<double,15,9,Eigen::RowMajor> J1;
+	Eigen::Matrix<double,15,7,Eigen::RowMajor> J2;
+	Eigen::Matrix<double,15,9,Eigen::RowMajor> J3;
+	Eigen::Matrix<double,15,3,Eigen::RowMajor> J4;
+	jacobians[0]=J0.data();
+	jacobians[1]=J1.data();
+	jacobians[2]=J2.data();
+	jacobians[3]=J3.data();
+	jacobians[4]=J4.data();
+	double* jacobiansMinimal[5];
+	Eigen::Matrix<double,15,6,Eigen::RowMajor> J0min;
+	Eigen::Matrix<double,15,9,Eigen::RowMajor> J1min;
+	Eigen::Matrix<double,15,6,Eigen::RowMajor> J2min;
+	Eigen::Matrix<double,15,9,Eigen::RowMajor> J3min;
+	Eigen::Matrix<double,15,2,Eigen::RowMajor> J4min;
+	jacobiansMinimal[0]=J0min.data();
+	jacobiansMinimal[1]=J1min.data();
+	jacobiansMinimal[2]=J2min.data();
+	jacobiansMinimal[3]=J3min.data();
+	jacobiansMinimal[4]=J4min.data();
+	Eigen::Matrix<double,15,1> residuals;
+
+	// evaluate twice to be sure that we will be using the linearisation of the biases (i.e. no preintegrals redone)
+	EvaluateWithMinimalJacobians(parameters,residuals.data(),jacobians,jacobiansMinimal);
+	EvaluateWithMinimalJacobians(parameters,residuals.data(),jacobians,jacobiansMinimal);
+
+	double* jacobiansNumeric[5];
+	Eigen::Matrix<double,15,7,Eigen::RowMajor> J0Numeric;
+	Eigen::Matrix<double,15,9,Eigen::RowMajor> J1Numeric;
+	Eigen::Matrix<double,15,7,Eigen::RowMajor> J2Numeric;
+	Eigen::Matrix<double,15,9,Eigen::RowMajor> J3Numeric;
+	Eigen::Matrix<double,15,3,Eigen::RowMajor> J4Numeric;
+	jacobiansNumeric[0]=J0Numeric.data();
+	jacobiansNumeric[1]=J1Numeric.data();
+	jacobiansNumeric[2]=J2Numeric.data();
+	jacobiansNumeric[3]=J3Numeric.data();
+	jacobiansNumeric[4]=J4Numeric.data();
+	double* jacobiansMinimalNumeric[5];
+	Eigen::Matrix<double,15,6,Eigen::RowMajor> J0minNumeric;
+	Eigen::Matrix<double,15,9,Eigen::RowMajor> J1minNumeric;
+	Eigen::Matrix<double,15,6,Eigen::RowMajor> J2minNumeric;
+	Eigen::Matrix<double,15,9,Eigen::RowMajor> J3minNumeric;
+	Eigen::Matrix<double,15,2,Eigen::RowMajor> J4minNumeric;
+	jacobiansMinimalNumeric[0]=J0minNumeric.data();
+	jacobiansMinimalNumeric[1]=J1minNumeric.data();
+	jacobiansMinimalNumeric[2]=J2minNumeric.data();
+	jacobiansMinimalNumeric[3]=J3minNumeric.data();
+	jacobiansMinimalNumeric[4]=J4minNumeric.data();
+	Eigen::Matrix<double,15,1> residualsNumeric;
+	EvaluateWithMinimalJacobiansNumeric(parameters, residualsNumeric.data(), jacobiansNumeric, jacobiansMinimalNumeric);
+
+	const double jacobianTolerance = 1.0e-3;
+	OKVIS_ASSERT_TRUE(Exception,(J0min-J0minNumeric).norm()<jacobianTolerance,
+										"minimal Jacobian 0 = \n"<<J0min<<std::endl<<
+										"numDiff minimal Jacobian 0 = \n"<<J0minNumeric);
+	OKVIS_ASSERT_TRUE(Exception,(J0-J0Numeric).norm()<jacobianTolerance,
+										"Jacobian 0 = \n"<<J0<<std::endl<<
+										"numDiff Jacobian 0 = \n"<<J0Numeric);
+	//std::cout << "minimal Jacobian 0 = \n"<<J0min<<std::endl;
+	//std::cout << "numDiff minimal Jacobian 0 = \n"<<J0minNumeric<<std::endl;
+
+	OKVIS_ASSERT_TRUE(Exception,(J1min-J1minNumeric).norm()<jacobianTolerance,
+												"minimal Jacobian 1 = \n"<<J1min<<std::endl<<
+												"numDiff minimal Jacobian 1 = \n"<<J1minNumeric);
+	//std::cout << "minimal Jacobian 1 = \n"<<J1min<<std::endl;
+	//std::cout << "numDiff minimal Jacobian 1 = \n"<<J1minNumeric<<std::endl;
+
+	OKVIS_ASSERT_TRUE(Exception,(J2min-J2minNumeric).norm()<jacobianTolerance,
+											"minimal Jacobian 2 = \n"<<J2min<<std::endl<<
+											"numDiff minimal Jacobian 2 = \n"<<J2minNumeric);
+
+	OKVIS_ASSERT_TRUE(Exception,(J2-J2Numeric).norm()<jacobianTolerance,
+											"Jacobian 2 = \n"<<J2<<std::endl<<
+											"numDiff Jacobian 2 = \n"<<J2Numeric);
+
+	OKVIS_ASSERT_TRUE(Exception,(J3min-J3minNumeric).norm()<jacobianTolerance,
+													"minimal Jacobian 1 = \n"<<J3min<<std::endl<<
+													"numDiff minimal Jacobian 1 = \n"<<J3minNumeric);
+	//std::cout << "minimal Jacobian 3 = \n"<<J3min<<std::endl;
+	//std::cout << "numDiff minimal Jacobian 3 = \n"<<J3minNumeric<<std::endl;
+
+	OKVIS_ASSERT_TRUE(Exception,(J4min-J4minNumeric).norm()<jacobianTolerance,
+											"minimal Jacobian 4 = \n"<<J4min<<std::endl<<
+											"numDiff minimal Jacobian 4 = \n"<<J4minNumeric);
+//	std::cout << "minimal Jacobian 4 = \n"<<J4min<<std::endl;
+//	std::cout << "numDiff minimal Jacobian 4 = \n"<<J4minNumeric<<std::endl;
+
+	OKVIS_ASSERT_TRUE(Exception,(J4-J4Numeric).norm()<jacobianTolerance,
+											"Jacobian 4 = \n"<<J4<<std::endl<<
+											"numDiff Jacobian 4 = \n"<<J4Numeric);
+
+	//	std::cout << "Jacobian 4 = \n"<<J4<<std::endl;
+	//	std::cout << "numDiff Jacobian 4 = \n"<<J4Numeric<<std::endl;
+	return true;
 }
 
 }  // namespace ceres
