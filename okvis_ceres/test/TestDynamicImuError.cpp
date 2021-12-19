@@ -17,18 +17,14 @@
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/assert_macros.hpp>
 
-TEST(okvisTestSuite, DynamicImuError){
+class DynamicImuErrorTest {
+public:
+void setup() {
 	// initialize random number generator
   //srand((unsigned int) time(0)); // disabled: make unit tests deterministic...
-  typedef okvis::ceres::DynamicImuError<swift_vio::Imu_BG_BA> DynamicImuErrorT;
+
 	// Build the problem.
-	::ceres::Problem problem;
-
-  // check errors
-  OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error);
-
 	// set the imu parameters
-	okvis::ImuParameters imuParameters;
 	imuParameters.a0.setZero();
 	imuParameters.g = 9.81;
 	imuParameters.a_max = 1000.0;
@@ -61,8 +57,6 @@ TEST(okvisTestSuite, DynamicImuError){
 	const double m_a_W_z = Eigen::internal::random(0.1,10.0);
 
 	// generate randomized measurements - duration 10 seconds
-	const double duration = 1.0;
-	okvis::ImuMeasurementDeque imuMeasurements;
 	okvis::kinematics::Transformation T_WS;
 	//T_WS.setRandom();
 
@@ -75,16 +69,6 @@ TEST(okvisTestSuite, DynamicImuError){
 	okvis::SpeedAndBias speedAndBias;
 	speedAndBias.setZero();
 	Eigen::Vector3d v=speedAndBias.head<3>();
-
-	// start
-	okvis::kinematics::Transformation T_WS_0;
-	okvis::SpeedAndBias speedAndBias_0;
-	okvis::Time t_0;
-
-	// end
-	okvis::kinematics::Transformation T_WS_1;
-	okvis::SpeedAndBias speedAndBias_1;
-	okvis::Time t_1;
 
 	for(size_t i=0; i<size_t(duration*imuParameters.rate); ++i){
 	  double time = double(i)/imuParameters.rate;
@@ -142,16 +126,16 @@ TEST(okvisTestSuite, DynamicImuError){
 	// create the pose parameter blocks
 	okvis::kinematics::Transformation T_disturb;
 	T_disturb.setRandom(1,0.02);
-	okvis::kinematics::Transformation T_WS_1_disturbed=T_WS_1*T_disturb; //
-	okvis::ceres::PoseParameterBlock poseParameterBlock_0(T_WS_0,0,t_0); // ground truth
-	okvis::ceres::PoseParameterBlock poseParameterBlock_1(T_WS_1_disturbed,2,t_1); // disturbed...
+	T_WS_1_disturbed=T_WS_1*T_disturb;
+	poseParameterBlock_0 = okvis::ceres::PoseParameterBlock(T_WS_0,0,t_0); // ground truth
+	poseParameterBlock_1 = okvis::ceres::PoseParameterBlock(T_WS_1_disturbed,2,t_1); // disturbed...
 	problem.AddParameterBlock(poseParameterBlock_0.parameters(),okvis::ceres::PoseParameterBlock::Dimension);
 	problem.AddParameterBlock(poseParameterBlock_1.parameters(),okvis::ceres::PoseParameterBlock::Dimension);
 	//problem.SetParameterBlockConstant(poseParameterBlock_0.parameters());
 
 	// create the speed and bias
-	okvis::ceres::SpeedAndBiasParameterBlock speedAndBiasParameterBlock_0(speedAndBias_0,1,t_0);
-	okvis::ceres::SpeedAndBiasParameterBlock speedAndBiasParameterBlock_1(speedAndBias_1,3,t_1);
+	speedAndBiasParameterBlock_0 = okvis::ceres::SpeedAndBiasParameterBlock(speedAndBias_0,1,t_0);
+	speedAndBiasParameterBlock_1 = okvis::ceres::SpeedAndBiasParameterBlock(speedAndBias_1,3,t_1);
 	problem.AddParameterBlock(speedAndBiasParameterBlock_0.parameters(),okvis::ceres::SpeedAndBiasParameterBlock::Dimension);
 	problem.AddParameterBlock(speedAndBiasParameterBlock_1.parameters(),okvis::ceres::SpeedAndBiasParameterBlock::Dimension);
 
@@ -163,16 +147,18 @@ TEST(okvisTestSuite, DynamicImuError){
 	problem.SetParameterization(poseParameterBlock_1.parameters(),poseLocalParameterization);
 
 	::ceres::LocalParameterization* normalVectorParameterization = new swift_vio::NormalVectorParameterization();
-	okvis::ceres::NormalVectorParameterBlock gravityDirectionBlock(imuParameters.gravityDirection(), 4);
+	gravityDirectionBlock = okvis::ceres::NormalVectorParameterBlock(imuParameters.gravityDirection(), 4);
 	problem.AddParameterBlock(gravityDirectionBlock.parameters(), okvis::ceres::NormalVectorParameterBlock::Dimension);
 	problem.SetParameterization(gravityDirectionBlock.parameters(), normalVectorParameterization);
 	problem.SetParameterBlockConstant(gravityDirectionBlock.parameters());
 	std::cout<<" [ OK ] "<<std::endl;
+}
 
+void addImuError() {
+		typedef okvis::ceres::DynamicImuError<swift_vio::Imu_BG_BA> DynamicImuErrorT;
 	// create the Imu error term
 	DynamicImuErrorT *cost_function_imu =
-			new DynamicImuErrorT(imuMeasurements, imuParameters,
-																				t_0, t_1);
+			new DynamicImuErrorT(imuMeasurements, imuParameters, t_0, t_1);
 	std::vector<double *> params = {
 			poseParameterBlock_0.parameters(),
 			speedAndBiasParameterBlock_0.parameters(),
@@ -186,14 +172,8 @@ TEST(okvisTestSuite, DynamicImuError){
 	cost_function_imu->AddParameterBlock(9);
 	cost_function_imu->AddParameterBlock(3);
 	cost_function_imu->SetNumResiduals(15);
+
 	problem.AddResidualBlock(cost_function_imu, NULL, params);
-
-	// let's also add some priors to check this alongside
-	::ceres::CostFunction* cost_function_pose = new okvis::ceres::PoseError(T_WS_0, 1e-12, 1e-4); // pose prior...
-	problem.AddResidualBlock(cost_function_pose, NULL,poseParameterBlock_0.parameters());
-	::ceres::CostFunction* cost_function_speedAndBias = new okvis::ceres::SpeedAndBiasError(speedAndBias_0, 1e-12, 1e-12, 1e-12); // speed and biases prior...
-	problem.AddResidualBlock(cost_function_speedAndBias, NULL,speedAndBiasParameterBlock_0.parameters());
-
 	// check Jacobians: only by manual inspection...
 	// they verify pretty badly due to the fact that the information matrix is also a function of the states
 	double* parameters[5];
@@ -202,9 +182,49 @@ TEST(okvisTestSuite, DynamicImuError){
 	parameters[2]=poseParameterBlock_1.parameters();
 	parameters[3]=speedAndBiasParameterBlock_1.parameters();
 	parameters[4]=gravityDirectionBlock.parameters();
-
 	cost_function_imu->checkJacobians(parameters);
+}
 
+void addImuErrorTgTsTa() {
+	typedef okvis::ceres::DynamicImuError<swift_vio::Imu_BG_BA> DynamicImuErrorT;
+	// create the Imu error term
+	DynamicImuErrorT *cost_function_imu =
+			new DynamicImuErrorT(imuMeasurements, imuParameters, t_0, t_1);
+	std::vector<double *> params = {
+			poseParameterBlock_0.parameters(),
+			speedAndBiasParameterBlock_0.parameters(),
+			poseParameterBlock_1.parameters(),
+			speedAndBiasParameterBlock_1.parameters(),
+			gravityDirectionBlock.parameters()};
+
+	cost_function_imu->AddParameterBlock(7);
+	cost_function_imu->AddParameterBlock(9);
+	cost_function_imu->AddParameterBlock(7);
+	cost_function_imu->AddParameterBlock(9);
+	cost_function_imu->AddParameterBlock(3);
+	cost_function_imu->SetNumResiduals(15);
+
+	problem.AddResidualBlock(cost_function_imu, NULL, params);
+	// check Jacobians: only by manual inspection...
+	// they verify pretty badly due to the fact that the information matrix is also a function of the states
+	double* parameters[5];
+	parameters[0]=poseParameterBlock_0.parameters();
+	parameters[1]=speedAndBiasParameterBlock_0.parameters();
+	parameters[2]=poseParameterBlock_1.parameters();
+	parameters[3]=speedAndBiasParameterBlock_1.parameters();
+	parameters[4]=gravityDirectionBlock.parameters();
+	cost_function_imu->checkJacobians(parameters);
+}
+
+void addPriors() {
+	// let's also add some priors to check this alongside
+	::ceres::CostFunction* cost_function_pose = new okvis::ceres::PoseError(T_WS_0, 1e-12, 1e-4); // pose prior...
+	problem.AddResidualBlock(cost_function_pose, NULL,poseParameterBlock_0.parameters());
+	::ceres::CostFunction* cost_function_speedAndBias = new okvis::ceres::SpeedAndBiasError(speedAndBias_0, 1e-12, 1e-12, 1e-12); // speed and biases prior...
+	problem.AddResidualBlock(cost_function_speedAndBias, NULL,speedAndBiasParameterBlock_0.parameters());
+}
+
+void solve() {
 	// Run the solver!
 	std::cout<<"run the solver... "<<std::endl;
 	::ceres::Solver::Options options;
@@ -223,10 +243,47 @@ TEST(okvisTestSuite, DynamicImuError){
 			<< "correct T_WS_1 : " << T_WS_1.T() << "\n";
 
 	// make sure it converged
+	OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error);
 	OKVIS_ASSERT_TRUE(Exception,summary.final_cost<1e-2,"cost not reducible");
 	OKVIS_ASSERT_TRUE(Exception,2*(T_WS_1.q()*poseParameterBlock_1.estimate().q().inverse()).vec().norm()<1e-2,"quaternions not close enough");
 	OKVIS_ASSERT_TRUE(Exception,(T_WS_1.r()-poseParameterBlock_1.estimate().r()).norm()<0.04,"translation not close enough");
 }
 
+private:
+	::ceres::Problem problem;
+	const double duration = 1.0;
+	okvis::ImuMeasurementDeque imuMeasurements;
+	okvis::ImuParameters imuParameters;
+	okvis::Time t_0;
+	okvis::Time t_1;
 
+	okvis::kinematics::Transformation T_WS_0;
+	okvis::SpeedAndBias speedAndBias_0;
 
+	okvis::kinematics::Transformation T_WS_1;
+	okvis::SpeedAndBias speedAndBias_1;
+
+	okvis::kinematics::Transformation T_WS_1_disturbed;
+
+	okvis::ceres::PoseParameterBlock poseParameterBlock_0;
+	okvis::ceres::PoseParameterBlock poseParameterBlock_1;
+	okvis::ceres::SpeedAndBiasParameterBlock speedAndBiasParameterBlock_0;
+	okvis::ceres::SpeedAndBiasParameterBlock speedAndBiasParameterBlock_1;
+	okvis::ceres::NormalVectorParameterBlock gravityDirectionBlock;
+};
+
+TEST(DynamicImuErrorTestSuite, Imu_BG_BA) {
+	DynamicImuErrorTest test;
+	test.setup();
+	test.addPriors();
+	test.addImuError();
+	test.solve();
+}
+
+TEST(DynamicImuErrorTestSuite, Imu_BG_BA_TG_TS_TA) {
+	DynamicImuErrorTest test;
+	test.setup();
+	test.addPriors();
+	test.addImuErrorTgTsTa();
+	test.solve();
+}
