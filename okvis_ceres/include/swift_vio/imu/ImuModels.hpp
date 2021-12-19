@@ -23,6 +23,7 @@
 #include <Eigen/Geometry>
 
 #include <okvis/ModelSwitch.hpp>
+#include <okvis/Time.hpp>
 
 namespace swift_vio {
 static const int kBgBaDim = 6; // bg ba
@@ -89,6 +90,8 @@ class Imu_BG_BA {
   static const int kModelId = 0;
   static const size_t kGlobalDim = kBgBaDim;
   static const size_t kAugmentedDim = 0;
+  static constexpr std::array<int, 0> kXBlockDims{};
+  static constexpr std::array<int, 0> kXBlockMinDims{};
 
   /**
    * @brief getAugmentedDim
@@ -148,6 +151,14 @@ class Imu_BG_BA {
       const Eigen::VectorXd& /*params*/) {
       return Eigen::VectorXd(0);
   }
+
+  void propagateJacobians() {
+
+  }
+
+  void reset(const okvis::Time &t0, const okvis::Time &t1) {
+
+  }
 };
 
 /**
@@ -175,6 +186,8 @@ class Imu_BG_BA_TG_TS_TA {
   static const int kModelId = 1;
   static const size_t kAugmentedDim = 27;
   static const size_t kGlobalDim = kAugmentedDim + kBgBaDim;
+  static constexpr std::array<int, 3> kXBlockDims{9, 9, 9};  // Tg, Ts, Ta
+  static constexpr std::array<int, 3> kXBlockMinDims{9, 9, 9};
 
   static inline int getAugmentedDim() { return kAugmentedDim; }
   static inline int getMinimalDim() { return kGlobalDim; }
@@ -250,6 +263,9 @@ class ScaledMisalignedImu {
   static const size_t kSensitivityDim = 9;
   static const size_t kAugmentedDim = kSMDim + kSensitivityDim + kSMDim + 4;
   static const size_t kGlobalDim = kAugmentedDim + kBgBaDim;
+  static constexpr std::array<int, 4> kXBlockDims{kSMDim, kSensitivityDim, kSMDim, 4};  // M_gyro, M_accel_gyro, M_accel, q_gyro_i
+  static constexpr std::array<int, 4> kXBlockMinDims{kSMDim, kSensitivityDim, kSMDim, 3};
+
   static inline int getAugmentedDim() { return kAugmentedDim; }
   static inline int getMinimalDim() { return kGlobalDim - 1; }
   static inline int getAugmentedMinimalDim() { return kAugmentedDim - 1; }

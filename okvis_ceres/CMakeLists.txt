@@ -81,6 +81,7 @@ if(BUILD_TESTS)
     test/TestExtrinsicModels.cpp
     test/TestHomogeneousPointError.cpp
     test/TestReprojectionError.cpp
+    test/TestDynamicImuError.cpp
     test/TestImuError.cpp
     test/TestImuErrorWithGravity.cpp
     test/TestMap.cpp
