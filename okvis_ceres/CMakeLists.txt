@@ -42,6 +42,7 @@ add_library(${PROJECT_NAME}
   swift_vio/checkSensorRig.cpp
   swift_vio/imu/BoundedImuDeque.cpp
   swift_vio/imu/ImuOdometry.cpp
+  swift_vio/imu/ImuModels.cpp
   swift_vio/imu/ImuRig.cpp
   swift_vio/imu/SimpleImuPropagationJacobian.cpp
 )

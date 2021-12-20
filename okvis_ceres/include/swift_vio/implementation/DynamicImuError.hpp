@@ -45,33 +45,13 @@ int DynamicImuError<ImuModelT>::redoPreintegration(const okvis::kinematics::Tran
   // now the propagation
   okvis::Time time = t0_;
   okvis::Time end = t1_;
-  imuModel_.reset(t0_, t1_);
 
   // sanity check:
   assert(imuMeasurements_.front().timeStamp<=time);
   if (!(imuMeasurements_.back().timeStamp >= end))
     return -1;  // nothing to do...
 
-  // increments (initialise with identity)
-  Delta_q_ = Eigen::Quaterniond(1, 0, 0, 0);
-  C_integral_ = Eigen::Matrix3d::Zero();
-  C_doubleintegral_ = Eigen::Matrix3d::Zero();
-  acc_integral_ = Eigen::Vector3d::Zero();
-  acc_doubleintegral_ = Eigen::Vector3d::Zero();
-
-  // cross matrix accumulatrion
-  cross_ = Eigen::Matrix3d::Zero();
-
-  // sub-Jacobians
-  dalpha_db_g_ = Eigen::Matrix3d::Zero();
-  dv_db_g_ = Eigen::Matrix3d::Zero();
-  dp_db_g_ = Eigen::Matrix3d::Zero();
-
-  // the Jacobian of the increment (w/o biases)
-  P_delta_ = Eigen::Matrix<double, 15, 15>::Zero();
-
-  //Eigen::Matrix<double, 15, 15> F_tot;
-  //F_tot.setIdentity();
+  imuModel_.resetPreintegration();
 
   double Delta_t = 0;
   bool hasStarted = false;
@@ -136,107 +116,18 @@ int DynamicImuError<ImuModelT>::redoPreintegration(const okvis::kinematics::Tran
       LOG(WARNING)<< "acc saturation";
     }
 
-    // actual propagation
-    // orientation:
-    Eigen::Quaterniond dq;
-    const Eigen::Vector3d omega_S_true = (0.5 * (omega_S_0 + omega_S_1)
-        - speedAndBiases.segment < 3 > (3));
-    const double theta_half = omega_S_true.norm() * 0.5 * dt;
-    const double sinc_theta_half = kinematics::sinc(theta_half);
-    const double cos_theta_half = cos(theta_half);
-    dq.vec() = sinc_theta_half * omega_S_true * 0.5 * dt;
-    dq.w() = cos_theta_half;
-    Eigen::Quaterniond Delta_q_1 = Delta_q_ * dq;
-    // rotation matrix integral:
-    const Eigen::Matrix3d C = Delta_q_.toRotationMatrix();
-    const Eigen::Matrix3d C_1 = Delta_q_1.toRotationMatrix();
-    const Eigen::Vector3d acc_S_true = (0.5 * (acc_S_0 + acc_S_1)
-        - speedAndBiases.segment < 3 > (6));
-    const Eigen::Matrix3d C_integral_1 = C_integral_ + 0.5 * (C + C_1) * dt;
-    const Eigen::Vector3d acc_integral_1 = acc_integral_
-        + 0.5 * (C + C_1) * acc_S_true * dt;
-    // rotation matrix double integral:
-    C_doubleintegral_ += C_integral_ * dt + 0.25 * (C + C_1) * dt * dt;
-    acc_doubleintegral_ += acc_integral_ * dt
-        + 0.25 * (C + C_1) * acc_S_true * dt * dt;
+    Eigen::Vector3d omega_est_0;
+    Eigen::Vector3d acc_est_0;
+    imuModel_.correct(omega_S_0, acc_S_0, &omega_est_0, &acc_est_0);
 
-    // Jacobian parts
-    dalpha_db_g_ += C_1 * okvis::kinematics::rightJacobian(omega_S_true * dt) * dt;
-    const Eigen::Matrix3d cross_1 = dq.inverse().toRotationMatrix() * cross_
-        + okvis::kinematics::rightJacobian(omega_S_true * dt) * dt;
-    const Eigen::Matrix3d acc_S_x = okvis::kinematics::crossMx(acc_S_true);
-    Eigen::Matrix3d dv_db_g_1 = dv_db_g_
-        + 0.5 * dt * (C * acc_S_x * cross_ + C_1 * acc_S_x * cross_1);
-    dp_db_g_ += dt * dv_db_g_
-        + 0.25 * dt * dt * (C * acc_S_x * cross_ + C_1 * acc_S_x * cross_1);
+    Eigen::Vector3d omega_est_1;
+    Eigen::Vector3d acc_est_1;
+    imuModel_.correct(omega_S_1, acc_S_1, &omega_est_1, &acc_est_1);
 
-    imuModel_.propagateJacobians();
+    imuModel_.propagate(dt, omega_est_0, acc_est_0, omega_est_1, acc_est_1,
+                        sigma_g_c, sigma_a_c, imuParameters_.sigma_gw_c,
+                        imuParameters_.sigma_aw_c);
 
-    // covariance propagation
-    Eigen::Matrix<double, 15, 15> F_delta =
-        Eigen::Matrix<double, 15, 15>::Identity();
-    // transform
-#if 0
-    F_delta.block<3, 3>(0, 3) = -okvis::kinematics::crossMx(
-        acc_integral_ * dt + 0.25 * (C + C_1) * acc_S_true * dt * dt);
-    F_delta.block<3, 3>(0, 6) = Eigen::Matrix3d::Identity() * dt;
-    F_delta.block<3, 3>(0, 9) = dt * dv_db_g_
-        + 0.25 * dt * dt * (C * acc_S_x * cross_ + C_1 * acc_S_x * cross_1);
-    F_delta.block<3, 3>(0, 12) = -C_integral_ * dt
-        + 0.25 * (C + C_1) * dt * dt;
-    F_delta.block<3, 3>(3, 9) = -dt * C_1;
-    F_delta.block<3, 3>(6, 3) = -okvis::kinematics::crossMx(
-        0.5 * (C + C_1) * acc_S_true * dt);
-    F_delta.block<3, 3>(6, 9) = 0.5 * dt
-        * (C * acc_S_x * cross_ + C_1 * acc_S_x * cross_1);
-
-#else
-    Eigen::Matrix3d deltaCross = cross_1- cross_;
-    F_delta.block<3, 3>(0, 3) = -okvis::kinematics::crossMx(
-        /*acc_integral_ * dt +*/ 0.25 * (C + C_1) * acc_S_true * dt * dt);
-    F_delta.block<3, 3>(0, 6) = Eigen::Matrix3d::Identity() * dt;
-    F_delta.block<3, 3>(0, 9) = /*dt * dv_db_g_ + 0.25 * dt * dt * (C * acc_S_x * cross_ + C_1 * acc_S_x * cross_1)*/
-                                0.25*dt*dt*(C_1*acc_S_x*deltaCross);
-    F_delta.block<3, 3>(0, 12) = /*-C_integral_ * dt +*/ 0.25 * (C + C_1) * dt * dt;
-    F_delta.block<3, 3>(3, 9) = -dt * C_1;
-    F_delta.block<3, 3>(6, 3) = -okvis::kinematics::crossMx(0.5 * (C + C_1) * acc_S_true * dt);
-    F_delta.block<3, 3>(6, 9) = /*0.5 * dt* (C * acc_S_x * cross_ + C_1 * acc_S_x * cross_1)*/
-                                0.5*dt*(C_1*acc_S_x*deltaCross);
-#endif
-
-
-    F_delta.block<3, 3>(6, 12) = -0.5 * (C + C_1) * dt;
-    P_delta_ = F_delta * P_delta_ * F_delta.transpose();
-    // add noise. Note that transformations with rotation matrices can be ignored, since the noise is isotropic.
-    //F_tot = F_delta*F_tot;
-    const double sigma2_dalpha = dt * sigma_g_c
-        * sigma_g_c;
-    P_delta_(3, 3) += sigma2_dalpha;
-    P_delta_(4, 4) += sigma2_dalpha;
-    P_delta_(5, 5) += sigma2_dalpha;
-    const double sigma2_v = dt * sigma_a_c * sigma_a_c;
-    P_delta_(6, 6) += sigma2_v;
-    P_delta_(7, 7) += sigma2_v;
-    P_delta_(8, 8) += sigma2_v;
-    const double sigma2_p = 0.5 * dt * dt * sigma2_v;
-    P_delta_(0, 0) += sigma2_p;
-    P_delta_(1, 1) += sigma2_p;
-    P_delta_(2, 2) += sigma2_p;
-    const double sigma2_b_g = dt * imuParameters_.sigma_gw_c * imuParameters_.sigma_gw_c;
-    P_delta_(9, 9) += sigma2_b_g;
-    P_delta_(10, 10) += sigma2_b_g;
-    P_delta_(11, 11) += sigma2_b_g;
-    const double sigma2_b_a = dt * imuParameters_.sigma_aw_c * imuParameters_.sigma_aw_c;
-    P_delta_(12, 12) += sigma2_b_a;
-    P_delta_(13, 13) += sigma2_b_a;
-    P_delta_(14, 14) += sigma2_b_a;
-
-    // memory shift
-    Delta_q_ = Delta_q_1;
-    C_integral_ = C_integral_1;
-    acc_integral_ = acc_integral_1;
-    cross_ = cross_1;
-    dv_db_g_ = dv_db_g_1;
     time = nexttime;
 
     ++i;
@@ -249,18 +140,7 @@ int DynamicImuError<ImuModelT>::redoPreintegration(const okvis::kinematics::Tran
   // store the reference (linearisation) point
   speedAndBiases_ref_ = speedAndBiases;
 
-  // get the weighting:
-  // enforce symmetric
-  P_delta_ = 0.5 * P_delta_ + 0.5 * P_delta_.transpose().eval();
-
-  // calculate inverse
-#if 0
-  information_ = P_delta_.inverse();
-#else
-  information_.setIdentity();
-  P_delta_.llt().solveInPlace(information_);
-#endif
-  information_ = 0.5 * information_ + 0.5 * information_.transpose().eval();
+  imuModel_.getWeight(&information_);
 
   // square root
   Eigen::LLT<information_t> lltOfInformation(information_);
@@ -279,23 +159,23 @@ bool DynamicImuError<ImuModelT>::Evaluate(double const* const * parameters, doub
 }
 
 template <size_t Start, size_t End, class ImuModelT>
-void fillAnalyticJacLoop(double **jacobians, double **jacobiansMinimal, const ImuModelT&imuModel) {
+void fillAnalyticJacLoop(double **jacobians, double **jacobiansMinimal, const Eigen::Matrix<double, 3, 3> &derot_dDrot, const ImuModelT &imuModel) {
   if constexpr (Start < End) {
     if (jacobians != NULL && jacobians[5 + Start] != NULL) {
       Eigen::Map<Eigen::Matrix<double, 15, ImuModelT::kXBlockDims[Start], Eigen::RowMajor>> J(jacobians[5 + Start]);
-      J.block<3, ImuModelT::kXBlockDims[Start]>(0, 0) = imuModel.dp_dx(Start);
-      J.block<3, ImuModelT::kXBlockDims[Start]>(3, 0) = imuModel.dR_dx(Start);
-      J.block<3, ImuModelT::kXBlockDims[Start]>(6, 0) = imuModel.dv_dx(Start);
+      J.template block<3, ImuModelT::kXBlockDims[Start]>(0, 0) = imuModel.template dDp_dx<Start>();
+      J.template block<3, ImuModelT::kXBlockDims[Start]>(3, 0) = derot_dDrot * imuModel.template dDrot_dx<Start>();
+      J.template block<3, ImuModelT::kXBlockDims[Start]>(6, 0) = imuModel.template dDv_dx<Start>();
       J.template bottomRows<6>(9).setZero();
       if (jacobiansMinimal != NULL && jacobiansMinimal[5 + Start] != NULL) {
         Eigen::Map<Eigen::Matrix<double, 15, ImuModelT::kXBlockDims[Start], Eigen::RowMajor>> Jm(jacobiansMinimal[5 + Start]);
-        J.block<3, ImuModelT::kXBlockDims[Start]>(0, 0) = imuModel.dp_dx_minimal(Start);
-        J.block<3, ImuModelT::kXBlockDims[Start]>(3, 0) = imuModel.dalpha_dx_minimal(Start);
-        J.block<3, ImuModelT::kXBlockDims[Start]>(6, 0) = imuModel.dv_dx_minimal(Start);
+        J.template block<3, ImuModelT::kXBlockDims[Start]>(0, 0) = imuModel.template dDp_dminx<Start>();
+        J.template block<3, ImuModelT::kXBlockDims[Start]>(3, 0) = derot_dDrot * imuModel.template dDrot_dminx<Start>();
+        J.template block<3, ImuModelT::kXBlockDims[Start]>(6, 0) = imuModel.template dDv_dminx<Start>();
         J.template bottomRows<6>(9).setZero();
       }
     }
-    fillAnalyticJacLoop<Start + 1, End>(jacobians, jacobiansMinimal, imuModel);
+    fillAnalyticJacLoop<Start + 1, End>(jacobians, jacobiansMinimal, derot_dDrot, imuModel);
   }
 }
 
@@ -323,6 +203,8 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
     speedAndBiases_0[i] = parameters[1][i];
     speedAndBiases_1[i] = parameters[3][i];
   }
+
+  imuModel_.updateParameters(parameters[1] + 3, parameters + 5);
 
   // this will NOT be changed:
   const Eigen::Matrix3d C_WS_0 = T_WS_0.C();
@@ -356,26 +238,33 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
     const Eigen::Vector3d g_W = imuParameters_.g * gravityDirection;
 
     // assign Jacobian w.r.t. x0
+    Eigen::Matrix<double, 3, 3> dDp_dbg = imuModel_.dDp_dbg();
+    Eigen::Matrix<double, 3, 3> dDrot_dbg = imuModel_.dDrot_dbg();
+    Eigen::Matrix<double, 3, 3> dDv_dbg = imuModel_.dDv_dbg();
+    Eigen::Matrix<double, 3, 3> dDp_dba = imuModel_.dDp_dba();
+    Eigen::Matrix<double, 3, 3> dDrot_dba = imuModel_.dDrot_dba();
+    Eigen::Matrix<double, 3, 3> dDv_dba = imuModel_.dDv_dba();
+
     Eigen::Matrix<double,15,15> F0 =
         Eigen::Matrix<double,15,15>::Identity(); // holds for d/db_g, d/db_a
     const Eigen::Vector3d delta_p_est_W =
         T_WS_0.r() - T_WS_1.r() + speedAndBiases_0.head<3>()*Delta_t + 0.5*g_W*Delta_t*Delta_t;
     const Eigen::Vector3d delta_v_est_W =
         speedAndBiases_0.head<3>() - speedAndBiases_1.head<3>() + g_W*Delta_t;
-    const Eigen::Quaterniond Dq = okvis::kinematics::deltaQ(-dalpha_db_g_*Delta_b.head<3>())*Delta_q_;
+    const Eigen::Quaterniond Dq = okvis::kinematics::deltaQ(dDrot_dbg*Delta_b.head<3>())*imuModel_.Delta_q();
     F0.block<3,3>(0,0) = C_S0_W;
     F0.block<3,3>(0,3) = C_S0_W * okvis::kinematics::crossMx(delta_p_est_W);
     F0.block<3,3>(0,6) = C_S0_W * Eigen::Matrix3d::Identity()*Delta_t;
-    F0.block<3,3>(0,9) = dp_db_g_;
-    F0.block<3,3>(0,12) = -C_doubleintegral_;
+    F0.block<3,3>(0,9) = dDp_dbg;
+    F0.block<3,3>(0,12) = dDp_dba;
     F0.block<3,3>(3,3) = (okvis::kinematics::plus(Dq*T_WS_1.q().inverse()) *
         okvis::kinematics::oplus(T_WS_0.q())).topLeftCorner<3,3>();
     F0.block<3,3>(3,9) = (okvis::kinematics::oplus(T_WS_1.q().inverse()*T_WS_0.q())*
-        okvis::kinematics::oplus(Dq)).topLeftCorner<3,3>()*(-dalpha_db_g_);
+        okvis::kinematics::oplus(Dq)).topLeftCorner<3,3>()*(dDrot_dbg);
     F0.block<3,3>(6,3) = C_S0_W * okvis::kinematics::crossMx(delta_v_est_W);
     F0.block<3,3>(6,6) = C_S0_W;
-    F0.block<3,3>(6,9) = dv_db_g_;
-    F0.block<3,3>(6,12) = -C_integral_;
+    F0.block<3,3>(6,9) = dDv_dbg;
+    F0.block<3,3>(6,12) = dDv_dba;
 
     // assign Jacobian w.r.t. x1
     Eigen::Matrix<double,15,15> F1 =
@@ -388,15 +277,17 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
 
     // the overall error vector
     Eigen::Matrix<double, 15, 1> error;
-    error.segment<3>(0) =  C_S0_W * delta_p_est_W + acc_doubleintegral_ + F0.block<3,6>(0,9)*Delta_b;
+    error.segment<3>(0) =  C_S0_W * delta_p_est_W + imuModel_.Delta_p() + F0.block<3,6>(0,9)*Delta_b;
     error.segment<3>(3) = 2*(Dq*(T_WS_1.q().inverse()*T_WS_0.q())).vec(); //2*T_WS_0.q()*Dq*T_WS_1.q().inverse();//
-    error.segment<3>(6) = C_S0_W * delta_v_est_W + acc_integral_ + F0.block<3,6>(6,9)*Delta_b;
+    error.segment<3>(6) = C_S0_W * delta_v_est_W + imuModel_.Delta_v() + F0.block<3,6>(6,9)*Delta_b;
     error.tail<6>() = speedAndBiases_0.tail<6>() - speedAndBiases_1.tail<6>();
 
     // error weighting
     Eigen::Map<Eigen::Matrix<double, 15, 1> > weighted_error(residuals);
     weighted_error = squareRootInformation_ * error;
 
+    Eigen::Matrix<double, 3, 3> derot_dDrot = (okvis::kinematics::oplus(T_WS_1.q().inverse()*T_WS_0.q())*
+                                               okvis::kinematics::oplus(Dq)).topLeftCorner<3,3>();
     // get the Jacobians
     if (jacobians != NULL) {
       if (jacobians[0] != NULL) {
@@ -496,7 +387,7 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
         }
       }
 
-      fillAnalyticJacLoop<0, ImuModelT::kXBlockDims.size(), ImuModelT>(jacobians, jacobiansMinimal, imuModel_);
+      fillAnalyticJacLoop<0, ImuModelT::kXBlockDims.size(), ImuModelT>(jacobians, jacobiansMinimal, derot_dDrot, imuModel_);
     }
   }
   return true;
@@ -504,7 +395,7 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
 
 template <typename ImuModelT>
 template <size_t Start, size_t End>
-void DynamicImuError<ImuModelT>::fillNumericJacLoop(double const *const * parameters,
+void DynamicImuError<ImuModelT>::fillNumericJacLoop(double *const * parameters,
                                   double **jacobians,
                                   double **jacobiansMinimal,
                                   const ImuModelT &imuModel) const {
@@ -545,11 +436,11 @@ void DynamicImuError<ImuModelT>::fillNumericJacLoop(double const *const * parame
           Eigen::Matrix<double, 15, 1> residuals_m;
           ds_0.setZero();
           ds_0[i] = dx;
-          imuModel.plus<Start>(parameters[5 + Start], ds_0.data(), parameters[5 + Start]);
+          ImuModelT::template plus<Start>(parameters[5 + Start], ds_0.data(), parameters[5 + Start]);
           Evaluate(parameters, residuals_p.data(), NULL);
           memcpy(parameters[5 + Start], originalParams, sizeof(double) * blockDim); // reset
           ds_0[i] = -dx;
-          imuModel.plus<Start>(parameters[5 + Start], ds_0.data(), parameters[5 + Start]);
+          ImuModelT::template plus<Start>(parameters[5 + Start], ds_0.data(), parameters[5 + Start]);
           Evaluate(parameters, residuals_m.data(), NULL);
           memcpy(parameters[5 + Start], originalParams, sizeof(double) * blockDim); // reset
           Jm.col(i) = (residuals_p - residuals_m) * (1.0 / (2 * dx));

@@ -5,6 +5,7 @@
 #include <swift_vio/ParallaxAnglePoint.hpp>
 #include <swift_vio/ceres/DynamicImuError.hpp>
 #include <swift_vio/ceres/NormalVectorParameterBlock.hpp>
+#include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
 
 #include <okvis/ceres/PoseError.hpp>
 #include <okvis/ceres/PoseLocalParameterization.hpp>
@@ -178,6 +179,12 @@ public:
     problem.SetParameterization(gravityDirectionBlock.parameters(),
                                 normalVectorParameterization);
     problem.SetParameterBlockConstant(gravityDirectionBlock.parameters());
+
+    Eigen::Matrix<double, 9, 1> eye;
+    eye << 1, 0, 0, 0, 1, 0, 0, 0, 1;
+    Tg = okvis::ceres::EuclideanParamBlockSized<9>(eye, 5, t_0);
+    Ts = okvis::ceres::EuclideanParamBlockSized<9>(Eigen::Matrix<double, 9, 1>::Zero(), 6, t_0);
+    Ta = okvis::ceres::EuclideanParamBlockSized<9>(eye, 7, t_0);
     std::cout << " [ OK ] " << std::endl;
   }
 
@@ -204,17 +211,11 @@ public:
     // check Jacobians: only by manual inspection...
     // they verify pretty badly due to the fact that the information matrix is
     // also a function of the states
-    double *parameters[5];
-    parameters[0] = poseParameterBlock_0.parameters();
-    parameters[1] = speedAndBiasParameterBlock_0.parameters();
-    parameters[2] = poseParameterBlock_1.parameters();
-    parameters[3] = speedAndBiasParameterBlock_1.parameters();
-    parameters[4] = gravityDirectionBlock.parameters();
-    cost_function_imu->checkJacobians(parameters);
+    cost_function_imu->checkJacobians(params.data());
   }
 
   void addImuErrorTgTsTa() {
-    typedef okvis::ceres::DynamicImuError<swift_vio::Imu_BG_BA>
+    typedef okvis::ceres::DynamicImuError<swift_vio::Imu_BG_BA_TG_TS_TA>
         DynamicImuErrorT;
     // create the Imu error term
     DynamicImuErrorT *cost_function_imu =
@@ -223,26 +224,26 @@ public:
                                     speedAndBiasParameterBlock_0.parameters(),
                                     poseParameterBlock_1.parameters(),
                                     speedAndBiasParameterBlock_1.parameters(),
-                                    gravityDirectionBlock.parameters()};
+                                    gravityDirectionBlock.parameters(),
+                                    Tg.parameters(),
+                                    Ts.parameters(),
+                                    Ta.parameters()};
 
     cost_function_imu->AddParameterBlock(7);
     cost_function_imu->AddParameterBlock(9);
     cost_function_imu->AddParameterBlock(7);
     cost_function_imu->AddParameterBlock(9);
     cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(9);
     cost_function_imu->SetNumResiduals(15);
 
     problem.AddResidualBlock(cost_function_imu, NULL, params);
     // check Jacobians: only by manual inspection...
     // they verify pretty badly due to the fact that the information matrix is
     // also a function of the states
-    double *parameters[5];
-    parameters[0] = poseParameterBlock_0.parameters();
-    parameters[1] = speedAndBiasParameterBlock_0.parameters();
-    parameters[2] = poseParameterBlock_1.parameters();
-    parameters[3] = speedAndBiasParameterBlock_1.parameters();
-    parameters[4] = gravityDirectionBlock.parameters();
-    cost_function_imu->checkJacobians(parameters);
+    cost_function_imu->checkJacobians(params.data());
   }
 
   void addPriors() {
@@ -316,6 +317,9 @@ private:
   okvis::ceres::SpeedAndBiasParameterBlock speedAndBiasParameterBlock_0;
   okvis::ceres::SpeedAndBiasParameterBlock speedAndBiasParameterBlock_1;
   okvis::ceres::NormalVectorParameterBlock gravityDirectionBlock;
+  okvis::ceres::EuclideanParamBlockSized<9> Tg;
+  okvis::ceres::EuclideanParamBlockSized<9> Ts;
+  okvis::ceres::EuclideanParamBlockSized<9> Ta;
 };
 
 TEST(DynamicImuErrorTestSuite, Imu_BG_BA) {

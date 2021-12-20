@@ -22,8 +22,82 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <okvis/kinematics/sophus_operators.hpp>
 #include <okvis/ModelSwitch.hpp>
 #include <okvis/Time.hpp>
+
+#define IMU_MODEL_SHARED_MEMBERS                                               \
+public:                                                                        \
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW                                              \
+  template <size_t XBlockId>                                                   \
+  Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDp_dx() const {             \
+    return dDp_dx_.middleCols<kXBlockDims[XBlockId]>(                          \
+        kCumXBlockDims[XBlockId]);                                             \
+  }                                                                            \
+  template <size_t XBlockId>                                                   \
+  Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDrot_dx() const {           \
+    return dDrot_dx_.middleCols<kXBlockDims[XBlockId]>(                        \
+        kCumXBlockDims[XBlockId]);                                             \
+  }                                                                            \
+  template <size_t XBlockId>                                                   \
+  Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDv_dx() const {             \
+    return dDv_dx_.middleCols<kXBlockDims[XBlockId]>(                          \
+        kCumXBlockDims[XBlockId]);                                             \
+  }                                                                            \
+  template <size_t XBlockId>                                                   \
+  Eigen::Matrix<double, 3, kXBlockMinDims[XBlockId]> dDp_dminx() const {       \
+    return dDp_dminx_.middleCols<kXBlockMinDims[XBlockId]>(                    \
+        kCumXBlockMinDims[XBlockId]);                                          \
+  }                                                                            \
+  template <size_t XBlockId>                                                   \
+  Eigen::Matrix<double, 3, kXBlockMinDims[XBlockId]> dDrot_dminx() const {     \
+    return dDrot_dminx_.middleCols<kXBlockMinDims[XBlockId]>(                  \
+        kCumXBlockMinDims[XBlockId]);                                          \
+  }                                                                            \
+  template <size_t XBlockId>                                                   \
+  Eigen::Matrix<double, 3, kXBlockMinDims[XBlockId]> dDv_dminx() const {       \
+    return dDv_dminx_.middleCols<kXBlockMinDims[XBlockId]>(                    \
+        kCumXBlockMinDims[XBlockId]);                                          \
+  }                                                                            \
+  Eigen::Matrix<double, 3, 3> dDp_dbg() const {                                \
+    return dDp_db_.leftCols<3>();                                              \
+  }                                                                            \
+  Eigen::Matrix<double, 3, 3> dDp_dba() const {                                \
+    return dDp_db_.rightCols<3>();                                             \
+  }                                                                            \
+  Eigen::Matrix<double, 3, 3> dDrot_dbg() const {                              \
+    return dDrot_db_.leftCols<3>();                                            \
+  }                                                                            \
+  Eigen::Matrix<double, 3, 3> dDrot_dba() const {                              \
+    return dDrot_db_.rightCols<3>();                                           \
+  }                                                                            \
+  Eigen::Matrix<double, 3, 3> dDv_dbg() const {                                \
+    return dDv_db_.leftCols<3>();                                              \
+  }                                                                            \
+  Eigen::Matrix<double, 3, 3> dDv_dba() const {                                \
+    return dDv_db_.rightCols<3>();                                             \
+  }                                                                            \
+  void getWeight(Eigen::Matrix<double, 15, 15> *information) {                 \
+    P_delta_ = 0.5 * (P_delta_ + P_delta_.transpose().eval());                 \
+    information->setIdentity();                                                \
+    P_delta_.llt().solveInPlace(*information);                                 \
+    *information = 0.5 * (*information + information->transpose().eval());     \
+  }                                                                            \
+                                                                               \
+private:                                                                       \
+  Eigen::Matrix<double, 3, 1> bg_;                                             \
+  Eigen::Matrix<double, 3, 1> ba_;                                             \
+  Eigen::Matrix<double, 3, kAugmentedDim> dDp_dx_, dDrot_dx_, dDv_dx_;         \
+  Eigen::Matrix<double, 3, kAugmentedMinDim> dDp_dminx_, dDrot_dminx_,         \
+      dDv_dminx_;                                                              \
+  Eigen::Matrix<double, 3, 6> dDp_db_, dDrot_db_, dDv_db_;                     \
+  Eigen::Quaterniond Delta_q_ = Eigen::Quaterniond(1, 0, 0, 0);                \
+  Eigen::Matrix3d C_integral_ = Eigen::Matrix3d::Zero();                       \
+  Eigen::Matrix3d C_doubleintegral_ = Eigen::Matrix3d::Zero();                 \
+  Eigen::Vector3d acc_integral_ = Eigen::Vector3d::Zero();                     \
+  Eigen::Vector3d acc_doubleintegral_ = Eigen::Vector3d::Zero();               \
+  Eigen::Matrix<double, 15, 15> P_delta_ =                                     \
+      Eigen::Matrix<double, 15, 15>::Zero();
 
 namespace swift_vio {
 static const int kBgBaDim = 6; // bg ba
@@ -87,11 +161,15 @@ void invertLowerTriangularMatrix(const T* data, int startIndex, Eigen::Matrix<T,
  */
 class Imu_BG_BA {
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   static const int kModelId = 0;
   static const size_t kGlobalDim = kBgBaDim;
   static const size_t kAugmentedDim = 0;
+  static const size_t kAugmentedMinDim = 0;
   static constexpr std::array<int, 0> kXBlockDims{};
   static constexpr std::array<int, 0> kXBlockMinDims{};
+  static constexpr std::array<int, 0> kCumXBlockDims{};
+  static constexpr std::array<int, 0> kCumXBlockMinDims{};
 
   /**
    * @brief getAugmentedDim
@@ -152,13 +230,65 @@ class Imu_BG_BA {
       return Eigen::VectorXd(0);
   }
 
-  void propagateJacobians() {
-
+  template<typename T>
+  void correct(const Eigen::Matrix<T, 3, 1> &w, const Eigen::Matrix<T, 3, 1> &a,
+          Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b) const {
+    *a_b = a - ba_;
+    *w_b = w - bg_;
   }
 
-  void reset(const okvis::Time &t0, const okvis::Time &t1) {
-
+  void updateParameters(const double * bgba, double const * const * /*xparams*/) {
+    bg_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba);
+    ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
   }
+
+  void propagate(double dt, const Eigen::Vector3d &omega_est_0,
+                 const Eigen::Vector3d &acc_est_0,
+                 const Eigen::Vector3d &omega_est_1,
+                 const Eigen::Vector3d &acc_est_1, double sigma_g_c,
+                 double sigma_a_c, double sigma_gw_c, double sigma_aw_c);
+
+  void resetPreintegration();
+
+  void getWeight(Eigen::Matrix<double, 15, 15> *information) {
+    P_delta_ = 0.5 * (P_delta_ + P_delta_.transpose().eval());
+    information->setIdentity();
+    P_delta_.llt().solveInPlace(*information);
+    *information = 0.5 * (*information + information->transpose().eval());
+  }
+
+  Eigen::Matrix<double, 3, 3> dDp_dbg() const { return dp_db_g_; }
+  Eigen::Matrix<double, 3, 3> dDp_dba() const { return -C_doubleintegral_; }
+  Eigen::Matrix<double, 3, 3> dDrot_dbg() const { return -dalpha_db_g_; }
+  Eigen::Matrix<double, 3, 3> dDrot_dba() const {
+    return Eigen::Matrix3d::Zero();
+  }
+  Eigen::Matrix<double, 3, 3> dDv_dbg() const { return dv_db_g_; }
+  Eigen::Matrix<double, 3, 3> dDv_dba() const { return -C_integral_; }
+  const Eigen::Quaterniond &Delta_q() const { return Delta_q_; }
+  const Eigen::Vector3d &Delta_p() const { return acc_doubleintegral_; }
+  const Eigen::Vector3d &Delta_v() const { return acc_integral_; }
+
+private:
+  Eigen::Matrix<double, 3, 1> bg_;
+  Eigen::Matrix<double, 3, 1> ba_;
+
+  // increments (initialise with identity)
+  Eigen::Quaterniond Delta_q_ = Eigen::Quaterniond(1,0,0,0); ///< Intermediate result
+  Eigen::Matrix3d C_integral_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
+  Eigen::Matrix3d C_doubleintegral_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
+  Eigen::Vector3d acc_integral_ = Eigen::Vector3d::Zero(); ///< Intermediate result
+  Eigen::Vector3d acc_doubleintegral_ = Eigen::Vector3d::Zero(); ///< Intermediate result
+
+  // cross matrix accumulatrion
+  Eigen::Matrix3d cross_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
+
+  // sub-Jacobians
+  Eigen::Matrix3d dalpha_db_g_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
+  Eigen::Matrix3d dv_db_g_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
+  Eigen::Matrix3d dp_db_g_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
+
+  Eigen::Matrix<double, 15, 15> P_delta_ = Eigen::Matrix<double, 15, 15>::Zero();
 };
 
 /**
@@ -185,9 +315,13 @@ class Imu_BG_BA_TG_TS_TA {
  public:
   static const int kModelId = 1;
   static const size_t kAugmentedDim = 27;
+  static const size_t kAugmentedMinDim = 27;
   static const size_t kGlobalDim = kAugmentedDim + kBgBaDim;
+
   static constexpr std::array<int, 3> kXBlockDims{9, 9, 9};  // Tg, Ts, Ta
   static constexpr std::array<int, 3> kXBlockMinDims{9, 9, 9};
+  static constexpr std::array<int, 4> kCumXBlockDims{0, 9, 18, 27};  // Tg, Ts, Ta
+  static constexpr std::array<int, 4> kCumXBlockMinDims{0, 9, 18, 27};
 
   static inline int getAugmentedDim() { return kAugmentedDim; }
   static inline int getMinimalDim() { return kGlobalDim; }
@@ -245,6 +379,53 @@ class Imu_BG_BA_TG_TS_TA {
       residual.tail<9>() -= eye;
       return residual;
   }
+
+  template<size_t XBlockId>
+  static void plus(const double *x, const double *inc, double *xplus) {
+    Eigen::Map<const Eigen::Matrix<double, kXBlockDims[XBlockId], 1>> xm(x);
+    Eigen::Map<const Eigen::Matrix<double, kXBlockMinDims[XBlockId], 1>> incm(inc);
+    Eigen::Map<Eigen::Matrix<double, kXBlockDims[XBlockId], 1>> xplusm(xplus);
+    xplusm = xm + incm;
+  }
+
+  template<typename T>
+  void correct(const Eigen::Matrix<T, 3, 1> &w, const Eigen::Matrix<T, 3, 1> &a,
+          Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b) const {
+    *a_b = invTa_ * (a - ba_);
+    *w_b = invTg_ * (w - bg_ - Ts_ * (*a_b));
+  }
+
+  void updateParameters(const double * bgba, double const *const * xparams) {
+    bg_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba);
+    ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
+    Eigen::Matrix<double, 3, 3> T_g;
+    vectorToMatrix<double>(xparams[0], 0, &T_g);
+    vectorToMatrix<double>(xparams[1], 0, &Ts_);
+    Eigen::Matrix<double, 3, 3> T_a;
+    vectorToMatrix<double>(xparams[2], 0, &T_a);
+    invTg_ = T_g.inverse();
+    invTa_ = T_a.inverse();
+  }
+
+  void propagate(double dt, const Eigen::Vector3d &omega_est_0,
+                 const Eigen::Vector3d &acc_est_0,
+                 const Eigen::Vector3d &omega_est_1,
+                 const Eigen::Vector3d &acc_est_1, double sigma_g_c,
+                 double sigma_a_c, double sigma_gw_c, double sigma_aw_c);
+
+  void resetPreintegration();
+
+
+  const Eigen::Quaterniond &Delta_q() const { return Delta_q_; }
+  const Eigen::Vector3d &Delta_p() const { return acc_doubleintegral_; }
+  const Eigen::Vector3d &Delta_v() const { return acc_integral_; }
+
+private:
+  Eigen::Matrix3d Ts_;
+  Eigen::Matrix3d invTg_;
+  Eigen::Matrix3d invTa_;
+
+  IMU_MODEL_SHARED_MEMBERS
 };
 
 /**
@@ -262,9 +443,12 @@ class ScaledMisalignedImu {
   static const size_t kSMDim = 6;
   static const size_t kSensitivityDim = 9;
   static const size_t kAugmentedDim = kSMDim + kSensitivityDim + kSMDim + 4;
+  static const size_t kAugmentedMinDim = kSMDim + kSensitivityDim + kSMDim + 3;
   static const size_t kGlobalDim = kAugmentedDim + kBgBaDim;
   static constexpr std::array<int, 4> kXBlockDims{kSMDim, kSensitivityDim, kSMDim, 4};  // M_gyro, M_accel_gyro, M_accel, q_gyro_i
   static constexpr std::array<int, 4> kXBlockMinDims{kSMDim, kSensitivityDim, kSMDim, 3};
+  static constexpr std::array<int, 5> kCumXBlockDims{0, kSMDim, kSMDim + kSensitivityDim, kSMDim + kSensitivityDim + kSMDim, kSMDim + kSensitivityDim + kSMDim + 4};
+  static constexpr std::array<int, 5> kCumXBlockMinDims{0, kSMDim, kSMDim + kSensitivityDim, kSMDim + kSensitivityDim + kSMDim, kSMDim + kSensitivityDim + kSMDim + 3};
 
   static inline int getAugmentedDim() { return kAugmentedDim; }
   static inline int getMinimalDim() { return kGlobalDim - 1; }
@@ -422,6 +606,33 @@ class ScaledMisalignedImu {
     residual.tail<3>() = (q_g_i * q_g_i_hat.conjugate()).coeffs().head<3>() * 2;
     return residual;
   }
+
+  template<size_t XBlockId, std::enable_if_t<XBlockId != 4, bool> = true>
+  static void plus(const double *x, const double *inc, double *xplus) {
+    Eigen::Map<const Eigen::Matrix<double, kXBlockDims[XBlockId], 1>> xm(x);
+    Eigen::Map<const Eigen::Matrix<double, kXBlockMinDims[XBlockId], 1>> incm(inc);
+    Eigen::Map<Eigen::Matrix<double, kXBlockDims[XBlockId], 1>> xplusm(xplus);
+    xplusm = xm + incm;
+  }
+
+  template<size_t XBlockId, std::enable_if_t<XBlockId == 4, bool> = true>
+  static void plus(const double *x, const double *inc, double *xplus) {
+    Eigen::Map<const Eigen::Quaterniond> xm(x);
+    Eigen::Map<const Eigen::Matrix<double, kXBlockMinDims[XBlockId], 1>> incm(inc);
+    Eigen::Map<Eigen::Quaterniond> xplusm(xplus);
+    Eigen::Quaterniond dq = okvis::kinematics::expAndTheta(incm);
+    xplusm = dq * xm;
+  }
+
+  void propagate(double dt, const Eigen::Vector3d &omega_est_0,
+                 const Eigen::Vector3d &acc_est_0,
+                 const Eigen::Vector3d &omega_est_1,
+                 const Eigen::Vector3d &acc_est_1, double sigma_g_c,
+                 double sigma_a_c, double sigma_gw_c, double sigma_aw_c);
+
+  void resetPreintegration();
+
+  IMU_MODEL_SHARED_MEMBERS
 };
 
 #ifndef IMU_ERROR_MODEL_CASES

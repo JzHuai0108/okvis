@@ -161,7 +161,7 @@ class DynamicImuError :
                                     double** jacobiansMinimal) const;
 
   template <size_t Start, size_t End>
-  void fillNumericJacLoop(double const *const *parameters, double **jacobians,
+  void fillNumericJacLoop(double *const *parameters, double **jacobians,
                           double **jacobiansMinimal,
                           const ImuModelT &imuModel) const;
 
@@ -208,25 +208,8 @@ class DynamicImuError :
 
   // preintegration stuff. the mutable is a TERRIBLE HACK, but what can I do.
   mutable std::mutex preintegrationMutex_; //< Protect access of intermediate results.
-  // increments (initialise with identity)
-  mutable Eigen::Quaterniond Delta_q_ = Eigen::Quaterniond(1,0,0,0); ///< Intermediate result
-  mutable Eigen::Matrix3d C_integral_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
-  mutable Eigen::Matrix3d C_doubleintegral_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
-  mutable Eigen::Vector3d acc_integral_ = Eigen::Vector3d::Zero(); ///< Intermediate result
-  mutable Eigen::Vector3d acc_doubleintegral_ = Eigen::Vector3d::Zero(); ///< Intermediate result
-
-  // cross matrix accumulatrion
-  mutable Eigen::Matrix3d cross_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
-
-  // sub-Jacobians
-  mutable Eigen::Matrix3d dalpha_db_g_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
-  mutable Eigen::Matrix3d dv_db_g_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
-  mutable Eigen::Matrix3d dp_db_g_ = Eigen::Matrix3d::Zero(); ///< Intermediate result
 
   mutable ImuModelT imuModel_;
-
-  /// \brief The Jacobian of the increment (w/o biases).
-  mutable Eigen::Matrix<double,15,15> P_delta_ = Eigen::Matrix<double,15,15>::Zero();
 
   /// \brief Reference biases that are updated when called redoPreintegration.
   mutable SpeedAndBiases speedAndBiases_ref_ = SpeedAndBiases::Zero();
