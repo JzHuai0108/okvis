@@ -1,7 +1,7 @@
 
 /**
- * @file implementation/RSCameraReprojectionError.hpp
- * @brief Header implementation file for the RSCameraReprojectionError class.
+ * @file implementation/RsReprojectionErrorAidp.hpp
+ * @brief Header implementation file for the RsReprojectionErrorAidp class.
  * @author Jianzhu Huai
  */
 #include "ceres/internal/autodiff.h"
@@ -16,10 +16,10 @@
 namespace okvis {
 namespace ceres {
 template <class GEOMETRY_TYPE>
-RSCameraReprojectionError<GEOMETRY_TYPE>::RSCameraReprojectionError() {}
+RsReprojectionErrorAidp<GEOMETRY_TYPE>::RsReprojectionErrorAidp() {}
 
 template <class GEOMETRY_TYPE>
-RSCameraReprojectionError<GEOMETRY_TYPE>::RSCameraReprojectionError(
+RsReprojectionErrorAidp<GEOMETRY_TYPE>::RsReprojectionErrorAidp(
     const measurement_t& measurement,
     const covariance_t& covariance,
     std::shared_ptr<const camera_geometry_t> targetCamera,
@@ -37,7 +37,7 @@ RSCameraReprojectionError<GEOMETRY_TYPE>::RSCameraReprojectionError(
 }
 
 template <class GEOMETRY_TYPE>
-void RSCameraReprojectionError<GEOMETRY_TYPE>::
+void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     setCovariance(const covariance_t& covariance) {
   information_ = covariance.inverse();
   covariance_ = covariance;
@@ -48,14 +48,14 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
 }
 
 template <class GEOMETRY_TYPE>
-bool RSCameraReprojectionError<GEOMETRY_TYPE>::
+bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     Evaluate(double const* const* parameters, double* residuals,
              double** jacobians) const {
   return EvaluateWithMinimalJacobians(parameters, residuals, jacobians, NULL);
 }
 
 template <class GEOMETRY_TYPE>
-bool RSCameraReprojectionError<GEOMETRY_TYPE>::
+bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     EvaluateWithMinimalJacobians(double const* const* parameters,
                                  double* residuals, double** jacobians,
                                  double** jacobiansMinimal) const {
@@ -64,7 +64,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
 }
 
 template <class GEOMETRY_TYPE>
-bool RSCameraReprojectionError<GEOMETRY_TYPE>::
+bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     EvaluateWithMinimalJacobiansAnalytic(double const* const* parameters,
                                  double* residuals, double** jacobians,
                                  double** jacobiansMinimal) const {
@@ -447,7 +447,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
 // This evaluates the error term and additionally computes
 // the Jacobians in the minimal internal representation via autodiff
 template <class GEOMETRY_TYPE>
-bool RSCameraReprojectionError<GEOMETRY_TYPE>::
+bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     EvaluateWithMinimalJacobiansAutoDiff(double const* const* parameters,
                                          double* residuals, double** jacobians,
                                          double** jacobiansMinimal) const
@@ -504,7 +504,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
       dhC_deltaTWSt.data(), dhC_deltaTWSh.data(),
       dhC_dExtrinsict.data(), dhC_dExtrinsich.data()};
 
-  RS_LocalBearingVector<GEOMETRY_TYPE>
+  LocalBearingVectorAidp<GEOMETRY_TYPE>
       rsre(*this);
 
   bool diffState =
@@ -585,7 +585,7 @@ bool RSCameraReprojectionError<GEOMETRY_TYPE>::
 }
 
 template <class GEOMETRY_TYPE>
-void RSCameraReprojectionError<GEOMETRY_TYPE>::
+void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     setJacobiansZero(double** jacobians, double** jacobiansMinimal) const {
   zeroJacobian<7, 6, 2>(Index::T_WBt, jacobians, jacobiansMinimal);
   zeroJacobian<4, 3, 2>(Index::AIDP, jacobians, jacobiansMinimal);
@@ -604,7 +604,7 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
 }
 
 template <class GEOMETRY_TYPE>
-void RSCameraReprojectionError<GEOMETRY_TYPE>::
+void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     assignJacobians(
         double const *const *parameters, double **jacobians,
         double **jacobiansMinimal,
@@ -830,15 +830,15 @@ void RSCameraReprojectionError<GEOMETRY_TYPE>::
 }
 
 template <class GEOMETRY_TYPE>
-RS_LocalBearingVector<GEOMETRY_TYPE>::
-    RS_LocalBearingVector(
-        const RSCameraReprojectionError<GEOMETRY_TYPE> &
+LocalBearingVectorAidp<GEOMETRY_TYPE>::
+    LocalBearingVectorAidp(
+        const RsReprojectionErrorAidp<GEOMETRY_TYPE> &
             rsre)
     : rsre_(rsre) {}
 
 template <class GEOMETRY_TYPE>
 template <typename Scalar>
-bool RS_LocalBearingVector<GEOMETRY_TYPE>::
+bool LocalBearingVectorAidp<GEOMETRY_TYPE>::
 operator()(const Scalar *const T_WBt,
            const Scalar *const l_Ch,
            const Scalar *const T_WBh,

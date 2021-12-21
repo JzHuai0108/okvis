@@ -14,9 +14,9 @@ public:
   RESIDUAL_MODEL_CASE(okvis::ceres::ReprojectionError2dBase)                   \
   RESIDUAL_MODEL_CASE(okvis::ceres::EpipolarFactorBase)                        \
   RESIDUAL_MODEL_CASE(okvis::ceres::ChordalDistanceBase)                       \
-  RESIDUAL_MODEL_CASE(okvis::ceres::ReprojectionErrorWithPapBase)              \
+  RESIDUAL_MODEL_CASE(okvis::ceres::RsReprojectionErrorPapBase)              \
   RESIDUAL_MODEL_CASE(okvis::ceres::RsReprojectionErrorBase)                   \
-  RESIDUAL_MODEL_CASE(okvis::ceres::RSCameraReprojectionErrorBase)             \
+  RESIDUAL_MODEL_CASE(okvis::ceres::RsReprojectionErrorAidpBase)             \
   default:                                                                     \
     MODEL_DOES_NOT_EXIST_EXCEPTION                                             \
     break;

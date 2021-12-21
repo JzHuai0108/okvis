@@ -1,7 +1,8 @@
 
 /**
  * @file ceres/RsReprojectionError.hpp
- * @brief Header file for the RsReprojectionError class.
+ * @brief Header file for the Rolling Shutter ReprojectionError with 
+ * Homogeneous Point Parameterization (i.e., Euclidean XYZW) class.
  * @author Jianzhu Huai
  */
 

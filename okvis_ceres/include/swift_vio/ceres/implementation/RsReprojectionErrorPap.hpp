@@ -1,7 +1,7 @@
 
 /**
- * @file implementation/ReprojectionErrorWithPap.hpp
- * @brief Header implementation file for the ReprojectionErrorWithPap class.
+ * @file implementation/RsReprojectionErrorPap.hpp
+ * @brief Header implementation file for the RsReprojectionErrorPap class.
  * @author Jianzhu Huai
  */
 #include <okvis/ceres/MarginalizationError.hpp>
@@ -20,11 +20,11 @@ namespace okvis {
 /// \brief ceres Namespace for ceres-related functionality implemented in okvis.
 namespace ceres {
 template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL, class EXTRINSIC_MODEL>
-ReprojectionErrorWithPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::ReprojectionErrorWithPap() {}
+RsReprojectionErrorPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::RsReprojectionErrorPap() {}
 
 template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL, class EXTRINSIC_MODEL>
-ReprojectionErrorWithPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
-    ReprojectionErrorWithPap(
+RsReprojectionErrorPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
+    RsReprojectionErrorPap(
         std::shared_ptr<const camera_geometry_t> cameraGeometry,
         const Eigen::Vector2d& imageObservation,
         const Eigen::Matrix2d& observationCovariance,
@@ -43,14 +43,14 @@ ReprojectionErrorWithPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
 }
 
 template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL, class EXTRINSIC_MODEL>
-bool ReprojectionErrorWithPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
+bool RsReprojectionErrorPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
     Evaluate(double const* const* parameters, double* residuals,
              double** jacobians) const {
   return EvaluateWithMinimalJacobians(parameters, residuals, jacobians, NULL);
 }
 
 template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL, class EXTRINSIC_MODEL>
-bool ReprojectionErrorWithPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
+bool RsReprojectionErrorPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
     EvaluateWithMinimalJacobians(double const* const* parameters,
                                  double* residuals, double** jacobians,
                                  double** jacobiansMinimal) const {
@@ -534,7 +534,7 @@ bool ReprojectionErrorWithPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MOD
 }
 
 template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL, class EXTRINSIC_MODEL>
-void ReprojectionErrorWithPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
+void RsReprojectionErrorPap<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
     setJacobiansZero(double** jacobians, double** jacobiansMinimal) const {
   zeroJacobian<7, 6, kNumResiduals>(0, jacobians, jacobiansMinimal);
   zeroJacobian<7, 6, kNumResiduals>(1, jacobians, jacobiansMinimal);

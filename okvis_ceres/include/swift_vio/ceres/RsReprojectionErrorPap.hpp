@@ -1,12 +1,13 @@
 
 /**
- * @file ceres/ReprojectionErrorWithPap.hpp
- * @brief Header file for the ReprojectionErrorWithPap class.
+ * @file ceres/RsReprojectionErrorPap.hpp
+ * @brief Header file for the Rolling Shutter ReprojectionError 
+ * with Parallax Angle Parameterization class.
  * @author Jianzhu Huai
  */
 
-#ifndef INCLUDE_SWIFT_VIO_REPROJECTION_ERROR_WITH_PAP_HPP_
-#define INCLUDE_SWIFT_VIO_REPROJECTION_ERROR_WITH_PAP_HPP_
+#ifndef INCLUDE_SWIFT_VIO_RS_REPROJECTION_ERROR_PAP_HPP_
+#define INCLUDE_SWIFT_VIO_RS_REPROJECTION_ERROR_PAP_HPP_
 
 #include <vector>
 #include <memory>
@@ -25,21 +26,19 @@
 namespace okvis {
 namespace ceres {
 
-class ReprojectionErrorWithPapBase : public ErrorInterface {
+class RsReprojectionErrorPapBase : public ErrorInterface {
 public:
   static const int kModelId = 3;
   static const int kNumResiduals = 2;
 };
 
-/// \brief The reprojection error with pap \pi(R_{C(t_{i,j})} * N_{i,j}) - z_{i,j} accounting
+/// \brief The reprojection error with Parallax angle parameterization
+/// \f$ \pi(R_{C(t_{i,j})} * N_{i,j}) - z_{i,j} \f$ accounting
 /// for rolling shutter skew and time offset and camera intrinsics.
 /// \warning A potential problem with this error term happens when
 ///     the provided IMU measurements do not cover camera observations to the
 ///     extent of the rolling shutter effect. This is most likely to occur with
 ///     observations in the most recent frame.
-///     Because MSCKF uses observations up to the second most recent frame,
-///     this problem should only happen to optimization-based estimator with
-///     undelayed observations.
 /// \tparam GEOMETRY_TYPE The camera gemetry type.
 /// \tparam PROJ_INTRINSIC_MODEL describes which subset of the projection
 ///     intrinsic parameters of the camera geometry model is represented and
@@ -52,9 +51,10 @@ public:
 ///     It maps the subset to the full extrinsic parameters using additional
 ///     constant values from a provided extrinsic entity, e.g., T_BC.
 ///     Its kNumParams should not be zero.
+/// TODO(jhuai): Merge projection and distortion intrinsics.
 template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL,
           class EXTRINSIC_MODEL = swift_vio::Extrinsic_p_BC_q_BC>
-class ReprojectionErrorWithPap
+class RsReprojectionErrorPap
     : public ::ceres::SizedCostFunction<
           2 /* residuals */, 7 /* observing frame pose */, 7 /* main anchor */,
           7 /* associate anchor */,
@@ -66,7 +66,7 @@ class ReprojectionErrorWithPap
           9 /* velocity and biases of observing frame */,
           9 /* velocity and biases of main anchor */,
           9 /* velocity and biases of associate anchor */>,
-      public ReprojectionErrorWithPapBase {
+      public RsReprojectionErrorPapBase {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
@@ -95,10 +95,10 @@ class ReprojectionErrorWithPap
       Eigen::Matrix<double, kNumResiduals, kDistortionDim>>::type DistortionJacType;
 
   /// \brief Default constructor.
-  ReprojectionErrorWithPap();
+  RsReprojectionErrorPap();
 
   /**
-   * @brief ReprojectionErrorWithPap Construct with measurement and information matrix
+   * @brief RsReprojectionErrorPap Construct with measurement and information matrix
    * @param cameraGeometry
    * @warning The camera geometry will be modified in evaluating Jacobians.
    * @param cameraId The id of the camera in the okvis::cameras::NCameraSystem.
@@ -106,7 +106,7 @@ class ReprojectionErrorWithPap
    * @param pointDataPtr shared data of the landmark to compute propagated
    * poses and velocities at observation epochs.
    */
-  ReprojectionErrorWithPap(
+  RsReprojectionErrorPap(
       std::shared_ptr<const camera_geometry_t> cameraGeometry,
       const Eigen::Vector2d& imageObservation,
       const Eigen::Matrix2d& observationCovariance,
@@ -114,7 +114,7 @@ class ReprojectionErrorWithPap
       std::shared_ptr<const swift_vio::PointSharedData> pointDataPtr);
 
   /// \brief Trivial destructor.
-  virtual ~ReprojectionErrorWithPap()
+  virtual ~RsReprojectionErrorPap()
   {
   }
 
@@ -177,7 +177,7 @@ class ReprojectionErrorWithPap
   /// @brief Residual block type as string
   virtual std::string typeInfo() const
   {
-    return "ReprojectionErrorWithPap";
+    return "RsReprojectionErrorPap";
   }
 
  protected:
@@ -198,5 +198,5 @@ class ReprojectionErrorWithPap
 }  // namespace ceres
 }  // namespace okvis
 
-#include "implementation/ReprojectionErrorWithPap.hpp"
-#endif /* INCLUDE_SWIFT_VIO_REPROJECTION_ERROR_WITH_PAP_HPP_ */
+#include "implementation/RsReprojectionErrorPap.hpp"
+#endif /* INCLUDE_SWIFT_VIO_RS_REPROJECTION_ERROR_PAP_HPP_ */

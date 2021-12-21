@@ -1,12 +1,13 @@
 
 /**
- * @file ceres/RSCameraReprojectionError.hpp
- * @brief Header file for the Rolling Shutter camera ReprojectionError class.
+ * @file ceres/RsReprojectionErrorAidp.hpp
+ * @brief Header file for the Rolling Shutter ReprojectionError with 
+ * Anchored Inverse Depth Parameterization class.
  * @author Jianzhu Huai
  */
 
-#ifndef INCLUDE_SWIFT_VIO_RSCAMERA_REPROJECTION_ERROR_HPP_
-#define INCLUDE_SWIFT_VIO_RSCAMERA_REPROJECTION_ERROR_HPP_
+#ifndef INCLUDE_SWIFT_VIO_RS_REPROJECTION_ERROR_AIDP_HPP_
+#define INCLUDE_SWIFT_VIO_RS_REPROJECTION_ERROR_AIDP_HPP_
 
 #include <vector>
 #include <memory>
@@ -66,27 +67,26 @@
 
 namespace okvis {
 namespace ceres {
-class RSCameraReprojectionErrorBase : public ErrorInterface {
+class RsReprojectionErrorAidpBase : public ErrorInterface {
 public:
   static const int kModelId = 6;
   static const int kNumResiduals = 2;
 };
 
 template <class GEOMETRY_TYPE>
-class RS_LocalBearingVector;
+class LocalBearingVectorAidp;
 
 /// \brief The 2D keypoint reprojection error accounting for rolling shutter
 ///     skew and time offset and camera intrinsics.
+/// The IMU data is used to predict camera positions at different image rows.
+/// This factor works with the case where the host and target poses are the same.
 /// \warning A potential problem with this reprojection error happens when
 ///     the provided IMU measurements do not cover camera observations to the
 ///     extent of the rolling shutter effect. This is most likely to occur with
 ///     observations in the most recent frame.
-///     Because MSCKF uses observations up to the second most recent frame,
-///     this problem should only happen to optimization-based estimator with
-///     undelayed observations.
 /// \tparam GEOMETRY_TYPE The camera gemetry type.
 template <class GEOMETRY_TYPE>
-class RSCameraReprojectionError
+class RsReprojectionErrorAidp
     : public ::ceres::SizedCostFunction<
           2 /* number of residuals */, 
           7 /* T_WBt with PoseLocalParameterization */,
@@ -101,7 +101,7 @@ class RSCameraReprojectionError
           9 /* T_gi */,
           9 /* T_si */,
           6 /* T_ai */>,
-      public RSCameraReprojectionErrorBase {
+      public RsReprojectionErrorAidpBase {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
@@ -154,17 +154,17 @@ class RSCameraReprojectionError
   typedef Eigen::Matrix2d covariance_t;
 
   /// \brief Default constructor.
-  RSCameraReprojectionError();
+  RsReprojectionErrorAidp();
 
   /**
-   * @brief RSCameraReprojectionError Construct with measurement and information matrix
+   * @brief RsReprojectionErrorAidp Construct with measurement and information matrix
    * @param measurement
    * @param information The information (weight) matrix.
    * @param imuMeasCanopy imu meas in the neighborhood of stateEpoch for
    *     compensating the rolling shutter effect.
    * @param stateEpoch epoch of the pose state and speed and biases
    */
-  RSCameraReprojectionError(
+  RsReprojectionErrorAidp(
       const measurement_t& measurement,
       const covariance_t& covariance,
       std::shared_ptr<const camera_geometry_t> targetCamera,
@@ -173,7 +173,7 @@ class RSCameraReprojectionError
       okvis::Time targetStateTime, okvis::Time targetImageTime);
 
   /// \brief Trivial destructor.
-  virtual ~RSCameraReprojectionError()
+  virtual ~RsReprojectionErrorAidp()
   {
   }
 
@@ -242,7 +242,7 @@ class RSCameraReprojectionError
   /// @brief Residual block type as string
   virtual std::string typeInfo() const
   {
-    return "RSCameraReprojectionError";
+    return "RsReprojectionErrorAidp";
   }
 
   void assignJacobians(
@@ -258,7 +258,7 @@ class RSCameraReprojectionError
       const Eigen::Vector4d &dhC_td, double kpN,
       const Eigen::Matrix<double, 4, 9> &dhC_sb) const;
 
-  friend class RS_LocalBearingVector<GEOMETRY_TYPE>;
+  friend class LocalBearingVectorAidp<GEOMETRY_TYPE>;
  protected:
   measurement_t measurement_; ///< The (2D) measurement.
 
@@ -279,11 +279,11 @@ class RSCameraReprojectionError
 };
 
 template <class GEOMETRY_TYPE>
-class RS_LocalBearingVector
+class LocalBearingVectorAidp
 {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  RS_LocalBearingVector(const RSCameraReprojectionError<GEOMETRY_TYPE> &rsre);
+  LocalBearingVectorAidp(const RsReprojectionErrorAidp<GEOMETRY_TYPE> &rsre);
   template <typename Scalar>
   bool operator()(const Scalar *const T_WS, const Scalar *const hp_W, const Scalar *const T_WSh,
                   const Scalar *const extrinsic, const Scalar *const extrinsich, const Scalar *const t_r,
@@ -294,11 +294,11 @@ public:
                   Scalar *hp_C) const;
 
 private:
-  const RSCameraReprojectionError<GEOMETRY_TYPE> &rsre_;
+  const RsReprojectionErrorAidp<GEOMETRY_TYPE> &rsre_;
 };
 
 }  // namespace ceres
 }  // namespace okvis
 
-#include "implementation/RSCameraReprojectionError.hpp"
-#endif /* INCLUDE_SWIFT_VIO_RSCAMERA_REPROJECTION_ERROR_HPP_ */
+#include "implementation/RsReprojectionErrorAidp.hpp"
+#endif /* INCLUDE_SWIFT_VIO_RS_REPROJECTION_ERROR_AIDP_HPP_ */

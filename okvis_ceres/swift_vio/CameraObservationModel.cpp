@@ -3,8 +3,8 @@
 #include <okvis/ceres/ReprojectionErrorBase.hpp>
 #include <swift_vio/ceres/ChordalDistance.hpp>
 #include <swift_vio/ceres/EpipolarFactor.hpp>
-#include <swift_vio/ceres/RSCameraReprojectionError.hpp>
-#include <swift_vio/ceres/ReprojectionErrorWithPap.hpp>
+#include <swift_vio/ceres/RsReprojectionErrorAidp.hpp>
+#include <swift_vio/ceres/RsReprojectionErrorPap.hpp>
 #include <swift_vio/ceres/RsReprojectionError.hpp>
 
 namespace swift_vio {
@@ -28,9 +28,9 @@ int CameraObservationModel::toLandmarkModelId(int modelId) {
   case okvis::ceres::EpipolarFactorBase::kModelId:
     return -1;
   case okvis::ceres::ChordalDistanceBase::kModelId:
-  case okvis::ceres::ReprojectionErrorWithPapBase::kModelId:
+  case okvis::ceres::RsReprojectionErrorPapBase::kModelId:
     return swift_vio::ParallaxAngleParameterization::kModelId;
-  case okvis::ceres::RSCameraReprojectionErrorBase::kModelId:
+  case okvis::ceres::RsReprojectionErrorAidpBase::kModelId:
     return swift_vio::InverseDepthParameterization::kModelId;
   }
   return -1;
