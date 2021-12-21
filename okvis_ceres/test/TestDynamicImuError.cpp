@@ -240,6 +240,9 @@ public:
     cost_function_imu->SetNumResiduals(15);
 
     problem.AddResidualBlock(cost_function_imu, NULL, params);
+    problem.SetParameterBlockConstant(Tg.parameters());
+    problem.SetParameterBlockConstant(Ts.parameters());
+    problem.SetParameterBlockConstant(Ta.parameters());
     // check Jacobians: only by manual inspection...
     // they verify pretty badly due to the fact that the information matrix is
     // also a function of the states

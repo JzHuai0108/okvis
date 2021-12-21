@@ -121,16 +121,6 @@ void ImuErrorModel<Scalar>::predict(const Eigen::Matrix<Scalar, 3, 1>& w_s,
 }
 
 template <class Scalar>
-Eigen::Matrix<Scalar, 3, 9> ImuErrorModel<Scalar>::dmatrix3_dvector9_multiply(
-    const Eigen::Matrix<Scalar, 3, 1> rhs) const {
-  Eigen::Matrix<Scalar, 3, 9> m = Eigen::Matrix<Scalar, 3, 9>::Zero();
-  m.template topLeftCorner<1, 3>() = rhs.transpose();
-  m.template block<1, 3>(1, 3) = rhs.transpose();
-  m.template block<1, 3>(2, 6) = rhs.transpose();
-  return m;
-}
-
-template <class Scalar>
 Eigen::Matrix<Scalar, 3, 6> ImuErrorModel<Scalar>::domega_B_dbgba() const {
   Eigen::Matrix<Scalar, 3, 6> dwB_dbgba = Eigen::Matrix<Scalar, 3, 6>::Zero();
   dwB_dbgba.template block<3, 3>(0, 0) = -invT_g;

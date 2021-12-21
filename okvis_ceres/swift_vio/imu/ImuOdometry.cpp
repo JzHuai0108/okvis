@@ -227,18 +227,18 @@ int ImuOdometry::propagation(
       dalpha_dT_g_1 =
           dalpha_dT_g +
           0.5 * dt *
-              (C * iem.invT_g * iem.dmatrix3_dvector9_multiply(omega_est) +
-               C_1 * iem.invT_g * iem.dmatrix3_dvector9_multiply(omega_est_1));
+              (C * iem.invT_g * dmatrix3_dvector9_multiply(omega_est) +
+               C_1 * iem.invT_g * dmatrix3_dvector9_multiply(omega_est_1));
       dalpha_dT_s_1 =
           dalpha_dT_s +
           0.5 * dt *
-              (C * iem.invT_g * iem.dmatrix3_dvector9_multiply(acc_est) +
-               C_1 * iem.invT_g * iem.dmatrix3_dvector9_multiply(acc_est_1));
+              (C * iem.invT_g * dmatrix3_dvector9_multiply(acc_est) +
+               C_1 * iem.invT_g * dmatrix3_dvector9_multiply(acc_est_1));
       dalpha_dT_a_1 =
           dalpha_dT_a +
           0.5 * dt *
-              (C * invTgsa * iem.dmatrix3_dvector9_multiply(acc_est) +
-               C_1 * invTgsa * iem.dmatrix3_dvector9_multiply(acc_est_1));
+              (C * invTgsa * dmatrix3_dvector9_multiply(acc_est) +
+               C_1 * invTgsa * dmatrix3_dvector9_multiply(acc_est_1));
 
       dv_db_g_1 =
           dv_db_g +
@@ -262,8 +262,8 @@ int ImuOdometry::propagation(
       dv_dT_a_1 =
           dv_dT_a +
           0.5 * dt *
-              (C * iem.invT_a * iem.dmatrix3_dvector9_multiply(acc_est) +
-               C_1 * iem.invT_a * iem.dmatrix3_dvector9_multiply(acc_est_1)) +
+              (C * iem.invT_a * dmatrix3_dvector9_multiply(acc_est) +
+               C_1 * iem.invT_a * dmatrix3_dvector9_multiply(acc_est_1)) +
           0.5 * dt *
               (okvis::kinematics::crossMx(C * acc_est) * dalpha_dT_a +
                okvis::kinematics::crossMx(C_1 * acc_est_1) * dalpha_dT_a_1);
@@ -316,16 +316,16 @@ int ImuOdometry::propagation(
       if (covRows >= Imu_BG_BA_TG_TS_TA::getMinimalDim() + ode::kNavErrorStateDim) {
         F_delta.block<3, 9>(3, 15) =
             -0.5 * dt *
-            (C * iem.invT_g * iem.dmatrix3_dvector9_multiply(omega_est) +
-             C_1 * iem.invT_g * iem.dmatrix3_dvector9_multiply(omega_est_1));
+            (C * iem.invT_g * dmatrix3_dvector9_multiply(omega_est) +
+             C_1 * iem.invT_g * dmatrix3_dvector9_multiply(omega_est_1));
         F_delta.block<3, 9>(3, 24) =
             -0.5 * dt *
-            (C * iem.invT_g * iem.dmatrix3_dvector9_multiply(acc_est) +
-             C_1 * iem.invT_g * iem.dmatrix3_dvector9_multiply(acc_est_1));
+            (C * iem.invT_g * dmatrix3_dvector9_multiply(acc_est) +
+             C_1 * iem.invT_g * dmatrix3_dvector9_multiply(acc_est_1));
         F_delta.block<3, 9>(3, 33) =
             0.5 * dt *
-            (C * invTgsa * iem.dmatrix3_dvector9_multiply(acc_est) +
-             C_1 * invTgsa * iem.dmatrix3_dvector9_multiply(acc_est_1));
+            (C * invTgsa * dmatrix3_dvector9_multiply(acc_est) +
+             C_1 * invTgsa * dmatrix3_dvector9_multiply(acc_est_1));
 
         F_delta.block<3, 9>(6, 15) =
             -0.5 * dt * okvis::kinematics::crossMx(C_1 * acc_est_1) *
@@ -337,8 +337,8 @@ int ImuOdometry::propagation(
             -0.5 * dt * okvis::kinematics::crossMx(C_1 * acc_est_1) *
                 F_delta.block<3, 9>(3, 33) -
             0.5 * dt *
-                (C * iem.invT_a * iem.dmatrix3_dvector9_multiply(acc_est) +
-                 C_1 * iem.invT_a * iem.dmatrix3_dvector9_multiply(acc_est_1));
+                (C * iem.invT_a * dmatrix3_dvector9_multiply(acc_est) +
+                 C_1 * iem.invT_a * dmatrix3_dvector9_multiply(acc_est_1));
 
         F_delta.block<3, 9>(0, 15) = 0.5 * dt * F_delta.block<3, 9>(6, 15);
         F_delta.block<3, 9>(0, 24) = 0.5 * dt * F_delta.block<3, 9>(6, 24);

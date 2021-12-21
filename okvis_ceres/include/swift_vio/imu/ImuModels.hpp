@@ -170,7 +170,7 @@ class Imu_BG_BA {
   static constexpr std::array<int, 0> kXBlockMinDims{};
   static constexpr std::array<int, 0> kCumXBlockDims{};
   static constexpr std::array<int, 0> kCumXBlockMinDims{};
-
+  static constexpr double kJacobianTolerance = 1.0e-3;
   /**
    * @brief getAugmentedDim
    * @return dim of all the augmented params.
@@ -313,6 +313,7 @@ private:
  */
 class Imu_BG_BA_TG_TS_TA {
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   static const int kModelId = 1;
   static const size_t kAugmentedDim = 27;
   static const size_t kAugmentedMinDim = 27;
@@ -322,6 +323,7 @@ class Imu_BG_BA_TG_TS_TA {
   static constexpr std::array<int, 3> kXBlockMinDims{9, 9, 9};
   static constexpr std::array<int, 4> kCumXBlockDims{0, 9, 18, 27};  // Tg, Ts, Ta
   static constexpr std::array<int, 4> kCumXBlockMinDims{0, 9, 18, 27};
+  static constexpr double kJacobianTolerance = 5.0e-3;
 
   static inline int getAugmentedDim() { return kAugmentedDim; }
   static inline int getMinimalDim() { return kGlobalDim; }
@@ -405,6 +407,14 @@ class Imu_BG_BA_TG_TS_TA {
     vectorToMatrix<double>(xparams[2], 0, &T_a);
     invTg_ = T_g.inverse();
     invTa_ = T_a.inverse();
+    invTgsa_ = invTg_ * Ts_ * invTa_;
+  }
+
+  void getWeight(Eigen::Matrix<double, 15, 15> *information) {
+    P_delta_ = 0.5 * (P_delta_ + P_delta_.transpose().eval());
+    information->setIdentity();
+    P_delta_.llt().solveInPlace(*information);
+    *information = 0.5 * (*information + information->transpose().eval());
   }
 
   void propagate(double dt, const Eigen::Vector3d &omega_est_0,
@@ -415,17 +425,117 @@ class Imu_BG_BA_TG_TS_TA {
 
   void resetPreintegration();
 
-
   const Eigen::Quaterniond &Delta_q() const { return Delta_q_; }
   const Eigen::Vector3d &Delta_p() const { return acc_doubleintegral_; }
   const Eigen::Vector3d &Delta_v() const { return acc_integral_; }
 
+  template <size_t XBlockId>
+  Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDp_dx() const {
+    if constexpr (XBlockId == 0)
+      return dp_dT_g_;
+    if constexpr (XBlockId == 1)
+      return dp_dT_s_;
+    if constexpr (XBlockId == 2)
+      return -dp_dT_a_;
+  }
+
+  template <size_t XBlockId>
+  Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDrot_dx() const {
+    if constexpr (XBlockId == 0)
+      return -dalpha_dT_g_;
+    if constexpr (XBlockId == 1)
+      return -dalpha_dT_s_;
+    if constexpr (XBlockId == 2)
+      return dalpha_dT_a_;
+  }
+  template <size_t XBlockId>
+  Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDv_dx() const {
+    if constexpr (XBlockId == 0)
+      return dv_dT_g_;
+    if constexpr (XBlockId == 1)
+      return dv_dT_s_;
+    if constexpr (XBlockId == 2)
+      return -dv_dT_a_;
+  }
+
+  template <size_t XBlockId>
+  Eigen::Matrix<double, 3, kXBlockMinDims[XBlockId]> dDp_dminx() const {
+    return dDp_dx<XBlockId>();
+  }
+  template <size_t XBlockId>
+  Eigen::Matrix<double, 3, kXBlockMinDims[XBlockId]> dDrot_dminx() const {
+    return dDrot_dx<XBlockId>();
+  }
+  template <size_t XBlockId>
+  Eigen::Matrix<double, 3, kXBlockMinDims[XBlockId]> dDv_dminx() const {
+    return dDv_dx<XBlockId>();
+  }
+
+  Eigen::Matrix<double, 3, 3> dDp_dbg() const { return dp_db_g_; }
+  Eigen::Matrix<double, 3, 3> dDp_dba() const {
+    return -(C_doubleintegral_ * invTa_ + dp_db_g_ * Ts_ * invTa_);
+  }
+  Eigen::Matrix<double, 3, 3> dDrot_dbg() const {
+    return -(C_integral_ * invTg_);
+  }
+  Eigen::Matrix<double, 3, 3> dDrot_dba() const {
+    return C_integral_ * invTgsa_;
+  }
+  Eigen::Matrix<double, 3, 3> dDv_dbg() const { return dv_db_g_; }
+  Eigen::Matrix<double, 3, 3> dDv_dba() const {
+    return -(C_integral_ * invTa_ + dv_db_g_ * Ts_ * invTa_);
+  }
+
 private:
+  Eigen::Vector3d bg_;
+  Eigen::Vector3d ba_;
   Eigen::Matrix3d Ts_;
   Eigen::Matrix3d invTg_;
   Eigen::Matrix3d invTa_;
+  Eigen::Matrix3d invTgsa_;
 
-  IMU_MODEL_SHARED_MEMBERS
+  Eigen::Quaterniond Delta_q_ = Eigen::Quaterniond(1, 0, 0, 0);  // quaternion of DCM from Si to S0
+  //$\int_{t_0}^{t_i} R_S^{S_0} dt$
+  Eigen::Matrix3d C_integral_ =
+      Eigen::Matrix3d::Zero();  // integrated DCM up to Si expressed in S0 frame
+  // $\int_{t_0}^{t_i} \int_{t_0}^{s} R_S^{S_0} dt ds$
+  Eigen::Matrix3d C_doubleintegral_ =
+      Eigen::Matrix3d::Zero();  // double integrated DCM up to Si expressed in
+                                // S0 frame
+  // $\int_{t_0}^{t_i} R_S^{S_0} a^S dt$
+  Eigen::Vector3d acc_integral_ =
+      Eigen::Vector3d::Zero();  // integrated acceleration up to Si expressed in
+                                // S0 frame
+  // $\int_{t_0}^{t_i} \int_{t_0}^{s} R_S^{S_0} a^S dt ds$
+  Eigen::Vector3d acc_doubleintegral_ =
+      Eigen::Vector3d::Zero();  // double integrated acceleration up to Si
+                                // expressed in S0 frame
+  // sub-Jacobians
+  // $R_{S_0}^W \frac{d^{S_0}\alpha_{l+1}}{d b_g_{l}} = \frac{d^W\alpha_{l+1}}{d
+  // b_g_{l}} $ for ease of implementation, we compute all the Jacobians with
+  // positive increment, thus there can be a sign difference between, for
+  // instance, dalpha_db_g and \frac{d^{S_0}\alpha_{l+1}}{d b_g_{(l)}}. This
+  // difference is adjusted when putting all Jacobians together
+//  Eigen::Matrix3d dalpha_db_g_ = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix3d dalpha_db_a_ = Eigen::Matrix3d::Zero();
+  Eigen::Matrix<double, 3, 9> dalpha_dT_g_ = Eigen::Matrix<double, 3, 9>::Zero();
+  Eigen::Matrix<double, 3, 9> dalpha_dT_s_ = Eigen::Matrix<double, 3, 9>::Zero();
+  Eigen::Matrix<double, 3, 9> dalpha_dT_a_ = Eigen::Matrix<double, 3, 9>::Zero();
+
+  Eigen::Matrix3d dv_db_g_ = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix3d dv_db_a_ = Eigen::Matrix3d::Zero();
+  Eigen::Matrix<double, 3, 9> dv_dT_g_ = Eigen::Matrix<double, 3, 9>::Zero();
+  Eigen::Matrix<double, 3, 9> dv_dT_s_ = Eigen::Matrix<double, 3, 9>::Zero();
+  Eigen::Matrix<double, 3, 9> dv_dT_a_ = Eigen::Matrix<double, 3, 9>::Zero();
+
+  Eigen::Matrix3d dp_db_g_ = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix3d dp_db_a_ = Eigen::Matrix3d::Zero();
+  Eigen::Matrix<double, 3, 9> dp_dT_g_ = Eigen::Matrix<double, 3, 9>::Zero();
+  Eigen::Matrix<double, 3, 9> dp_dT_s_ = Eigen::Matrix<double, 3, 9>::Zero();
+  Eigen::Matrix<double, 3, 9> dp_dT_a_ = Eigen::Matrix<double, 3, 9>::Zero();
+
+  // the Jacobian of the increment (w/o biases)
+  Eigen::Matrix<double, 15, 15> P_delta_ = Eigen::Matrix<double, 15, 15>::Zero();
 };
 
 /**
@@ -449,6 +559,7 @@ class ScaledMisalignedImu {
   static constexpr std::array<int, 4> kXBlockMinDims{kSMDim, kSensitivityDim, kSMDim, 3};
   static constexpr std::array<int, 5> kCumXBlockDims{0, kSMDim, kSMDim + kSensitivityDim, kSMDim + kSensitivityDim + kSMDim, kSMDim + kSensitivityDim + kSMDim + 4};
   static constexpr std::array<int, 5> kCumXBlockMinDims{0, kSMDim, kSMDim + kSensitivityDim, kSMDim + kSensitivityDim + kSMDim, kSMDim + kSensitivityDim + kSMDim + 3};
+  static constexpr double kJacobianTolerance = 5.0e-3;
 
   static inline int getAugmentedDim() { return kAugmentedDim; }
   static inline int getMinimalDim() { return kGlobalDim - 1; }

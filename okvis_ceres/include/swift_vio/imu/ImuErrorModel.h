@@ -4,6 +4,17 @@
 #include <Eigen/Dense>
 
 namespace swift_vio {
+// \f$\frac{\partial{T_{3\times3} \vec{a}_{3}}}{\partial \vec{T}_9}\f$
+template <class Scalar>
+Eigen::Matrix<Scalar, 3, 9> dmatrix3_dvector9_multiply(
+    const Eigen::Matrix<Scalar, 3, 1> rhs) {
+  Eigen::Matrix<Scalar, 3, 9> m = Eigen::Matrix<Scalar, 3, 9>::Zero();
+  m.template topLeftCorner<1, 3>() = rhs.transpose();
+  m.template block<1, 3>(1, 3) = rhs.transpose();
+  m.template block<1, 3>(2, 6) = rhs.transpose();
+  return m;
+}
+
 // The accelerometer and gyro error models used in Mingyang Li ICRA 2014 and Shelley 2014 master thesis.
 template <class Scalar>
 class ImuErrorModel {
@@ -58,12 +69,6 @@ class ImuErrorModel {
                const Eigen::Matrix<Scalar, 3, 1>& a_s,
                Eigen::Matrix<Scalar, 3, 1>* w_m,
                Eigen::Matrix<Scalar, 3, 1>* a_m) const;
-
-  // the following functions refer to Michael Andrew Shelley master thesis 2014
-  // with some corrections calculate $\frac{\partial{T_{3\times3}}}{\partial
-  // \vec{T}_9}\vec{a}_{3}$
-  Eigen::Matrix<Scalar, 3, 9> dmatrix3_dvector9_multiply(
-      const Eigen::Matrix<Scalar, 3, 1> rhs) const;
 
   // calculate $\frac{\partial\ \omega_{WB}^B}{\partial {(b_g, b_a)}}$
   Eigen::Matrix<Scalar, 3, 6> domega_B_dbgba() const;

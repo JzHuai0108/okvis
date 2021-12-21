@@ -147,6 +147,10 @@ class DynamicImuError :
   virtual bool Evaluate(double const* const * parameters, double* residuals,
                         double** jacobians) const;
 
+  template <size_t Start, size_t End>
+  void fillAnalyticJacLoop(double **jacobians, double **jacobiansMinimal,
+                           const Eigen::Matrix<double, 3, 3> &derot_dDrot,
+                           const ImuModelT &imuModel) const;
   /**
    * @brief This evaluates the error term and additionally computes
    *        the Jacobians in the minimal internal representation.
@@ -216,6 +220,7 @@ class DynamicImuError :
 
   mutable bool redo_ = true; ///< Keeps track of whether or not this redoPreintegration() needs to be called.
   mutable int redoCounter_ = 0; ///< Counts the number of preintegrations for statistics.
+  mutable bool reweight_ = true;
 
   // information matrix and its square root
   mutable information_t information_; ///< The information matrix for this error term.
