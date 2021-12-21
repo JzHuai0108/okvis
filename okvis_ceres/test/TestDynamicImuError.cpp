@@ -185,6 +185,12 @@ public:
     Tg = okvis::ceres::EuclideanParamBlockSized<9>(eye, 5, t_0);
     Ts = okvis::ceres::EuclideanParamBlockSized<9>(Eigen::Matrix<double, 9, 1>::Zero(), 6, t_0);
     Ta = okvis::ceres::EuclideanParamBlockSized<9>(eye, 7, t_0);
+
+    Mg = okvis::ceres::EuclideanParamBlockSized<9>(eye, 8, t_0);
+    Eigen::Matrix<double, 6, 1> lowerTriangularMat;
+    Eigen::Matrix3d identity = Eigen::Matrix3d::Identity();
+    swift_vio::lowerTriangularMatrixToVector(identity, lowerTriangularMat.data(), 0);
+    Ma = okvis::ceres::EuclideanParamBlockSized<6>(lowerTriangularMat, 9, t_0);
     std::cout << " [ OK ] " << std::endl;
   }
 
@@ -249,6 +255,41 @@ public:
     cost_function_imu->checkJacobians(params.data());
   }
 
+  void addImuErrorMgTsMa() {
+    typedef okvis::ceres::DynamicImuError<swift_vio::Imu_BG_BA_MG_TS_MA>
+        DynamicImuErrorT;
+    // create the Imu error term
+    DynamicImuErrorT *cost_function_imu =
+        new DynamicImuErrorT(imuMeasurements, imuParameters, t_0, t_1);
+    std::vector<double *> params = {poseParameterBlock_0.parameters(),
+                                    speedAndBiasParameterBlock_0.parameters(),
+                                    poseParameterBlock_1.parameters(),
+                                    speedAndBiasParameterBlock_1.parameters(),
+                                    gravityDirectionBlock.parameters(),
+                                    Mg.parameters(),
+                                    Ts.parameters(),
+                                    Ma.parameters()};
+
+    cost_function_imu->AddParameterBlock(7);
+    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(7);
+    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(6);
+    cost_function_imu->SetNumResiduals(15);
+
+    problem.AddResidualBlock(cost_function_imu, NULL, params);
+    problem.SetParameterBlockConstant(Mg.parameters());
+    problem.SetParameterBlockConstant(Ts.parameters());
+    problem.SetParameterBlockConstant(Ma.parameters());
+    // check Jacobians: only by manual inspection...
+    // they verify pretty badly due to the fact that the information matrix is
+    // also a function of the states
+    cost_function_imu->checkJacobians(params.data());
+  }
+
   void addPriors() {
     // let's also add some priors to check this alongside
     ::ceres::CostFunction *cost_function_pose =
@@ -284,19 +325,15 @@ public:
 
     // make sure it converged
     OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error);
-    OKVIS_ASSERT_TRUE(Exception, summary.final_cost < 1e-2,
-                      "cost not reducible");
-    OKVIS_ASSERT_TRUE(
-        Exception,
-        2 * (T_WS_1.q() * poseParameterBlock_1.estimate().q().inverse())
-                    .vec()
-                    .norm() <
-            1e-2,
-        "quaternions not close enough");
-    OKVIS_ASSERT_TRUE(
-        Exception,
-        (T_WS_1.r() - poseParameterBlock_1.estimate().r()).norm() < 0.04,
-        "translation not close enough");
+    EXPECT_TRUE(summary.final_cost < 1e-2) << "cost not reducible";
+    EXPECT_TRUE(2 * (T_WS_1.q() * poseParameterBlock_1.estimate().q().inverse())
+                        .vec()
+                        .norm() <
+                1e-2)
+        << "quaternions not close enough";
+    EXPECT_TRUE((T_WS_1.r() - poseParameterBlock_1.estimate().r()).norm() <
+                0.04)
+        << "translation not close enough";
   }
 
 private:
@@ -323,6 +360,8 @@ private:
   okvis::ceres::EuclideanParamBlockSized<9> Tg;
   okvis::ceres::EuclideanParamBlockSized<9> Ts;
   okvis::ceres::EuclideanParamBlockSized<9> Ta;
+  okvis::ceres::EuclideanParamBlockSized<9> Mg;
+  okvis::ceres::EuclideanParamBlockSized<6> Ma;
 };
 
 TEST(DynamicImuErrorTestSuite, Imu_BG_BA) {
@@ -338,5 +377,13 @@ TEST(DynamicImuErrorTestSuite, Imu_BG_BA_TG_TS_TA) {
   test.setup();
   test.addPriors();
   test.addImuErrorTgTsTa();
+  test.solve();
+}
+
+TEST(DynamicImuErrorTestSuite, Imu_BG_BA_MG_TS_MA) {
+  DynamicImuErrorTest test;
+  test.setup();
+  test.addPriors();
+  test.addImuErrorMgTsMa();
   test.solve();
 }

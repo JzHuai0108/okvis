@@ -117,15 +117,7 @@ int DynamicImuError<ImuModelT>::redoPreintegration(const okvis::kinematics::Tran
       LOG(WARNING)<< "acc saturation";
     }
 
-    Eigen::Vector3d omega_est_0;
-    Eigen::Vector3d acc_est_0;
-    imuModel_.correct(omega_S_0, acc_S_0, &omega_est_0, &acc_est_0);
-
-    Eigen::Vector3d omega_est_1;
-    Eigen::Vector3d acc_est_1;
-    imuModel_.correct(omega_S_1, acc_S_1, &omega_est_1, &acc_est_1);
-
-    imuModel_.propagate(dt, omega_est_0, acc_est_0, omega_est_1, acc_est_1,
+    imuModel_.propagate(dt, omega_S_0, acc_S_0, omega_S_1, acc_S_1,
                         sigma_g_c, sigma_a_c, imuParameters_.sigma_gw_c,
                         imuParameters_.sigma_aw_c);
 
@@ -784,15 +776,19 @@ bool DynamicImuError<ImuModelT>::checkJacobians(double *const * parameters) {
   //  std::cout << "numDiff Jacobian 4 = \n"<<J4Numeric<<std::endl;
   for (size_t i = 0u; i < ImuModelT::kXBlockDims.size(); ++i) {
     double diffNorm = (*jacPtrs[i] - *jacNumericPtrs[i]).lpNorm<Eigen::Infinity>();
-    OKVIS_ASSERT_TRUE(Exception, diffNorm < jacobianTolerance, "XParam " << i << " Jacobian =\n"
-                      << *jacPtrs[i] << "\nnumDiff Jacobian =\n"
-                      << *jacNumericPtrs[i] << "\nDiff inf norm " << diffNorm);
-
+    if (diffNorm > jacobianTolerance)
+      std::cerr << "XParam " << i << " Jacobian =\n"
+                << *jacPtrs[i] << "\nnumDiff Jacobian =\n"
+                << *jacNumericPtrs[i] << "\nDiff inf norm " << diffNorm << "\n";
+    OKVIS_ASSERT_LT(Exception, diffNorm, jacobianTolerance, "For XParam " << i << ", numeric Jacobian differs by "
+                    << diffNorm << " from the analytic one.");
     diffNorm = (*jacMinPtrs[i] - *jacMinNumericPtrs[i]).lpNorm<Eigen::Infinity>();
-    OKVIS_ASSERT_TRUE(Exception, diffNorm < jacobianTolerance,
-                      "Minimal XParam " << i << " Jacobian =\n"
-                      << *jacMinPtrs[i] << "\nnumDiff Jacobian =\n"
-                      << *jacMinNumericPtrs[i] << "\nDiff inf norm " << diffNorm);
+    if (diffNorm > jacobianTolerance)
+      std::cerr << "Minimal XParam " << i << " Jacobian =\n"
+                << *jacMinPtrs[i] << "\nnumDiff Jacobian =\n"
+                << *jacMinNumericPtrs[i] << "\nDiff inf norm " << diffNorm << "\n";
+    OKVIS_ASSERT_LT(Exception, diffNorm, jacobianTolerance, "For XParam " << i << ", numeric Jacobian differs by "
+                    << diffNorm << " from the analytic one.");
   }
   return true;
 }

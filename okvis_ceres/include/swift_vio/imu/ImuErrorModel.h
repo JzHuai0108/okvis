@@ -5,13 +5,39 @@
 
 namespace swift_vio {
 // \f$\frac{\partial{T_{3\times3} \vec{a}_{3}}}{\partial \vec{T}_9}\f$
-template <class Scalar>
-Eigen::Matrix<Scalar, 3, 9> dmatrix3_dvector9_multiply(
-    const Eigen::Matrix<Scalar, 3, 1> rhs) {
-  Eigen::Matrix<Scalar, 3, 9> m = Eigen::Matrix<Scalar, 3, 9>::Zero();
+  template<typename Derived_T>
+  Eigen::Matrix<typename Eigen::internal::traits<Derived_T>::Scalar, 3, 9> dmatrix3_dvector9_multiply(
+      Eigen::MatrixBase<Derived_T> const &rhs) {
+    Eigen::Matrix<typename Eigen::internal::traits<Derived_T>::Scalar, 3, 9> m =
+        Eigen::Matrix<typename Eigen::internal::traits<Derived_T>::Scalar, 3, 9>::Zero();
   m.template topLeftCorner<1, 3>() = rhs.transpose();
   m.template block<1, 3>(1, 3) = rhs.transpose();
   m.template block<1, 3>(2, 6) = rhs.transpose();
+  return m;
+}
+
+/**
+ * @brief Derivative of the product of a lower triangular matrix M and vector rhs
+ * relative to the 6 parameters of M.
+ * M = [a, 0, 0; b, c, 0; d, e, f];
+ * matlab script
+ * syms a b c d e f m n p
+ * ltm = [a, 0, 0; b, c, 0; d, e, f];
+ * v = [m; n; p];
+ * r = ltm * v;
+ * [diff(r, a), diff(r, b), diff(r, c), diff(r, d), diff(r, e), diff(r, f)]
+ */
+template<typename Derived_T>
+Eigen::Matrix<typename Eigen::internal::traits<Derived_T>::Scalar, 3, 6> dltm3_dvector6_multiply(
+    Eigen::MatrixBase<Derived_T> const &rhs) {
+  Eigen::Matrix<typename Eigen::internal::traits<Derived_T>::Scalar, 3, 6> m =
+      Eigen::Matrix<typename Eigen::internal::traits<Derived_T>::Scalar, 3, 6>::Zero();
+  m(0, 0) = rhs[0];
+  m(1, 1) = rhs[0];
+  m(1, 2) = rhs[1];
+  m(2, 3) = rhs[0];
+  m(2, 4) = rhs[1];
+  m(2, 5) = rhs[2];
   return m;
 }
 

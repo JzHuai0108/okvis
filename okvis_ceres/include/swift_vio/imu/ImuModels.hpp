@@ -3,19 +3,7 @@
 
 // Generic methods specific to each IMU model is encapsulated in the following classes.
 // These models are to be used in constructing ceres::SizedCostFunction or
-// ceres::AutoDiffCostFunction. Both require constant parameter block sizes at compile time.
-// This is why we cannot use polymorphism for representing IMU models.
-
-// The model parameter data are kept in the ImuModel class which
-// is initialized and updated in the estimator.
-
-// The IMU input reference frame or sensor frame denoted by S is affixed to
-// the accelerometer triad, and its x-axis aligned to the accelerometer in the x direction.
-// Its origin is at the intersection of the three accelerometers.
-// Tts y-axis in the plane spanned by the two accelerometers at x and y
-// direction while being close to the accelerometer at y-direction.
-// The sensor rig body frame denoted by B is used to express the motion of the rig.
-// It varies depending on the IMU model.
+// ceres::AutoDiffCostFunction.
 
 #include <vector>
 
@@ -116,6 +104,16 @@ void vectorToLowerTriangularMatrix(const T* data, int startIndex, Eigen::Matrix<
 }
 
 template <typename T>
+void lowerTriangularMatrixToVector(const Eigen::Matrix<T, 3, 3> &mat33, T *data, int startIndex) {
+  data[startIndex] = mat33(0, 0);
+  data[startIndex + 1] = mat33(1, 0);
+  data[startIndex + 2] = mat33(1, 1);
+  data[startIndex + 3] = mat33(2, 0);
+  data[startIndex + 4] = mat33(2, 1);
+  data[startIndex + 5] = mat33(2, 2);
+}
+
+template <typename T>
 void vectorToMatrix(const T* data, int startIndex, Eigen::Matrix<T, 3, 3>* mat33) {
   (*mat33)(0, 0) = data[startIndex];
   (*mat33)(0, 1) = data[startIndex + 1];
@@ -154,10 +152,9 @@ void invertLowerTriangularMatrix(const T* data, int startIndex, Eigen::Matrix<T,
 
 /**
  * @brief The Imu_BG_BA class
- * The body frame is identical to the classic IMU sensor frame which has origin
- * at the accelerometer intersection, and x along x-accelrometer and y in the
- * plane spanned by the x- and y-accelerometer.
- * The accelerometer triad and the gyroscope triad are free of scaling error and misalignment.
+ * The body frame coincides the IMU sensor frame realized by the accelerometers.
+ * This model assumes that the accelerometer triad and the gyroscope triad are free of
+ * scaling error and misalignment, and the two triads realize the same coordinate frame.
  */
 class Imu_BG_BA {
  public:
@@ -242,10 +239,10 @@ class Imu_BG_BA {
     ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
   }
 
-  void propagate(double dt, const Eigen::Vector3d &omega_est_0,
-                 const Eigen::Vector3d &acc_est_0,
-                 const Eigen::Vector3d &omega_est_1,
-                 const Eigen::Vector3d &acc_est_1, double sigma_g_c,
+  void propagate(double dt, const Eigen::Vector3d &omega_S_0,
+                 const Eigen::Vector3d &acc_S_0,
+                 const Eigen::Vector3d &omega_S_1,
+                 const Eigen::Vector3d &acc_S_1, double sigma_g_c,
                  double sigma_a_c, double sigma_gw_c, double sigma_aw_c);
 
   void resetPreintegration();
@@ -293,23 +290,23 @@ private:
 
 /**
  * @brief The Imu_BG_BA_TG_TS_TA class
- * The body frame is the same as the IMU sensor frame which is
- * defined relative to an external sensor, e.g., the camera. Its 
- * orientation is fixed to the nominal value of R_SC0 and its origin is at 
+ * The body frame is defined relative to an external sensor, e.g., the camera. Its
+ * orientation is fixed to the nominal value of the orientation between the IMU
+ * sensor frame and the camera frame \f$ R_{SC0} \f$ and its origin is at
  * the accelerometer intersection. Thus both accelerometer triad and 
  * gyroscope triad need to account for scaling effect (3), misalignment (3),
  * relative orientation (4, minimal 3) to the body frame.
  * This model also considers the g-sensitivity (9) of the gyroscope triad.
- * In other words, the remaining misalignment between the orthogonal
- *  accelerometer input reference frame (A) and the C frame is
- * absorbed into T_a, the IMU accelerometer misalignment matrix.
  *
  * IMU model
  * w_m = T_g * w_B + T_s * a_B + b_w + n_w
  * a_m = T_a * a_B + b_a + n_a = S * M * R_AB * a_B + b_a + n_a
  *
- * The A frame has origin at the accelerometers intersection and x-axis aligned
- * with accelerometer x.
+ * The accelerometer input frame A is affixed to
+ * the accelerometer triad, and its x-axis aligned to the accelerometer in the x direction.
+ * Its origin is at the intersection of the three accelerometers.
+ * Tts y-axis in the plane spanned by the two accelerometers at x and y
+ * direction while being close to the accelerometer at y-direction.
  */
 class Imu_BG_BA_TG_TS_TA {
  public:
@@ -417,10 +414,10 @@ class Imu_BG_BA_TG_TS_TA {
     *information = 0.5 * (*information + information->transpose().eval());
   }
 
-  void propagate(double dt, const Eigen::Vector3d &omega_est_0,
-                 const Eigen::Vector3d &acc_est_0,
-                 const Eigen::Vector3d &omega_est_1,
-                 const Eigen::Vector3d &acc_est_1, double sigma_g_c,
+  void propagate(double dt, const Eigen::Vector3d &omega_S_0,
+                 const Eigen::Vector3d &acc_S_0,
+                 const Eigen::Vector3d &omega_S_1,
+                 const Eigen::Vector3d &acc_S_1, double sigma_g_c,
                  double sigma_a_c, double sigma_gw_c, double sigma_aw_c);
 
   void resetPreintegration();
@@ -539,6 +536,212 @@ private:
 };
 
 /**
+ * @brief The Imu_BG_BA_MG_TS_MA class
+ * The accelerometer frame is realized by the accelerometers.
+ * The body frame coincides the IMU frame.
+ * The gyro frame realized by the gyros has a relative rotation to the accelerometer frame.
+ *
+ * w_m = M_g^{-1} * w_B + T_s * a_B + b_w + n_w
+ * a_m = M_a^{-1} * a_B + b_a + n_a
+ * M_a is a lower triangular matrix, M_g and T_s are fully populated 3x3 matrices.
+ * Therefore,
+ * w_B = M_g * (w_m - b_w - T_s * a_B)
+ * a_B = M_a * (a_m - b_a)
+ */
+class Imu_BG_BA_MG_TS_MA {
+public:
+ EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+ static const int kModelId = 1;
+ static const size_t kAugmentedDim = 24;
+ static const size_t kAugmentedMinDim = 24;
+ static const size_t kGlobalDim = kAugmentedDim + kBgBaDim;
+
+ static constexpr std::array<int, 3> kXBlockDims{9, 9, 6};  // Mg, Ts, Ma
+ static constexpr std::array<int, 3> kXBlockMinDims{9, 9, 6};
+ static constexpr std::array<int, 4> kCumXBlockDims{0, 9, 18, 24};
+ static constexpr std::array<int, 4> kCumXBlockMinDims{0, 9, 18, 24};
+ static constexpr double kJacobianTolerance = 7.0e-3;
+
+ static inline int getAugmentedDim() { return kAugmentedDim; }
+ static inline int getMinimalDim() { return kGlobalDim; }
+ static inline int getAugmentedMinimalDim() { return kAugmentedDim; }
+ template <typename T>
+ static Eigen::Matrix<T, kAugmentedDim, 1> getNominalAugmentedParams() {
+   Eigen::Matrix<T, 9, 1> eye;
+   eye << 1, 0, 0, 0, 1, 0, 0, 0, 1;
+   Eigen::Matrix<T, kAugmentedDim, 1> augmentedParams;
+   augmentedParams.template head<9>() = eye;
+   lowerTriangularMatrixToVector(eye, augmentedParams.data(), 18);
+   return augmentedParams;
+ }
+
+ static Eigen::VectorXd computeAugmentedParamsError(
+     const Eigen::VectorXd& params) {
+     Eigen::VectorXd residual = params;
+     Eigen::Matrix<double, 9, 1> eye;
+     eye << 1, 0, 0, 0, 1, 0, 0, 0, 1;
+     residual.head<9>() -= eye;
+     Eigen::Matrix<double, 6, 1> lowerTriangularMat;
+     Eigen::Matrix3d identity = Eigen::Matrix3d::Identity();
+     lowerTriangularMatrixToVector(identity, lowerTriangularMat.data(), 0);
+     residual.tail<6>() -= lowerTriangularMat;
+     return residual;
+ }
+
+ template<size_t XBlockId>
+ static void plus(const double *x, const double *inc, double *xplus) {
+   Eigen::Map<const Eigen::Matrix<double, kXBlockDims[XBlockId], 1>> xm(x);
+   Eigen::Map<const Eigen::Matrix<double, kXBlockMinDims[XBlockId], 1>> incm(inc);
+   Eigen::Map<Eigen::Matrix<double, kXBlockDims[XBlockId], 1>> xplusm(xplus);
+   xplusm = xm + incm;
+ }
+
+ template<typename T>
+ void correct(const Eigen::Matrix<T, 3, 1> &w, const Eigen::Matrix<T, 3, 1> &a,
+         Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b) const {
+   *a_b = Ma_ * (a - ba_);
+   *w_b = Mg_ * (w - bg_ - Ts_ * (*a_b));
+ }
+
+ void updateParameters(const double * bgba, double const *const * xparams) {
+   bg_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba);
+   ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
+   vectorToMatrix<double>(xparams[0], 0, &Mg_);
+   vectorToMatrix<double>(xparams[1], 0, &Ts_);
+   vectorToLowerTriangularMatrix<double>(xparams[2], 0, &Ma_);
+   invTgsa_ = Mg_ * Ts_ * Ma_;
+ }
+
+ void getWeight(Eigen::Matrix<double, 15, 15> *information) {
+   P_delta_ = 0.5 * (P_delta_ + P_delta_.transpose().eval());
+   information->setIdentity();
+   P_delta_.llt().solveInPlace(*information);
+   *information = 0.5 * (*information + information->transpose().eval());
+ }
+
+ void propagate(double dt, const Eigen::Vector3d &omega_S_0,
+                const Eigen::Vector3d &acc_S_0,
+                const Eigen::Vector3d &omega_S_1,
+                const Eigen::Vector3d &acc_S_1, double sigma_g_c,
+                double sigma_a_c, double sigma_gw_c, double sigma_aw_c);
+
+ void resetPreintegration();
+
+ const Eigen::Quaterniond &Delta_q() const { return Delta_q_; }
+ const Eigen::Vector3d &Delta_p() const { return acc_doubleintegral_; }
+ const Eigen::Vector3d &Delta_v() const { return acc_integral_; }
+
+ template <size_t XBlockId>
+ Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDp_dx() const {
+   if constexpr (XBlockId == 0)
+     return -dp_dM_g_;
+   if constexpr (XBlockId == 1)
+     return dp_dT_s_;
+   if constexpr (XBlockId == 2)
+     return dp_dM_a_;
+ }
+
+ template <size_t XBlockId>
+ Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDrot_dx() const {
+   if constexpr (XBlockId == 0)
+     return dalpha_dM_g_;
+   if constexpr (XBlockId == 1)
+     return -dalpha_dT_s_;
+   if constexpr (XBlockId == 2)
+     return -dalpha_dM_a_;
+ }
+ template <size_t XBlockId>
+ Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDv_dx() const {
+   if constexpr (XBlockId == 0)
+     return -dv_dM_g_;
+   if constexpr (XBlockId == 1)
+     return dv_dT_s_;
+   if constexpr (XBlockId == 2)
+     return dv_dM_a_;
+ }
+
+ template <size_t XBlockId>
+ Eigen::Matrix<double, 3, kXBlockMinDims[XBlockId]> dDp_dminx() const {
+   return dDp_dx<XBlockId>();
+ }
+ template <size_t XBlockId>
+ Eigen::Matrix<double, 3, kXBlockMinDims[XBlockId]> dDrot_dminx() const {
+   return dDrot_dx<XBlockId>();
+ }
+ template <size_t XBlockId>
+ Eigen::Matrix<double, 3, kXBlockMinDims[XBlockId]> dDv_dminx() const {
+   return dDv_dx<XBlockId>();
+ }
+
+ Eigen::Matrix<double, 3, 3> dDp_dbg() const { return dp_db_g_; }
+ Eigen::Matrix<double, 3, 3> dDp_dba() const {
+   return -(C_doubleintegral_ * Ma_ + dp_db_g_ * Ts_ * Ma_);
+ }
+ Eigen::Matrix<double, 3, 3> dDrot_dbg() const {
+   return -(C_integral_ * Mg_);
+ }
+ Eigen::Matrix<double, 3, 3> dDrot_dba() const {
+   return C_integral_ * invTgsa_;
+ }
+ Eigen::Matrix<double, 3, 3> dDv_dbg() const { return dv_db_g_; }
+ Eigen::Matrix<double, 3, 3> dDv_dba() const {
+   return -(C_integral_ * Ma_ + dv_db_g_ * Ts_ * Ma_);
+ }
+
+private:
+ Eigen::Vector3d bg_;
+ Eigen::Vector3d ba_;
+ Eigen::Matrix3d Ts_;
+ Eigen::Matrix3d Mg_;
+ Eigen::Matrix3d Ma_;
+ Eigen::Matrix3d invTgsa_;
+
+ Eigen::Quaterniond Delta_q_ = Eigen::Quaterniond(1, 0, 0, 0);  // quaternion of DCM from Si to S0
+ //$\int_{t_0}^{t_i} R_S^{S_0} dt$
+ Eigen::Matrix3d C_integral_ =
+     Eigen::Matrix3d::Zero();  // integrated DCM up to Si expressed in S0 frame
+ // $\int_{t_0}^{t_i} \int_{t_0}^{s} R_S^{S_0} dt ds$
+ Eigen::Matrix3d C_doubleintegral_ =
+     Eigen::Matrix3d::Zero();  // double integrated DCM up to Si expressed in
+                               // S0 frame
+ // $\int_{t_0}^{t_i} R_S^{S_0} a^S dt$
+ Eigen::Vector3d acc_integral_ =
+     Eigen::Vector3d::Zero();  // integrated acceleration up to Si expressed in
+                               // S0 frame
+ // $\int_{t_0}^{t_i} \int_{t_0}^{s} R_S^{S_0} a^S dt ds$
+ Eigen::Vector3d acc_doubleintegral_ =
+     Eigen::Vector3d::Zero();  // double integrated acceleration up to Si
+                               // expressed in S0 frame
+ // sub-Jacobians
+ // $R_{S_0}^W \frac{d^{S_0}\alpha_{l+1}}{d b_g_{l}} = \frac{d^W\alpha_{l+1}}{d
+ // b_g_{l}} $ for ease of implementation, we compute all the Jacobians with
+ // positive increment, thus there can be a sign difference between, for
+ // instance, dalpha_db_g and \frac{d^{S_0}\alpha_{l+1}}{d b_g_{(l)}}. This
+ // difference is adjusted when putting all Jacobians together
+//  Eigen::Matrix3d dalpha_db_g_ = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix3d dalpha_db_a_ = Eigen::Matrix3d::Zero();
+ Eigen::Matrix<double, 3, 9> dalpha_dM_g_ = Eigen::Matrix<double, 3, 9>::Zero();
+ Eigen::Matrix<double, 3, 9> dalpha_dT_s_ = Eigen::Matrix<double, 3, 9>::Zero();
+ Eigen::Matrix<double, 3, 6> dalpha_dM_a_ = Eigen::Matrix<double, 3, 6>::Zero();
+
+ Eigen::Matrix3d dv_db_g_ = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix3d dv_db_a_ = Eigen::Matrix3d::Zero();
+ Eigen::Matrix<double, 3, 9> dv_dM_g_ = Eigen::Matrix<double, 3, 9>::Zero();
+ Eigen::Matrix<double, 3, 9> dv_dT_s_ = Eigen::Matrix<double, 3, 9>::Zero();
+ Eigen::Matrix<double, 3, 6> dv_dM_a_ = Eigen::Matrix<double, 3, 6>::Zero();
+
+ Eigen::Matrix3d dp_db_g_ = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix3d dp_db_a_ = Eigen::Matrix3d::Zero();
+ Eigen::Matrix<double, 3, 9> dp_dM_g_ = Eigen::Matrix<double, 3, 9>::Zero();
+ Eigen::Matrix<double, 3, 9> dp_dT_s_ = Eigen::Matrix<double, 3, 9>::Zero();
+ Eigen::Matrix<double, 3, 6> dp_dM_a_ = Eigen::Matrix<double, 3, 6>::Zero();
+
+ // the Jacobian of the increment (w/o biases)
+ Eigen::Matrix<double, 15, 15> P_delta_ = Eigen::Matrix<double, 15, 15>::Zero();
+};
+
+
+/**
  * @brief The ScaledMisalignedImu class
  * The body frame is the same as the classic IMU sensor frame. So the gyroscope triad
  * needs to consider scaling effect(3), misalignment(3), and relative 
@@ -549,6 +752,7 @@ private:
  */
 class ScaledMisalignedImu {
  public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   static const int kModelId = 2;
   static const size_t kSMDim = 6;
   static const size_t kSensitivityDim = 9;
@@ -703,6 +907,16 @@ class ScaledMisalignedImu {
            (M_gyro_inv * (w - bg - M_accel_gyro * (C_gyro_b * (*a_b))));
   }
 
+  template <typename T>
+  void correct(const Eigen::Matrix<T, 3, 1> &w, const Eigen::Matrix<T, 3, 1> &a,
+               Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b) const {
+    *a_b = C_b_i_ * M_accel_inv_ * (a - ba_);
+    Eigen::Matrix<T, 3, 3> C_gyro_i = q_gyro_i_.toRotationMatrix();
+    Eigen::Matrix<T, 3, 3> C_gyro_b = C_gyro_i * C_i_b_;
+    *w_b = C_gyro_b.transpose() *
+           (M_gyro_inv_ * (w - bg_ - M_accel_gyro_ * (C_gyro_b * (*a_b))));
+  }
+
   static Eigen::VectorXd
   computeAugmentedParamsError(const Eigen::VectorXd &params) {
     Eigen::VectorXd residual(getAugmentedMinimalDim());
@@ -735,15 +949,38 @@ class ScaledMisalignedImu {
     xplusm = dq * xm;
   }
 
-  void propagate(double dt, const Eigen::Vector3d &omega_est_0,
-                 const Eigen::Vector3d &acc_est_0,
-                 const Eigen::Vector3d &omega_est_1,
-                 const Eigen::Vector3d &acc_est_1, double sigma_g_c,
+  void updateParameters(const double *bgba, double const *const *xparams) {
+    bg_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba);
+    ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
+    vectorToLowerTriangularMatrix(xparams[0], 0, &M_gyro_);
+    vectorToMatrix(xparams[1], 0, &M_accel_gyro_);
+    vectorToLowerTriangularMatrix(xparams[2], 0, &M_accel_);
+    q_gyro_i_ = Eigen::Map<const Eigen::Quaterniond>(xparams[3]);
+    invertLowerTriangularMatrix(xparams[0], 0, &M_gyro_inv_);
+    invertLowerTriangularMatrix(xparams[2], 0, &M_accel_inv_);
+  }
+
+  void propagate(double dt, const Eigen::Vector3d &omega_S_0,
+                 const Eigen::Vector3d &acc_S_0,
+                 const Eigen::Vector3d &omega_S_1,
+                 const Eigen::Vector3d &acc_S_1, double sigma_g_c,
                  double sigma_a_c, double sigma_gw_c, double sigma_aw_c);
 
   void resetPreintegration();
 
-  IMU_MODEL_SHARED_MEMBERS
+ private:
+  Eigen::Vector3d bg_;
+  Eigen::Vector3d ba_;
+  Eigen::Matrix3d M_gyro_;
+  Eigen::Matrix3d M_gyro_inv_;
+  Eigen::Matrix3d M_accel_gyro_;
+  Eigen::Matrix3d M_accel_;
+  Eigen::Matrix3d M_accel_inv_;
+  Eigen::Quaterniond q_gyro_i_;
+
+  Eigen::Matrix<double, 3, 3> C_b_i_ = Eigen::Matrix<double, 3, 3>::Identity();
+  Eigen::Matrix<double, 3, 3> C_i_b_ = Eigen::Matrix<double, 3, 3>::Identity();
+
 };
 
 #ifndef IMU_ERROR_MODEL_CASES
