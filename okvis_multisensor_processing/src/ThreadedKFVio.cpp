@@ -777,10 +777,7 @@ void ThreadedKFVio::optimizationLoop() {
         estimator_->setLoopFrameAndMatchesList(loopFrameAndMatchesList);
       }
 
-      bool runNonlinearEstimation = true;
-      if (!estimator_->isWellInitialized()) {
-        runNonlinearEstimation = estimator_->tryToInitialize(frame_pairs, frontend_->isInitialized());
-      }
+      bool runNonlinearEstimation = estimator_->tryToInitialize(frame_pairs, frontend_->isInitialized());
       // get timestamp of last frame in IMU window. Need to do this before marginalization as it will be removed there (if not keyframe)
       deleteImuMeasurementsUntil =
           estimator_->oldestFrameTimestamp() - EstimatorBase::half_window_;
