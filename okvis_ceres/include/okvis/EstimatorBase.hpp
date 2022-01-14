@@ -527,8 +527,9 @@ class EstimatorBase : public VioBackendInterface
   /// @name Setters
   ///@{
   /**
-   * @brief Set pose for a given pose ID.
-   * @warning This accesses the optimization graph, so not very fast.
+   * @brief Set pose for a given pose ID and the linearization point for position.
+   * @warning Currently this function is only used at initialization stage, because
+   * it accesses the optimization graph, so not very fast.
    * @param[in] poseId ID of the pose that should be changed.
    * @param[in] T_WS new homogeneous transformation.
    * @return True if successful.
@@ -536,16 +537,15 @@ class EstimatorBase : public VioBackendInterface
   bool set_T_WS(uint64_t poseId, const okvis::kinematics::Transformation & T_WS) final;
 
   /**
-   * @brief Set the speeds and IMU biases for a given pose ID.
-   * @warning This accesses the optimization graph, so not very fast.
+   * @brief Set the speeds and IMU biases for a given pose ID and the linearization point for velocity.
+   * @warning Currently this function is only used at initialization stage because
+   * it accesses the optimization graph, so not very fast.
    * @param[in] poseId ID of the pose to change corresponding speeds and biases for.
    * @param[in] imuIdx index of IMU to get biases for. As only one IMU is supported this is always 0.
    * @param[in] speedAndBias new speeds and biases.
    * @return True if successful.
    */
   bool setSpeedAndBias(uint64_t poseId, size_t imuIdx, const okvis::SpeedAndBias & speedAndBias) final;
-
-  void setPositionVelocityLin(uint64_t poseId, const Eigen::Matrix<double, 6, 1>& posVelLin) final;
 
   /// @brief Set whether a frame is a keyframe or not.
   /// @param[in] frameId The frame ID.

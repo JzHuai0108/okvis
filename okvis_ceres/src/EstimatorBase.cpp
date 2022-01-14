@@ -384,6 +384,10 @@ bool EstimatorBase::isInImuWindow(uint64_t frameId) const {
 bool EstimatorBase::set_T_WS(uint64_t poseId,
                                  const okvis::kinematics::Transformation & T_WS)
 {
+  auto iter = statesMap_.find(poseId);
+  if (iter != statesMap_.end() && iter->second.positionVelocityLin) {
+    iter->second.positionVelocityLin->head<3>() = T_WS.r();
+  }
   if (!setGlobalStateEstimateAs<ceres::PoseParameterBlock>(poseId,
                                                            GlobalStates::T_WS,
                                                            T_WS)) {
@@ -396,12 +400,12 @@ bool EstimatorBase::set_T_WS(uint64_t poseId,
 // Set the speeds and IMU biases for a given pose ID.
 bool EstimatorBase::setSpeedAndBias(uint64_t poseId, size_t imuIdx, const okvis::SpeedAndBias & speedAndBias)
 {
+  auto iter = statesMap_.find(poseId);
+  if (iter != statesMap_.end() && iter->second.positionVelocityLin) {
+    iter->second.positionVelocityLin->tail<3>() = speedAndBias.head<3>();
+  }
   return setSensorStateEstimateAs<ceres::SpeedAndBiasParameterBlock>(
       poseId, imuIdx, SensorStates::Imu, ImuSensorStates::SpeedAndBias, speedAndBias);
-}
-
-void EstimatorBase::setPositionVelocityLin(uint64_t poseId, const Eigen::Matrix<double, 6, 1>& posVelLin) {
-  *(statesMap_.at(poseId).positionVelocityLin) = posVelLin;
 }
 
 // Set the homogeneous coordinates for a landmark.

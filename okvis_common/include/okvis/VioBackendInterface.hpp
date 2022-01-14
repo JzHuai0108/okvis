@@ -339,8 +339,6 @@ class VioBackendInterface {
    */
   virtual bool setSpeedAndBias(uint64_t poseId, size_t imuIdx, const okvis::SpeedAndBias & speedAndBias) = 0;
 
-  virtual void setPositionVelocityLin(uint64_t /*poseId*/, const Eigen::Matrix<double, 6, 1>& /*posVelLin*/) {};
-
   /// @brief Set the homogeneous coordinates for a landmark
   /// @param[in] landmarkId The landmark ID.
   /// @param[in] landmark Homogeneous coordinates of landmark in W-frame.
