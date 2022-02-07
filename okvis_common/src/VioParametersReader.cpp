@@ -180,7 +180,7 @@ void parseOptimizationOptions(cv::FileNode optNode, Optimization *optParams) {
     std::string description = (std::string)optNode["algorithm"];
     optParams->algorithm = swift_vio::EstimatorAlgorithmNameToId(description);
   } else {
-    optParams->algorithm = swift_vio::EstimatorAlgorithm::OKVIS;
+    optParams->algorithm = swift_vio::EstimatorAlgorithm::SlidingWindowSmoother;
   }
 
   optParams->useEpipolarConstraint = optParams->useEpipolarConstraint;

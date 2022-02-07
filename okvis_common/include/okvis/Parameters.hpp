@@ -258,7 +258,7 @@ struct WindParameters{
 /**
  * @brief Parameters for optimization and related things (detection).
  */
-struct Optimization{
+struct Optimization {
   int max_iterations; ///< Maximum iterations the optimization should perform.
   int min_iterations; ///< Minimum iterations the optimization should perform.
   double timeLimitForMatchingAndOptimization; ///< The time limit for both matching and optimization. [s]
@@ -289,13 +289,13 @@ struct Optimization{
                okvis::Duration _timeReserve = okvis::Duration(0.005),
                int _numKeyframes = 5, int _numImuFrames = 3,
                swift_vio::EstimatorAlgorithm _algorithm =
-                   swift_vio::EstimatorAlgorithm::OKVIS,
+                   swift_vio::EstimatorAlgorithm::SlidingWindowSmoother,
                bool _useEpipolarConstraint = false,
                int _cameraObservationModelId = 0, bool _computeOkvisNees = false,
                bool _useMahalanobisGating = true,
                double _maxProjectionErrorTol = 7, int _delayFilterInitByFrames = 3);
 
-  std::string toString(std::string lead) const;
+  std::string toString(std::string lead = "") const;
 };
 
 /**

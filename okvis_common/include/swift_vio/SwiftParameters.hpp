@@ -13,13 +13,10 @@
 
 namespace swift_vio {
 enum class EstimatorAlgorithm {
-  OKVIS = 0,  ///< Okvis original keyframe-based estimator.
-  SlidingWindowSmoother, ///< Gtsam::FixedLagSmoother.
-  RiSlidingWindowSmoother, ///< Gtsam::FixedLagSmoother with right invariant errors.
-  HybridFilter, ///< MSCKF + EKF-SLAM with keyframe-based marginalization.
-  CalibrationFilter, ///< EKF for RS camera-IMU calibration.
-  MSCKF,  ///< MSCKF with keyframe-based marginalization.
-  TFVIO  ///< Triangulate-free VIO with only epipolar constraints.
+  SlidingWindowSmoother = 0,  ///< keyframe-based smoother.
+  FixedLagSmoother, ///< Gtsam::FixedLagSmoother.
+  RiFixedLagSmoother, ///< Gtsam::FixedLagSmoother with right invariant errors.
+  SlidingWindowFilter, ///< keyframe-based filter.
 };
 
 EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description);
@@ -37,9 +34,27 @@ enum class FeatureTrackingScheme {
 
 std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s);
 
+struct BriskOptions {
+  double detectionAbsoluteThreshold;
+  bool descriptionRotationInvariance;
+  bool descriptionScaleInvariance;
+  double matchingThreshold;
+
+  BriskOptions(double detectionThreshold = 800.0,
+               bool rotationInvariance = true,
+               bool scaleInvariance = false,
+               double threshold = 60.0)
+      : detectionAbsoluteThreshold(detectionThreshold),
+        descriptionRotationInvariance(rotationInvariance),
+        descriptionScaleInvariance(scaleInvariance),
+        matchingThreshold(threshold) {}
+  std::string toString(std::string hint) const;
+};
+
 struct FrontendOptions {
   FeatureTrackingScheme featureTrackingMethod;
 
+  BriskOptions brisk;
   bool useMedianFilter;     ///< Use a Median filter over captured image?
   int detectionOctaves;     ///< Number of keypoint detection octaves.
   double detectionThreshold;  ///< Keypoint detection threshold.
@@ -70,12 +85,15 @@ struct FrontendOptions {
 
   FrontendOptions(FeatureTrackingScheme featureTrackingMethod =
                       FeatureTrackingScheme::KeyframeDescriptorMatching,
+                  BriskOptions brisk = BriskOptions(),
                   bool useMedianFilter = false, int detectionOctaves = 0,
                   double detectionThreshold = 40, int maxNoKeypoints = 400,
                   float keyframeInsertionOverlapThreshold = 0.6,
                   float keyframeInsertionMatchingRatioThreshold = 0.2,
                   bool stereoWithEpipolarCheck = true,
                   double epipolarDistanceThreshold = 2.5, int numThreads = 4);
+
+  std::string toString(std::string hint) const;
 };
 
 struct PointLandmarkOptions {
@@ -91,7 +109,7 @@ struct PointLandmarkOptions {
                        size_t hibernationFrames = 3u, size_t minSlamTrackLength = 11u,
                        int maxInStateLandmarks = 50, int maxMarginalizedLandmarks = 50,
                        double triangulationMaxDepth = 1000);
-  std::string toString(std::string lead) const;
+  std::string toString(std::string hint) const;
 };
 
 struct PoseGraphOptions {

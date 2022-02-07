@@ -8,34 +8,27 @@ EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description) {
   std::transform(description.begin(), description.end(), description.begin(),
                  ::toupper);
   std::unordered_map<std::string, EstimatorAlgorithm> descriptionToId{
-      {"OKVIS", EstimatorAlgorithm::OKVIS},
-      {"MSCKF", EstimatorAlgorithm::MSCKF},
-      {"TFVIO", EstimatorAlgorithm::TFVIO},
       {"SLIDINGWINDOWSMOOTHER", EstimatorAlgorithm::SlidingWindowSmoother},
-      {"RISLIDINGWINDOWSMOOTHER", EstimatorAlgorithm::RiSlidingWindowSmoother},
-      {"HYBRIDFILTER", EstimatorAlgorithm::HybridFilter},
-      {"CALIBRATIONFILTER", EstimatorAlgorithm::CalibrationFilter},
-  };
+      {"FIXEDLAGSMOOTHER", EstimatorAlgorithm::FixedLagSmoother},
+      {"RIFIXEDLAGSMOOTHER", EstimatorAlgorithm::RiFixedLagSmoother},
+      {"SLIDINGWINDOWFILTER", EstimatorAlgorithm::SlidingWindowFilter}};
 
   auto iter = descriptionToId.find(description);
   if (iter == descriptionToId.end()) {
-    return EstimatorAlgorithm::OKVIS;
+    return EstimatorAlgorithm::SlidingWindowSmoother;
   } else {
     return iter->second;
   }
 }
 
 std::ostream &operator<<(std::ostream &strm, EstimatorAlgorithm a) {
-  const std::string names[] = {
-      "OKVIS",        "SlidingWindowSmoother", "RiSlidingWindowSmoother",
-      "HybridFilter", "CalibrationFilter",     "MSCKF",
-      "TFVIO"};
+  const std::string names[] = {"SlidingWindowSmoother", "FixedLagSmoother",
+                               "RiFixedLagSmoother", "SlidingWindowFilter"};
   return strm << names[static_cast<int>(a)];
 }
 
 struct EstimatorAlgorithmHash {
-  template <typename T>
-  std::size_t operator()(T t) const {
+  template <typename T> std::size_t operator()(T t) const {
     return static_cast<std::size_t>(t);
   }
 };
@@ -43,18 +36,13 @@ struct EstimatorAlgorithmHash {
 std::string EstimatorAlgorithmIdToName(EstimatorAlgorithm id) {
   std::unordered_map<EstimatorAlgorithm, std::string, EstimatorAlgorithmHash>
       idToDescription{
-          {EstimatorAlgorithm::OKVIS, "OKVIS"},
-          {EstimatorAlgorithm::MSCKF, "MSCKF"},
-          {EstimatorAlgorithm::TFVIO, "TFVIO"},
           {EstimatorAlgorithm::SlidingWindowSmoother, "SlidingWindowSmoother"},
-          {EstimatorAlgorithm::RiSlidingWindowSmoother,
-           "RiSlidingWindowSmoother"},
-          {EstimatorAlgorithm::HybridFilter, "HybridFilter"},
-          {EstimatorAlgorithm::CalibrationFilter, "CalibrationFilter"},
-      };
+          {EstimatorAlgorithm::FixedLagSmoother, "FixedLagSmoother"},
+          {EstimatorAlgorithm::RiFixedLagSmoother, "RiFixedLagSmoother"},
+          {EstimatorAlgorithm::SlidingWindowFilter, "SlidingWindowFilter"}};
   auto iter = idToDescription.find(id);
   if (iter == idToDescription.end()) {
-    return "OKVIS";
+    return "SlidingWindowSmoother";
   } else {
     return iter->second;
   }
@@ -62,21 +50,28 @@ std::string EstimatorAlgorithmIdToName(EstimatorAlgorithm id) {
 
 std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s) {
   const std::string names[] = {"KeyframeDescriptorMatching", "FramewiseKLT",
-                               "FramewiseDescriptorMatching",
-                               "SingleThreadKeyframeDescMatching"};
+                               "FramewiseDescriptorMatching"};
   return strm << names[static_cast<int>(s)];
 }
 
-FrontendOptions::FrontendOptions(FeatureTrackingScheme _featureTrackingMethod,
-                                 bool _useMedianFilter, int _detectionOctaves,
-                                 double _detectionThreshold,
-                                 int _maxNoKeypoints,
-                                 float _keyframeInsertionOverlapThreshold,
-                                 float _keyframeInsertionMatchingRatioThreshold,
-                                 bool _stereoWithEpipolarCheck,
-                                 double _epipolarDistanceThreshold,
-                                 int _numThreads)
-    : featureTrackingMethod(_featureTrackingMethod),
+std::string BriskOptions::toString(std::string hint) const {
+  std::stringstream ss(hint);
+  ss << "DetectionAbsoluteThreshold " << detectionAbsoluteThreshold
+     << " DescriptionRotationInvariance "
+     << descriptionRotationInvariance
+     << " DescriptionScaleInvariance " << descriptionScaleInvariance
+     << " MatchingThreshold " << matchingThreshold;
+  return ss.str();
+}
+
+FrontendOptions::FrontendOptions(
+    FeatureTrackingScheme _featureTrackingMethod, BriskOptions _brisk,
+    bool _useMedianFilter, int _detectionOctaves, double _detectionThreshold,
+    int _maxNoKeypoints, float _keyframeInsertionOverlapThreshold,
+    float _keyframeInsertionMatchingRatioThreshold,
+    bool _stereoWithEpipolarCheck, double _epipolarDistanceThreshold,
+    int _numThreads)
+    : featureTrackingMethod(_featureTrackingMethod), brisk(_brisk),
       useMedianFilter(_useMedianFilter), detectionOctaves(_detectionOctaves),
       detectionThreshold(_detectionThreshold), maxNoKeypoints(_maxNoKeypoints),
       keyframeInsertionOverlapThreshold(_keyframeInsertionOverlapThreshold),
@@ -85,6 +80,23 @@ FrontendOptions::FrontendOptions(FeatureTrackingScheme _featureTrackingMethod,
       stereoMatchWithEpipolarCheck(_stereoWithEpipolarCheck),
       epipolarDistanceThreshold(_epipolarDistanceThreshold),
       numThreads(_numThreads) {}
+
+std::string FrontendOptions::toString(std::string hint) const {
+  std::stringstream ss(hint);
+  ss << "Feature tracking method " << featureTrackingMethod
+     << "\nBrisk options " << brisk.toString("Brisk options ")
+     << "\nuseMedianFilter " << useMedianFilter << " detectionOctaves "
+     << detectionOctaves << " detectionThreshold " << detectionThreshold
+     << " maxNoKeypoints " << maxNoKeypoints
+     << "\nkeyframeInsertionOverlapThreshold "
+     << keyframeInsertionOverlapThreshold
+     << " keyframeInsertionMatchingRatioThreshold "
+     << keyframeInsertionMatchingRatioThreshold
+     << " stereoMatchWithEpipolarCheck " << stereoMatchWithEpipolarCheck
+     << " epipolarDistanceThreshold " << epipolarDistanceThreshold
+     << " numThreads " << numThreads;
+  return ss.str();
+}
 
 PoseGraphOptions::PoseGraphOptions(int _maxOdometryConstraintForAKeyframe,
                                    double _minDistance, double _minAngle)
@@ -102,8 +114,8 @@ PointLandmarkOptions::PointLandmarkOptions(
       maxMarginalizedLandmarks(maxMargedLandmarks),
       triangulationMaxDepth(_triangulationMaxDepth) {}
 
-std::string PointLandmarkOptions::toString(std::string lead) const {
-  std::stringstream ss(lead);
+std::string PointLandmarkOptions::toString(std::string hint) const {
+  std::stringstream ss(hint);
   ss << "Landmark model id " << landmarkModelId << "\n#hibernation frames "
      << maxHibernationFrames << " track length for MSCKF "
      << minTrackLengthForMsckf << " for SLAM " << minTrackLengthForSlam
