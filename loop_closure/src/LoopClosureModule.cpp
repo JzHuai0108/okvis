@@ -35,7 +35,7 @@ void LoopClosureModule::setOutputLoopFrameCallback(
 }
 
 void LoopClosureModule::appendStateCallback(
-    const okvis::VioInterface::StateCallback& stateCallback) {
+    const StateCallback& stateCallback) {
   stateCallbackList_.push_back(stateCallback);
 }
 

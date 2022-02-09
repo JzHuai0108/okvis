@@ -6,13 +6,16 @@
 
 #include <loop_closure/KeyframeForLoopDetection.hpp>
 #include <loop_closure/LoopClosureMethod.hpp>
-#include <okvis/VioInterface.hpp> // only for StateCallback.
+
 #include <okvis/threadsafe/ThreadsafeQueue.hpp>
 #include <okvis/timing/Timer.hpp>
 
 namespace swift_vio {
 typedef std::function<void(std::shared_ptr<LoopFrameAndMatches>)>
     OutputLoopFrameCallback;
+
+typedef std::function<
+  void(const okvis::Time &, const okvis::kinematics::Transformation &)> StateCallback;
 class LoopClosureModule {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -42,7 +45,7 @@ class LoopClosureModule {
   ///        where stamp is the timestamp
   ///        and T_w_vk is the transformation (and uncertainty) that
   ///        transforms points from the vehicle frame to the world frame
-  void appendStateCallback(const okvis::VioInterface::StateCallback & stateCallback);
+  void appendStateCallback(const StateCallback & stateCallback);
 
   void startThreads();
 
@@ -73,7 +76,7 @@ class LoopClosureModule {
 
   std::thread loopClosureThread_;   ///< Thread running loopClosureLoop().
   std::thread publisherThread_;     ///< Thread running publisherLoop().
-  std::vector<okvis::VioInterface::StateCallback> stateCallbackList_; ///< State callback functions.
+  std::vector<StateCallback> stateCallbackList_; ///< State callback functions.
   const size_t maxQueryKeyframeQueueSize_ = 5;
 };
 }  // namespace swift_vio

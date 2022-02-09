@@ -109,7 +109,7 @@ struct PointLandmarkOptions {
                        size_t hibernationFrames = 3u, size_t minSlamTrackLength = 11u,
                        int maxInStateLandmarks = 50, int maxMarginalizedLandmarks = 50,
                        double triangulationMaxDepth = 1000);
-  std::string toString(std::string hint) const;
+  std::string toString(std::string hint = "") const;
 };
 
 struct PoseGraphOptions {

@@ -117,27 +117,35 @@ class ParameterBlock {
   /// @param[in] x0 Variable.
   /// @param[in] Delta_Chi Perturbation.
   /// @param[out] x0_plus_Delta Perturbed x.
-  virtual void plus(const double* x0, const double* Delta_Chi,
-                    double* x0_plus_Delta) const = 0;
+  virtual void plus(const double* /*x0*/, const double* /*Delta_Chi*/,
+                    double* /*x0_plus_Delta*/) const {
+    throw std::runtime_error("plus not implemented for ParameterBlock!");
+  }
 
   /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
   /// @param[in] x0 Variable.
   /// @param[out] jacobian The Jacobian.
-  virtual void plusJacobian(const double* x0, double* jacobian) const = 0;
+  virtual void plusJacobian(const double* /*x0*/, double* /*jacobian*/) const {
+    throw std::runtime_error("plusJacobian not implemented for ParameterBlock!");
+  }
 
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
   /// @param[in] x0 Variable.
   /// @param[in] x0_plus_Delta Perturbed variable.
   /// @param[out] Delta_Chi Minimal difference.
   /// \return True on success.
-  virtual void minus(const double* x0, const double* x0_plus_Delta,
-                     double* Delta_Chi) const = 0;
+  virtual void minus(const double* /*x0*/, const double* /*x0_plus_Delta*/,
+                     double* /*Delta_Chi*/) const {
+    throw std::runtime_error("minus not implemented for ParameterBlock!");
+  }
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
   /// @param[in] x0 Variable.
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).
   /// \return True on success.
-  virtual void liftJacobian(const double* x0, double* jacobian) const = 0;
+  virtual void liftJacobian(const double* /*x0*/, double* /*jacobian*/) const {
+    throw std::runtime_error("liftJacobian not implemented for ParameterBlock!");
+  }
 
   /// @name Local parameterization
   /// @{
