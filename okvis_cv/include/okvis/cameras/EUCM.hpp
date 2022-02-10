@@ -72,7 +72,9 @@ public:
 
   /// \brief Get the intrinsics as a concatenated vector.
   /// \return The intrinsics as a concatenated vector.
-  void getIntrinsics(Eigen::VectorXd &intrinsics) const;
+  void getIntrinsics(Eigen::VectorXd &intrinsics) const final;
+
+  const Eigen::VectorXd &getIntrinsics() const final;
 
   /// \brief overwrite all intrinsics - use with caution !
   /// \param[in] intrinsics The intrinsics as a concatenated vector.

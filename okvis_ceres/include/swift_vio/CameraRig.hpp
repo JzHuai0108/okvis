@@ -282,12 +282,10 @@ class CameraRig {
     return rig;
   }
 
-  void assign(std::shared_ptr<okvis::cameras::NCameraSystem> rig) const {
+  void assignTo(std::shared_ptr<okvis::cameras::NCameraSystem> rig) const {
     for (size_t i = 0u; i < T_SC_.size(); ++i) {
       rig->set_T_SC(i, T_SC_[i]);
-      Eigen::VectorXd intrinsics;
-      camera_geometries_[i]->getIntrinsics(intrinsics);
-      rig->setCameraIntrinsics(i, intrinsics);
+      rig->setCameraIntrinsics(i, camera_geometries_[i]->getIntrinsics());
       rig->setImageDelay(i, getImageDelay(i));
       rig->setReadoutTime(i, getReadoutTime(i));
     }

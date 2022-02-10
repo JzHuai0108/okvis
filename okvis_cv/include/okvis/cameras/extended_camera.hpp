@@ -97,7 +97,10 @@ class ExtendedUnifiedCamera {
   using Mat4N = Eigen::Matrix<Scalar, 4, N>;
 
   /// @brief Default constructor with zero intrinsics
-  ExtendedUnifiedCamera() { param_.setZero(); }
+  ExtendedUnifiedCamera() {
+    param_.resize(N);
+    param_.setZero();
+  }
 
   /// @brief Construct camera model with given vector of intrinsics
   ///
@@ -375,6 +378,7 @@ class ExtendedUnifiedCamera {
   ///
   /// @param[in] init vector [fx, fy, cx, cy]
   inline void setFromInit(const Vec4& init) {
+    param_.resize(N);
     param_[0] = init[0];
     param_[1] = init[1];
     param_[2] = init[2];
@@ -403,7 +407,7 @@ class ExtendedUnifiedCamera {
   /// The order is following: \f$ \left[f_x, f_y, c_x, c_y, \alpha, \beta
   /// \right]^T \f$
   /// @return const reference to the intrinsic parameters vector
-  const VecN& getParam() const { return param_; }
+  const Eigen::Matrix<Scalar, -1, 1>& getParam() const { return param_; }
 
   /// @brief Projections used for unit-tests
   static std::vector<ExtendedUnifiedCamera, Eigen::aligned_allocator<ExtendedUnifiedCamera>> getTestProjections() {
@@ -436,7 +440,7 @@ class ExtendedUnifiedCamera {
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
  private:
-  VecN param_;
+  Eigen::Matrix<Scalar, -1, 1> param_;
 };
 }  // namespace cameras
 }  // namespace okvis

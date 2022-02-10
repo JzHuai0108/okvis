@@ -43,6 +43,10 @@ void EUCM::getIntrinsics(Eigen::VectorXd &intrinsics) const {
   intrinsics = eucm_.getParam();
 }
 
+const Eigen::VectorXd &EUCM::getIntrinsics() const {
+  return eucm_.getParam();
+}
+
 bool EUCM::setIntrinsics(const Eigen::VectorXd &intrinsics) {
   if (intrinsics.size() != NumIntrinsics) {
     return false;

@@ -847,7 +847,7 @@ void EstimatorBase::getImuAugmentedStatesEstimate(
 }
 
 void EstimatorBase::getEstimatedCameraSystem(std::shared_ptr<okvis::cameras::NCameraSystem> cameraSystem) const {
-  cameraRig_.assign(cameraSystem);
+  cameraRig_.assignTo(cameraSystem);
 }
 
 bool EstimatorBase::getOdometryConstraintsForKeyframe(

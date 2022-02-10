@@ -51,7 +51,7 @@ public:
     gyroBias_ = bias;
   }
 
-  inline void getAccelBias(const Eigen::Vector3d &bias) {
+  inline void setAccelBias(const Eigen::Vector3d &bias) {
     accelBias_ = bias;
   }
 

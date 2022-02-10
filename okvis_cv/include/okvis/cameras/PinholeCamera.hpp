@@ -121,7 +121,9 @@ class PinholeCamera : public CameraBase
 
   /// \brief Get the intrinsics as a concatenated vector.
   /// \return The intrinsics as a concatenated vector.
-  inline void getIntrinsics(Eigen::VectorXd & intrinsics) const ;
+  inline void getIntrinsics(Eigen::VectorXd & intrinsics) const final;
+
+  inline const Eigen::VectorXd &getIntrinsics() const final;
 
   /// \brief overwrite all intrinsics - use with caution !
   /// \param[in] intrinsics The intrinsics as a concatenated vector.
@@ -321,7 +323,7 @@ class PinholeCamera : public CameraBase
 
   distortion_t distortion_;  ///< the distortion to be used
 
-  Eigen::Matrix<double, NumIntrinsics, 1> intrinsics_;  ///< summary of all intrinsics parameters
+  Eigen::VectorXd intrinsics_;  ///< summary of all intrinsics parameters
   double fu_;  ///< focalLengthU
   double fv_;  ///< focalLengthV
   double cu_;  ///< imageCenterU

@@ -79,7 +79,7 @@ void NCameraSystem::computeOverlaps()
   OKVIS_ASSERT_TRUE_DBG(
       Exception, T_SC_.size() == cameraGeometries_.size(),
       "Number of extrinsics must match number of camera models!");
-
+  std::cout << "Computing overlaps between camera views. It may take a few seconds!" << std::endl;
   overlapMats_.resize(cameraGeometries_.size());
   overlaps_.resize(cameraGeometries_.size());
   for (size_t cameraIndexSeenBy = 0; cameraIndexSeenBy < overlapMats_.size();

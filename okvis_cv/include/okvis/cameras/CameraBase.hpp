@@ -171,6 +171,8 @@ class CameraBase
   /// \brief obtain all intrinsics
   virtual void getIntrinsics(Eigen::VectorXd & intrinsics) const = 0;
 
+  virtual const Eigen::VectorXd &getIntrinsics() const = 0;
+
   /// \brief overwrite all intrinsics - use with caution !
   virtual bool setIntrinsics(const Eigen::VectorXd & intrinsics) = 0;
 
