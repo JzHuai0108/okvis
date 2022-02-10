@@ -494,8 +494,8 @@ class EstimatorBase : public VioBackendInterface
    * @return
    */
   void getVariableCameraExtrinsics(
-      Eigen::Matrix<double, Eigen::Dynamic, 1> *extrinsicParams,
-      size_t camIdx) const;
+      size_t camIdx,
+      Eigen::Matrix<double, Eigen::Dynamic, 1> *extrinsicParams) const;
 
   /**
    * @brief get variable intrinsic parameters of camIdx.
@@ -504,16 +504,15 @@ class EstimatorBase : public VioBackendInterface
    * @param camIdx
    * @return
    */
-  virtual void getVariableCameraIntrinsics(
-      Eigen::Matrix<double, Eigen::Dynamic, 1> *cameraParams,
-      size_t camIdx) const;
+  virtual void getVariableCameraIntrinsics(size_t camIdx,
+      Eigen::Matrix<double, Eigen::Dynamic, 1> *cameraParams) const;
 
   /**
    * @brief getImuAugmentedStatesEstimate get the lastest estimate of IMU augmented params.
    * @param extraParams excluding biases.
    * @return
    */
-  virtual void getImuAugmentedStatesEstimate(
+  virtual void getImuAugmentedStatesEstimate(size_t imuIdx,
       Eigen::Matrix<double, Eigen::Dynamic, 1>* extraParams) const;
 
   /**

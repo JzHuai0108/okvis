@@ -211,7 +211,7 @@ bool EstimatorBase::printStatesAndStdevs(std::ostream& stream) const {
   size_t numCameras = cameraNoiseParametersVec_.size();
   for (size_t camIdx = 0u; camIdx < numCameras; ++camIdx) {
     Eigen::VectorXd extrinsicValues;
-    getVariableCameraExtrinsics(&extrinsicValues, camIdx);
+    getVariableCameraExtrinsics(camIdx, &extrinsicValues);
     stream << " " << extrinsicValues.transpose().format(swift_vio::kSpaceInitFmt);
   }
   Eigen::MatrixXd covariance;
@@ -815,8 +815,8 @@ bool EstimatorBase::getCameraSensorExtrinsics(
 }
 
 void EstimatorBase::getVariableCameraExtrinsics(
-    Eigen::Matrix<double, Eigen::Dynamic, 1> *extrinsicParams,
-    size_t camIdx) const {
+    size_t camIdx,
+    Eigen::Matrix<double, Eigen::Dynamic, 1> *extrinsicParams) const {
   const States &stateInQuestion = statesMap_.rbegin()->second;
   if (!fixCameraExtrinsicParams_[camIdx]) {
     uint64_t extrinsicId = stateInQuestion.sensors.at(SensorStates::Camera)
@@ -835,11 +835,13 @@ void EstimatorBase::getVariableCameraExtrinsics(
 }
 
 void EstimatorBase::getVariableCameraIntrinsics(
-    Eigen::Matrix<double, Eigen::Dynamic, 1>* intrinsicParams, size_t /*camIdx*/) const {
+    size_t /*camIdx*/,
+    Eigen::Matrix<double, Eigen::Dynamic, 1>* intrinsicParams) const {
   intrinsicParams->resize(0);
 }
 
 void EstimatorBase::getImuAugmentedStatesEstimate(
+    size_t /*imuId*/,
     Eigen::Matrix<double, Eigen::Dynamic, 1>* extraParams) const {
   extraParams->resize(0);
 }

@@ -24,8 +24,16 @@ public:
    */
   ImuModel(int modelId, const Eigen::Vector3d bg, Eigen::Vector3d ba,
            const Eigen::VectorXd &extraParams)
-      : modelId_(modelId), gyroBias_(bg), accelerometerBias_(ba),
+      : modelId_(modelId), gyroBias_(bg), accelBias_(ba),
         extraParams_(extraParams) {}
+
+  inline Eigen::Vector3d getGyroBias() const {
+    return gyroBias_;
+  }
+
+  inline Eigen::Vector3d getAccelBias() const {
+    return accelBias_;
+  }
 
   inline Eigen::VectorXd getImuAugmentedParams() const {
     return extraParams_;
@@ -39,6 +47,14 @@ public:
     return ImuModelComputeAugmentedParamsError(modelId_, extraParams_);
   }
 
+  inline void setGyroBias(const Eigen::Vector3d &bias) {
+    gyroBias_ = bias;
+  }
+
+  inline void getAccelBias(const Eigen::Vector3d &bias) {
+    accelBias_ = bias;
+  }
+
   inline void setImuAugmentedParams(const Eigen::VectorXd& extraParams) {
     extraParams_ = extraParams;
   }
@@ -46,14 +62,22 @@ public:
 private:
   int modelId_;
   Eigen::Vector3d gyroBias_;
-  Eigen::Vector3d accelerometerBias_;
+  Eigen::Vector3d accelBias_;
   Eigen::VectorXd extraParams_;
 };
 
 class ImuRig {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   inline ImuRig() {}
+
+  void assignTo(std::shared_ptr<ImuRig> right) const {
+    for (size_t j = 0; j < imus_.size(); ++j) {
+      right->imus_.at(j) = imus_.at(j);
+    }
+  }
+
   inline int getModelId(int index) const {
     if ((int)imus_.size() > index) {
       return imus_[index].modelId();
@@ -63,6 +87,14 @@ class ImuRig {
   }
 
   int addImu(const okvis::ImuParameters& imuParams);
+
+  inline const ImuModel &at(int imuId) const {
+    return imus_.at(imuId);
+  }
+
+  inline ImuModel &at(int imuId) {
+    return imus_.at(imuId);
+  }
 
   inline int getImuParamsMinimalDim(int imu_id=0) const {
     return ImuModelGetMinimalDim(imus_[imu_id].modelId());

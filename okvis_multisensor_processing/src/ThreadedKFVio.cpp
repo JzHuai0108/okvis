@@ -898,10 +898,10 @@ void ThreadedKFVio::dumpCalibrationParameters(uint64_t latestNFrameId, Optimizat
     result->vector_of_T_SCi.emplace_back(T_SC);
 
     Eigen::VectorXd optimizedExtrinsicCoeffs;
-    estimator_->getVariableCameraExtrinsics(&optimizedExtrinsicCoeffs, i);
+    estimator_->getVariableCameraExtrinsics(i, &optimizedExtrinsicCoeffs);
 
     Eigen::VectorXd optimizedIntrinsics;
-    estimator_->getVariableCameraIntrinsics(&optimizedIntrinsics, i);
+    estimator_->getVariableCameraIntrinsics(i, &optimizedIntrinsics);
 
     result->variableCameraParams_.at(i).resize(
         optimizedExtrinsicCoeffs.size() + optimizedIntrinsics.size(), 1);
@@ -911,7 +911,7 @@ void ThreadedKFVio::dumpCalibrationParameters(uint64_t latestNFrameId, Optimizat
         optimizedIntrinsics;
   }
 
-  estimator_->getImuAugmentedStatesEstimate(&result->imuExtraParams_);
+  estimator_->getImuAugmentedStatesEstimate(0u, &result->imuExtraParams_);
   estimator_->getStateStd(&result->stateStd_);
 }
 
