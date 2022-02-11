@@ -175,7 +175,7 @@ void parseInitialState(cv::FileNode initialStateNode,
   VLOG(2) << initialState->toString();
 }
 
-void parseOptimizationOptions(cv::FileNode optNode, Optimization *optParams) {
+void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams) {
   if (optNode["algorithm"].isString()) {
     std::string description = (std::string)optNode["algorithm"];
     optParams->algorithm = swift_vio::EstimatorAlgorithmNameToId(description);
@@ -199,7 +199,7 @@ void parseOptimizationOptions(cv::FileNode optNode, Optimization *optParams) {
   if (optNode["delayFilterInitByFrames"].isInt()) {
     optNode["delayFilterInitByFrames"] >> optParams->delayFilterInitByFrames;
   }
-  LOG(INFO) << optParams->toString("Optimization parameters: ");
+  LOG(INFO) << optParams->toString("Estimator options: ");
 }
 
 void parseFrontendOptions(cv::FileNode frontendNode,
@@ -348,7 +348,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     vioParameters_.optimization.numImuFrames = 2;
   }
 
-  parseOptimizationOptions(
+  parseEstimatorOptions(
       file["optimization"], &vioParameters_.optimization);
 
   parseFrontendOptions(file["frontend"], &vioParameters_.frontendOptions);

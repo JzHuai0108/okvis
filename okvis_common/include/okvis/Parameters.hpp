@@ -258,7 +258,7 @@ struct WindParameters{
 /**
  * @brief Parameters for optimization and related things (detection).
  */
-struct Optimization {
+struct EstimatorOptions {
   int max_iterations; ///< Maximum iterations the optimization should perform.
   int min_iterations; ///< Minimum iterations the optimization should perform.
   double timeLimitForMatchingAndOptimization; ///< The time limit for both matching and optimization. [s]
@@ -284,7 +284,10 @@ struct Optimization {
   // The number of frames to delay the nonlinear filter initialization since motion is detected?
   int delayFilterInitByFrames;
 
-  Optimization(int _max_iterations = 10, int _min_iterations = 3,
+  int numThreads;
+  bool verbose;
+
+  EstimatorOptions(int _max_iterations = 10, int _min_iterations = 3,
                double _timeLimitForMatchingAndOptimization = 0.035,
                okvis::Duration _timeReserve = okvis::Duration(0.005),
                int _numKeyframes = 5, int _numImuFrames = 3,
@@ -293,7 +296,8 @@ struct Optimization {
                bool _useEpipolarConstraint = false,
                int _cameraObservationModelId = 0, bool _computeOkvisNees = false,
                bool _useMahalanobisGating = true,
-               double _maxProjectionErrorTol = 7, int _delayFilterInitByFrames = 3);
+               double _maxProjectionErrorTol = 7, int _delayFilterInitByFrames = 3,
+               int _numThreads = 2, bool _verbose = false);
 
   std::string toString(std::string lead = "") const;
 };
@@ -332,7 +336,7 @@ struct PublishingParameters {
 /// @brief Struct to combine all parameters and settings.
 struct VioParameters {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Optimization optimization;    ///< Optimization parameters.
+  EstimatorOptions optimization;    ///< Estimator options.
   Visualization visualization;  ///< Visualization parameters.
   SensorsInformation sensors_information; ///< Information on camera and IMU setup.
   CameraNoiseParameters camera_extrinsics; ///< Camera extrinsic estimation parameters.

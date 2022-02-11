@@ -964,7 +964,7 @@ void ThreadedKFVio::configureBackend(okvis::VioParameters& parameters) {
                                     parameters.optimization.algorithm);
 
   estimator_->setInitialNavState(parameters.initialState);
-  estimator_->setOptimizationOptions(parameters.optimization);
+  estimator_->setEstimatorOptions(parameters.optimization);
   estimator_->setPointLandmarkOptions(parameters.pointLandmarkOptions);
   estimator_->setPoseGraphOptions(parameters.poseGraphOptions);
 

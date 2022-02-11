@@ -368,8 +368,8 @@ bool Estimator::removeObservationAndResidual(::ceres::ResidualBlockId residualBl
 // Applies the dropping/marginalization strategy according to the RSS'13/IJRR'14 paper.
 // The new number of frames in the window will be numKeyframes+numImuFrames.
 bool Estimator::applyMarginalizationStrategy(okvis::MapPointVector& removedLandmarks) {
-  size_t numKeyframes = optimizationOptions_.numKeyframes;
-  size_t numImuFrames = optimizationOptions_.numImuFrames;
+  size_t numKeyframes = estimatorOptions_.numKeyframes;
+  size_t numImuFrames = estimatorOptions_.numImuFrames;
   // keep the newest numImuFrames
   std::map<uint64_t, States>::reverse_iterator rit = statesMap_.rbegin();
   for(size_t k=0; k<numImuFrames; k++){
@@ -506,7 +506,7 @@ bool Estimator::applyMarginalizationStrategy(okvis::MapPointVector& removedLandm
 
     for (size_t r = 0; r < residuals.size(); ++r) {
       // jhuai: redo fixation leads to inconsistent covariance.
-      if(!optimizationOptions_.computeOkvisNees && std::dynamic_pointer_cast<ceres::PoseError>(
+      if(!estimatorOptions_.computeOkvisNees && std::dynamic_pointer_cast<ceres::PoseError>(
            residuals[r].errorInterfacePtr)){ // avoids linearising initial pose error
         mapPtr_->removeResidualBlock(residuals[r].residualBlockId);
         reDoFixation = true;
@@ -908,7 +908,7 @@ bool Estimator::addReprojectionFactors() {
 }
 
 bool Estimator::computeCovariance(Eigen::MatrixXd* cov) const {
-  if (!optimizationOptions_.computeOkvisNees) {
+  if (!estimatorOptions_.computeOkvisNees) {
     *cov = Eigen::Matrix<double, 15, 15>::Identity();
     return false;
   }

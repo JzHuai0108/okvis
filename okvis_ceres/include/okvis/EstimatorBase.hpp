@@ -563,8 +563,8 @@ class EstimatorBase : public VioBackendInterface
      initialNavState_ = rhs;
   }
 
-  void setOptimizationOptions(const Optimization& optimizationOptions) {
-    optimizationOptions_ = optimizationOptions;
+  void setEstimatorOptions(const EstimatorOptions& estimatorOptions) {
+    estimatorOptions_ = estimatorOptions;
   }
 
   void setPointLandmarkOptions(const swift_vio::PointLandmarkOptions& plOptions) override {
@@ -816,7 +816,7 @@ class EstimatorBase : public VioBackendInterface
   // when the extrinsic noise is zero.
   std::vector<bool> fixCameraExtrinsicParams_;
 
-  Optimization optimizationOptions_;
+  EstimatorOptions estimatorOptions_;
 
   swift_vio::PointLandmarkOptions pointLandmarkOptions_; // see PointLandmarkModels.hpp
 

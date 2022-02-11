@@ -65,7 +65,7 @@ void ImuParameters::setGravityDirection(
   normalGravity = gravityDirection;
 }
 
-Optimization::Optimization(int _max_iterations, int _min_iterations,
+EstimatorOptions::EstimatorOptions(int _max_iterations, int _min_iterations,
                            double _timeLimitForMatchingAndOptimization,
                            okvis::Duration _timeReserve, int _numKeyframes,
                            int _numImuFrames,
@@ -74,7 +74,8 @@ Optimization::Optimization(int _max_iterations, int _min_iterations,
                            int _cameraObservationModelId,
                            bool _computeOkvisNees, bool _useMahalanobisGating,
                            double _maxProjectionErrorTol,
-                           int _delayInitByFrames)
+                           int _delayInitByFrames,
+                           int _numThreads, bool _verbose)
     : max_iterations(_max_iterations), min_iterations(_min_iterations),
       timeLimitForMatchingAndOptimization(_timeLimitForMatchingAndOptimization),
       timeReserve(_timeReserve), numKeyframes(_numKeyframes),
@@ -84,9 +85,10 @@ Optimization::Optimization(int _max_iterations, int _min_iterations,
       computeOkvisNees(_computeOkvisNees),
       useMahalanobisGating(_useMahalanobisGating),
       maxProjectionErrorTol(_maxProjectionErrorTol),
-      delayFilterInitByFrames(_delayInitByFrames) {}
+      delayFilterInitByFrames(_delayInitByFrames),
+      numThreads(_numThreads), verbose(_verbose) {}
 
-std::string Optimization::toString(std::string lead) const {
+std::string EstimatorOptions::toString(std::string lead) const {
   std::stringstream ss(lead);
   ss << "Algorithm " << algorithm << " numKeyframes " << numKeyframes
      << " numImuFrames " << numImuFrames << "\nUse epipolar constraint? "
