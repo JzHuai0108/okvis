@@ -20,11 +20,6 @@ class LoopClosureModule {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-#ifdef DEACTIVATE_TIMERS
-  typedef okvis::timing::DummyTimer TimerSwitchable;
-#else
-  typedef okvis::timing::Timer TimerSwitchable;
-#endif
   LoopClosureModule();
 
   explicit LoopClosureModule(

@@ -58,12 +58,6 @@ class Frontend : public VioFrontendInterface {
  public:
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
-#ifdef DEACTIVATE_TIMERS
-  typedef okvis::timing::DummyTimer TimerSwitchable;
-#else
-  typedef okvis::timing::Timer TimerSwitchable;
-#endif
-
   /**
    * @brief Constructor.
    * @param numCameras Number of cameras in the sensor configuration.

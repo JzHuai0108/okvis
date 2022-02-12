@@ -94,12 +94,6 @@ class ThreadedKFVio : public VioInterface {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
-#ifdef DEACTIVATE_TIMERS
-  typedef okvis::timing::DummyTimer TimerSwitchable;
-#else
-  typedef okvis::timing::Timer TimerSwitchable;
-#endif
-
 #ifdef USE_MOCK
 
   /// \brief constructor for gmock

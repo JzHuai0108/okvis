@@ -45,6 +45,7 @@
 #include <okvis/ThreadedKFVio.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ImuError.hpp>
+#include <okvis/timing/Timers.hpp>
 #include <loop_closure/KeyframeForLoopDetection.hpp>
 
 #include <swift_vio/checkSensorRig.hpp>

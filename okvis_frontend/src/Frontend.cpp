@@ -59,6 +59,7 @@
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 #include <okvis/cameras/RadialTangentialDistortion8.hpp>
 #include <okvis/cameras/FovDistortion.hpp>
+#include <okvis/timing/Timers.hpp>
 
 // Kneip RANSAC
 #include <opengv/sac/Ransac.hpp>

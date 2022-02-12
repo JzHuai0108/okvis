@@ -1,6 +1,7 @@
 #include <glog/logging.h>
 
 #include <loop_closure/LoopClosureModule.hpp>
+#include <okvis/timing/Timers.hpp>
 
 namespace swift_vio {
 LoopClosureModule::LoopClosureModule()
@@ -45,8 +46,8 @@ void LoopClosureModule::startThreads() {
 }
 
 void LoopClosureModule::loopClosureLoop() {
-  TimerSwitchable loopDetectionTimer("4.1 loopDetection", true);
-  TimerSwitchable poseGraphOptTimer("4.2 poseGraphOpt", true);
+  okvis::TimerSwitchable loopDetectionTimer("4.1 loopDetection", true);
+  okvis::TimerSwitchable poseGraphOptTimer("4.2 poseGraphOpt", true);
   for (;;) {
     std::shared_ptr<LoopQueryKeyframeMessage> queryKeyframe;
     if (queryKeyframeList_.PopBlocking(&queryKeyframe) == false) {
