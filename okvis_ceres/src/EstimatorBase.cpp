@@ -188,7 +188,7 @@ void EstimatorBase::printNavStateAndBiases(std::ostream& stream, uint64_t poseId
   if (q_WS.w() < 0) {
     q_WS.coeffs() *= -1;
   }
-  stream << currentTime << " " << multiFramePtrMap_.rbegin()->second->idInSource
+  stream << currentTime << " " << poseId
          << " " << T_WS.parameters().transpose().format(swift_vio::kSpaceInitFmt);
 
   // imu sensor states
@@ -624,14 +624,6 @@ bool EstimatorBase::setSensorStateEstimateAs(
       state);
 #endif
   return true;
-}
-
-// Get frame id in source and whether the state is a keyframe
-bool EstimatorBase::getFrameId(uint64_t poseId, int & frameIdInSource, bool & isKF) const
-{
-    frameIdInSource = multiFramePtrMap_.at(poseId)->idInSource;
-    isKF= statesMap_.at(poseId).isKeyframe;
-    return true;
 }
 
 size_t EstimatorBase::numObservations(uint64_t landmarkId) const {

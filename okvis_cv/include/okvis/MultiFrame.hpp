@@ -306,8 +306,6 @@ class MultiFrame
     cameraSystem_ = cameraSystem;
   }
 
-  int idInSource; /// (0 based) id of the frame within the video or the image folder
-
  protected:
   okvis::Time timestamp_;  ///< the frame timestamp
   uint64_t id_;  ///< the frame id

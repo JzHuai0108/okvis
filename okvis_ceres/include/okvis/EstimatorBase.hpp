@@ -444,8 +444,6 @@ class EstimatorBase : public VioBackendInterface
 
   virtual bool getDesiredStdevs(Eigen::VectorXd *desiredStdevs) const;
 
-  bool getFrameId(uint64_t poseId, int & frameIdInSource, bool & isKF) const;
-
   /**
    * @brief minimal dim of parameters of camera of index camIdx.
    * @param camIdx cameraIndex.

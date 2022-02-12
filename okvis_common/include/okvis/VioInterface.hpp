@@ -150,7 +150,7 @@ class VioInterface {
   virtual bool addImage(const okvis::Time & stamp, size_t cameraIndex,
                         const cv::Mat & image,
                         const std::vector<cv::KeyPoint> * keypoints = 0,
-                        int frameIdInSource = -1, bool *asKeyframe = 0) = 0;
+                        bool *asKeyframe = 0) = 0;
 
   /**
    * \brief             Add an abstracted image observation.

@@ -82,7 +82,7 @@ class CameraRig {
     return cameraGeometries_[camera_id]->imageHeight();
   }
 
-  inline okvis::kinematics::Transformation getCameraExtrinsic(
+  inline const okvis::kinematics::Transformation &getCameraExtrinsic(
       int camera_id) const {
     return *(T_SC_[camera_id]);
   }

@@ -5,7 +5,7 @@ void FullStateWithExtrinsicsAsCallback::save(
     const okvis::Time &t, const okvis::kinematics::Transformation &T_WS,
     const Eigen::Matrix<double, 9, 1> &speedAndBiases,
     const Eigen::Matrix<double, 3, 1> & /*omega_S*/,
-    const int frameIdInSource,
+    uint64_t nframeId,
     const std::vector<
         okvis::kinematics::Transformation,
         Eigen::aligned_allocator<okvis::kinematics::Transformation>>
@@ -15,7 +15,7 @@ void FullStateWithExtrinsicsAsCallback::save(
   Eigen::Quaterniond q_WS = T_WS.q();
   std::stringstream time;
   time << t.sec << std::setw(9) << std::setfill('0') << t.nsec;
-  output_stream_ << time.str() << datafile_separator << frameIdInSource
+  output_stream_ << time.str() << datafile_separator << nframeId
                  << datafile_separator << std::setprecision(6) << p_WS_W[0]
                  << datafile_separator << p_WS_W[1] << datafile_separator
                  << p_WS_W[2] << datafile_separator << q_WS.x()

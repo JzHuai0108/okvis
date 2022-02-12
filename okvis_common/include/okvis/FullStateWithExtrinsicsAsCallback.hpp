@@ -15,7 +15,7 @@ class FullStateWithExtrinsicsAsCallback {
       const okvis::Time &t, const okvis::kinematics::Transformation &T_WS,
       const Eigen::Matrix<double, 9, 1> &speedAndBiases,
       const Eigen::Matrix<double, 3, 1> & /*omega_S*/,
-      const int frameIdInSource,
+      uint64_t nframeId,
       const std::vector<
           okvis::kinematics::Transformation,
           Eigen::aligned_allocator<okvis::kinematics::Transformation>>

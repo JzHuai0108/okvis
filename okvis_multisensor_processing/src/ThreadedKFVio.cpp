@@ -227,7 +227,6 @@ ThreadedKFVio::~ThreadedKFVio() {
 bool ThreadedKFVio::addImage(const okvis::Time & stamp, size_t cameraIndex,
                              const cv::Mat & image,
                              const std::vector<cv::KeyPoint> * keypoints,
-                             int frameIdInSource,
                              bool* /*asKeyframe*/) {
   assert(cameraIndex<numCameras_);
 
@@ -243,7 +242,6 @@ bool ThreadedKFVio::addImage(const okvis::Time & stamp, size_t cameraIndex,
   std::shared_ptr<okvis::CameraMeasurement> frame = std::make_shared<
       okvis::CameraMeasurement>();
   frame->measurement.image = image;
-  frame->measurement.idInSource = frameIdInSource;
   frame->timeStamp = stamp;
   frame->sensorId = cameraIndex;
 
@@ -884,11 +882,8 @@ void ThreadedKFVio::optimizationLoop() {
 }
 
 void ThreadedKFVio::dumpCalibrationParameters(uint64_t latestNFrameId, OptimizationResults* result) const {
-  int frameIdInSource = -1;
-  bool isKF = false;
-  estimator_->getFrameId(latestNFrameId, frameIdInSource, isKF);
-  result->frameIdInSource = frameIdInSource;
-  result->isKeyframe = isKF;
+  result->nframeId = latestNFrameId;
+  result->isKeyframe = estimator_->isKeyframe(latestNFrameId);
 
   result->vector_of_T_SCi.clear();
   result->variableCameraParams_.resize(parameters_.nCameraSystem.numCameras());
@@ -928,15 +923,15 @@ void ThreadedKFVio::publisherLoop() {
       stateCallback_(result.stamp, result.T_WS);
     if (fullStateCallback_ && !result.onlyPublishLandmarks)
       fullStateCallback_(result.stamp, result.T_WS, result.speedAndBiases,
-                         result.omega_S, result.frameIdInSource);
+                         result.omega_S, result.nframeId);
     if (fullStateCallbackWithExtrinsics_ && !result.onlyPublishLandmarks)
       fullStateCallbackWithExtrinsics_(result.stamp, result.T_WS,
                                        result.speedAndBiases, result.omega_S,
-                                       result.frameIdInSource,
+                                       result.nframeId,
                                        result.vector_of_T_SCi);
     if (fullStateCallbackWithAllCalibration_) {
       fullStateCallbackWithAllCalibration_(
-          result.stamp, result.frameIdInSource, result.T_WS, result.speedAndBiases, result.omega_S,
+          result.stamp, result.nframeId, result.T_WS, result.speedAndBiases, result.omega_S,
           result.imuExtraParams_, result.variableCameraParams_, result.stateStd_, result.vector_of_T_SCi);
     }
     if (landmarksCallback_ && !result.landmarksVector.empty())
