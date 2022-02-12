@@ -72,12 +72,6 @@ class ImuRig {
 
   inline ImuRig() {}
 
-  void assignTo(std::shared_ptr<ImuRig> right) const {
-    for (size_t j = 0; j < imus_.size(); ++j) {
-      right->imus_.at(j) = imus_.at(j);
-    }
-  }
-
   inline int getModelId(int index) const {
     if ((int)imus_.size() > index) {
       return imus_[index].modelId();

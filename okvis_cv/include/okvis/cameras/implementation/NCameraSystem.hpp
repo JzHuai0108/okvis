@@ -168,6 +168,10 @@ const cv::Mat NCameraSystem::overlap(size_t cameraIndexSeenBy,
   return overlapMats_[cameraIndexSeenBy][cameraIndex];
 }
 
+const std::vector<std::vector<bool>> &NCameraSystem::overlaps() const {
+  return overlaps_;
+}
+
 // Can the first camera see parts of the FOV of the second camera?
 bool NCameraSystem::hasOverlap(size_t cameraIndexSeenBy,
                                       size_t cameraIndex) const

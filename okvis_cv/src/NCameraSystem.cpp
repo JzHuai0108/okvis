@@ -88,9 +88,7 @@ void NCameraSystem::computeOverlaps()
     overlaps_[cameraIndexSeenBy].resize(cameraGeometries_.size());
     for (size_t cameraIndex = 0; cameraIndex < overlapMats_.size();
         ++cameraIndex) {
-
       std::shared_ptr<const CameraBase> camera = cameraGeometries_[cameraIndex];
-
       // self-visibility is trivial:
       if (cameraIndex == cameraIndexSeenBy) {
         // sizing the overlap map:
@@ -108,7 +106,8 @@ void NCameraSystem::computeOverlaps()
             cameraGeometries_[cameraIndexSeenBy];
         const okvis::kinematics::Transformation T_Cother_C =
             T_SC_[cameraIndexSeenBy]->inverse() * (*T_SC_[cameraIndex]);
-        bool hasOverlap = false;
+
+        int numOverlapPixels = 0;
         for (size_t u = 0; u < width; ++u) {
           for (size_t v = 0; v < height; ++v) {
             // backproject
@@ -131,14 +130,13 @@ void NCameraSystem::computeOverlaps()
               if(fabs(ray_Cother.normalized().transpose()*verificationRay.normalized()-1.0)<1.0e-10) {
                 // fill in the matrix:
                 overlapMat.at<uchar>(v,u) = 1;
-                // and remember there is some overlap at all.
-                if (!hasOverlap) {
-                  overlaps_[cameraIndexSeenBy][cameraIndex] = true;
-                }
-                hasOverlap = true;
+                ++numOverlapPixels;
               }
             }
           }
+        }
+        if (numOverlapPixels > (int)(height * width / 16)) {
+          overlaps_[cameraIndexSeenBy][cameraIndex] = true;
         }
       }
       //std::stringstream name;
@@ -149,6 +147,10 @@ void NCameraSystem::computeOverlaps()
   //cv::waitKey();
 }
 
+void NCameraSystem::setOverlaps(const std::vector<std::vector<bool>> &overlaps) {
+  overlaps_ = overlaps;
+}
+
 std::shared_ptr<NCameraSystem> NCameraSystem::deepCopy() const {
   std::shared_ptr<NCameraSystem> rig(new NCameraSystem());
   for (size_t i = 0u; i < T_SC_.size(); ++i) {
@@ -156,8 +158,9 @@ std::shared_ptr<NCameraSystem> NCameraSystem::deepCopy() const {
         new okvis::kinematics::Transformation(*T_SC_[i]));
     auto geometry = cloneCameraGeometry(cameraGeometries_[i]);
     rig->addCamera(T_SC, geometry, distortionTypes_[i], proj_opt_rep_[i],
-                  extrinsic_opt_rep_[i]);
+                  extrinsic_opt_rep_[i], false);
   }
+  rig->setOverlaps(overlaps());
   return rig;
 }
 

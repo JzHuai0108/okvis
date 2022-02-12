@@ -793,7 +793,7 @@ class EstimatorBase : public VioBackendInterface
 
   // An evolving camera rig to store the optimized camera
   // parameters and interface with the camera models.
-  swift_vio::cameras::CameraRig cameraRig_;
+  swift_vio::CameraRig cameraRig_;
 
   // An evolving imu rig to store the optimized imu parameters and
   // interface with the IMU models.

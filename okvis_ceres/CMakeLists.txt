@@ -26,6 +26,7 @@ add_library(${PROJECT_NAME}
   include/okvis/Estimator.hpp
   include/okvis/ceres/CeresIterationCallback.hpp
 
+  swift_vio/CameraRig.cpp
   swift_vio/ceres/corrector.cc
   swift_vio/BearingResiduals.cpp
   swift_vio/CameraObservationModel.cpp

@@ -547,6 +547,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
   if(!getCameraCalibration(calibrations, file))
     LOG(FATAL) << "Did not find any calibration!";
 
+  bool computeOverlaps = false;  // computeOverlaps will be executed once all cameras are added.
   size_t camIdx = 0;
   for (size_t i = 0; i < calibrations.size(); ++i) {
     std::shared_ptr<okvis::kinematics::Transformation> T_SC_okvis_ptr(
@@ -577,7 +578,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
                   /*, id ?*/)),
           okvis::cameras::NCameraSystem::Equidistant,
           calibrations[i].projOptMode, calibrations[i].extrinsicOptMode
-          /*, computeOverlaps ?*/);
+          , computeOverlaps);
       std::stringstream s;
       s << calibrations[i].T_SC.T();
       LOG(INFO) << "Equidistant pinhole camera " << camIdx
@@ -604,7 +605,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
                   /*, id ?*/)),
           okvis::cameras::NCameraSystem::RadialTangential,
           calibrations[i].projOptMode, calibrations[i].extrinsicOptMode
-          /*, computeOverlaps ?*/);
+          , computeOverlaps);
       std::stringstream s;
       s << calibrations[i].T_SC.T();
       LOG(INFO) << "Radial tangential pinhole camera " << camIdx
@@ -635,7 +636,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
                   /*, id ?*/)),
           okvis::cameras::NCameraSystem::RadialTangential8,
           calibrations[i].projOptMode, calibrations[i].extrinsicOptMode
-          /*, computeOverlaps ?*/);
+          , computeOverlaps);
       std::stringstream s;
       s << calibrations[i].T_SC.T();
       LOG(INFO) << "Radial tangential 8 pinhole camera " << camIdx
@@ -665,7 +666,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
           T_SC_okvis_ptr, camPtr,
           okvis::cameras::NCameraSystem::FOV,
           calibrations[i].projOptMode, calibrations[i].extrinsicOptMode
-          /*, computeOverlaps ?*/);
+          , computeOverlaps);
       std::stringstream s;
       s << calibrations[i].T_SC.T();
       LOG(INFO) << "FOV pinhole camera " << camIdx << " with Omega "
@@ -685,7 +686,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
       vioParameters_.nCameraSystem.addCamera(
           T_SC_okvis_ptr, camPtr, okvis::cameras::NCameraSystem::EUCM,
           calibrations[i].projOptMode, calibrations[i].extrinsicOptMode
-          /*, computeOverlaps ?*/);
+          , computeOverlaps);
       std::stringstream s;
       s << calibrations[i].T_SC.T();
       LOG(INFO) << "Extended Unified camera model " << camIdx << " with alpha "
@@ -697,6 +698,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     }
     ++camIdx;
   }
+  vioParameters_.nCameraSystem.computeOverlaps();
 
   vioParameters_.sensors_information.imuIdx = 0;
 

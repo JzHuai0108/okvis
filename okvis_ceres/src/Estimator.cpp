@@ -870,7 +870,7 @@ bool Estimator::setOptimizationTimeLimit(double timeLimit, int minIterations) {
 
 bool Estimator::addReprojectionFactors() {
   okvis::cameras::NCameraSystem::DistortionType distortionType =
-      cameraRig_.getDistortionType(0);
+      cameraRig_.distortionType(0);
 
   for (PointMap::iterator pit = landmarksMap_.begin();
        pit != landmarksMap_.end(); ++pit) {
@@ -960,7 +960,7 @@ bool Estimator::getStateStd(
 }
 
 void Estimator::updateSensorRigs() {
-  size_t numCameras = cameraRig_.numberCameras();
+  size_t numCameras = cameraRig_.numCameras();
   const uint64_t currFrameId = currentFrameId();
   for (size_t camIdx = 0u; camIdx < numCameras; ++camIdx) {
     okvis::kinematics::Transformation T_XCi;

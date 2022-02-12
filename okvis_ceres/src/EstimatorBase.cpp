@@ -89,8 +89,8 @@ int EstimatorBase::addCameraParameterStds(
 void EstimatorBase::addCameraSystem(const okvis::cameras::NCameraSystem& cameras) {
   cameraRig_.clear();
   for (size_t i = 0; i < cameras.numCameras(); ++i) {
-    cameraRig_.addCamera(cameras.T_SC(i), cameras.cameraGeometry(i),
-                          cameras.projOptRep(i), cameras.extrinsicOptRep(i));
+    cameraRig_.addCameraDeep(cameras.T_SC(i), cameras.cameraGeometry(i),
+                             cameras.projOptRep(i), cameras.extrinsicOptRep(i));
     bool fixProjectionIntrinsics = false;
     swift_vio::ProjectionOptNameToId(cameras.projOptRep(i), &fixProjectionIntrinsics);
     fixCameraIntrinsicParams_.push_back(fixProjectionIntrinsics);
@@ -784,7 +784,7 @@ size_t EstimatorBase::gatherMapPointObservations(
     // use the latest estimates for camera intrinsic parameters
     Eigen::Vector3d backProjectionDirection;
     std::shared_ptr<const cameras::CameraBase> cameraGeometry =
-        cameraRig_.getCameraGeometry(itObs->first.cameraIndex);
+        cameraRig_.cameraGeometry(itObs->first.cameraIndex);
     bool validDirection =
         cameraGeometry->backProject(measurement, &backProjectionDirection);
     if (!validDirection) {

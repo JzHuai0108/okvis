@@ -145,6 +145,8 @@ class NCameraSystem
   inline const cv::Mat overlap(size_t cameraIndexSeenBy,
                                  size_t cameraIndex) const;
 
+  inline const std::vector<std::vector<bool>> &overlaps() const;
+
   /// \brief Can the first camera see parts of the FOV of the second camera?
   /// @param[in] cameraIndexSeenBy The camera index for one camera.
   /// @param[in] cameraIndex The camera index for the other camera.
@@ -169,6 +171,8 @@ class NCameraSystem
   inline void setProjectionOptMode(int camera_id, const std::string& opt_mode);
 
   inline void setExtrinsicOptMode(int camera_id, const std::string& opt_mode);
+
+  inline void setOverlaps(const std::vector<std::vector<bool>> &overlaps);
 
   std::shared_ptr<NCameraSystem> deepCopy() const;
 
