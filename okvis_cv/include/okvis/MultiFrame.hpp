@@ -253,11 +253,11 @@ class MultiFrame
   /// @param[in] cameraIndexSeenBy The camera index for one camera.
   /// @param[in] cameraIndex The camera index for the other camera.
   /// @return The overlap mask image.
-  inline const cv::Mat overlap(size_t cameraIndexSeenBy,
-                               size_t cameraIndex) const
-  {
-    return cameraSystem_.overlap(cameraIndexSeenBy, cameraIndex);
-  }
+//  inline const cv::Mat overlap(size_t cameraIndexSeenBy,
+//                               size_t cameraIndex) const
+//  {
+//    return cameraSystem_.overlap(cameraIndexSeenBy, cameraIndex);
+//  }
 
   /// \brief Can the first camera see parts of the FOV of the second camera?
   /// @param[in] cameraIndexSeenBy The camera index for one camera.

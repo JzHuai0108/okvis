@@ -151,7 +151,7 @@ void NCameraSystem::setOverlaps(const std::vector<std::vector<bool>> &overlaps) 
   overlaps_ = overlaps;
 }
 
-std::shared_ptr<NCameraSystem> NCameraSystem::deepCopy() const {
+std::shared_ptr<NCameraSystem> NCameraSystem::deepCopyPtr() const {
   std::shared_ptr<NCameraSystem> rig(new NCameraSystem());
   for (size_t i = 0u; i < T_SC_.size(); ++i) {
     std::shared_ptr<okvis::kinematics::Transformation> T_SC(

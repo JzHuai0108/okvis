@@ -153,20 +153,20 @@ inline NCameraSystem::DistortionType NCameraSystem::distortionType(size_t camera
 }
 
 // Get the overlap mask
-const cv::Mat NCameraSystem::overlap(size_t cameraIndexSeenBy,
-                                      size_t cameraIndex) const
-{
-  OKVIS_ASSERT_TRUE_DBG(
-      Exception, cameraIndexSeenBy < T_SC_.size(),
-      "Camera index " << cameraIndexSeenBy << "out of range.");
-  OKVIS_ASSERT_TRUE_DBG(Exception, cameraIndex < T_SC_.size(),
-                        "Camera index " << cameraIndex << "out of range.");
+//const cv::Mat NCameraSystem::overlap(size_t cameraIndexSeenBy,
+//                                      size_t cameraIndex) const
+//{
+//  OKVIS_ASSERT_TRUE_DBG(
+//      Exception, cameraIndexSeenBy < T_SC_.size(),
+//      "Camera index " << cameraIndexSeenBy << "out of range.");
+//  OKVIS_ASSERT_TRUE_DBG(Exception, cameraIndex < T_SC_.size(),
+//                        "Camera index " << cameraIndex << "out of range.");
 
-  OKVIS_ASSERT_TRUE_DBG(Exception, overlapComputationValid(),
-                            "Overlap computation not performed or incorrectly computed!");
+//  OKVIS_ASSERT_TRUE_DBG(Exception, overlapComputationValid(),
+//                            "Overlap computation not performed or incorrectly computed!");
 
-  return overlapMats_[cameraIndexSeenBy][cameraIndex];
-}
+//  return overlapMats_[cameraIndexSeenBy][cameraIndex];
+//}
 
 const std::vector<std::vector<bool>> &NCameraSystem::overlaps() const {
   return overlaps_;

@@ -134,7 +134,7 @@ void ThreadedKFVio::init() {
   numCameras_ = parameters_.nCameraSystem.numCameras();
   numCameraPairs_ = 1;
 
-  lastOptimizedCameraSystem_ = parameters_.nCameraSystem.deepCopy();
+  lastOptimizedCameraSystem_ = parameters_.nCameraSystem.deepCopyPtr();
   lastOptimizedStateTimestamp_ = okvis::Time(0.0) + EstimatorBase::half_window_;;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
   lastAddedStateTimestamp_ = okvis::Time(0.0) + EstimatorBase::half_window_;  // s.t. last_timestamp_ - overlap >= 0 (since okvis::time(-0.02) returns big number)
 

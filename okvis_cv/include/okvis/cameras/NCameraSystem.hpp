@@ -142,8 +142,8 @@ class NCameraSystem
   /// @param[in] cameraIndexSeenBy The camera index for one camera.
   /// @param[in] cameraIndex The camera index for the other camera.
   /// @return The overlap mask image.
-  inline const cv::Mat overlap(size_t cameraIndexSeenBy,
-                                 size_t cameraIndex) const;
+//  inline const cv::Mat overlap(size_t cameraIndexSeenBy,
+//                                 size_t cameraIndex) const;
 
   inline const std::vector<std::vector<bool>> &overlaps() const;
 
@@ -174,7 +174,7 @@ class NCameraSystem
 
   inline void setOverlaps(const std::vector<std::vector<bool>> &overlaps);
 
-  std::shared_ptr<NCameraSystem> deepCopy() const;
+  std::shared_ptr<NCameraSystem> deepCopyPtr() const;
 
 protected:
   /// \brief Use this to check overlapMats_ and overlaps_ have correct sizes
