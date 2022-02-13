@@ -536,8 +536,11 @@ void ScaledMisalignedImu::propagate(double /*dt*/,
   Eigen::Vector3d omega_est_1;
   Eigen::Vector3d acc_est_1;
   correct(omega_S_1, acc_S_1, &omega_est_1, &acc_est_1);
+  throw std::runtime_error("propagate not implemented for ScaledMisalignImu!");
 }
 
-void ScaledMisalignedImu::resetPreintegration() {}
+void ScaledMisalignedImu::resetPreintegration() {
+  throw std::runtime_error("resetPreintegration not implemented for ScaledMisalignImu!");
+}
 
 } // namespace swift_vio

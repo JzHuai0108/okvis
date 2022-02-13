@@ -15,6 +15,8 @@ namespace swift_vio {
 class ImuModel {
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+  ImuModel() {}
   /**
    * @brief ImuModel
    * @param modelId
@@ -45,6 +47,10 @@ public:
 
   Eigen::VectorXd computeImuAugmentedParamsError() const {
     return ImuModelComputeAugmentedParamsError(modelId_, extraParams_);
+  }
+
+  void assignTo(okvis::ImuParameters *imuParams) {
+    ImuModelAssignTo(modelId_, gyroBias_, accelBias_, extraParams_, imuParams);
   }
 
   inline void setGyroBias(const Eigen::Vector3d &bias) {
