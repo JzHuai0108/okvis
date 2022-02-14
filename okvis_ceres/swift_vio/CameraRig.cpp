@@ -189,7 +189,7 @@ std::shared_ptr<CameraRig> CameraRig::deepCopyPtr(const okvis::cameras::NCameraS
   return rig;
 }
 
-void CameraRig::assignTo(std::shared_ptr<CameraRig> rig) const {
+void CameraRig::assignTo(CameraRig *rig) const {
   for (size_t i = 0u; i < T_SC_.size(); ++i) {
     rig->setCameraExtrinsic(i, *T_SC_[i]);
     rig->setCameraIntrinsics(i, cameraGeometries_[i]->getIntrinsics());
@@ -198,7 +198,7 @@ void CameraRig::assignTo(std::shared_ptr<CameraRig> rig) const {
   }
 }
 
-void CameraRig::assignTo(std::shared_ptr<okvis::cameras::NCameraSystem> rig) const {
+void CameraRig::assignTo(okvis::cameras::NCameraSystem *rig) const {
   for (size_t i = 0u; i < T_SC_.size(); ++i) {
     rig->set_T_SC(i, T_SC_[i]);
     rig->setCameraIntrinsics(i, cameraGeometries_[i]->getIntrinsics());

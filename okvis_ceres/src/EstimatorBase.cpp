@@ -838,7 +838,7 @@ void EstimatorBase::getImuAugmentedStatesEstimate(
   extraParams->resize(0);
 }
 
-void EstimatorBase::getEstimatedCameraSystem(std::shared_ptr<okvis::cameras::NCameraSystem> cameraSystem) const {
+void EstimatorBase::getEstimatedCameraSystem(okvis::cameras::NCameraSystem *cameraSystem) const {
   cameraRig_.assignTo(cameraSystem);
 }
 

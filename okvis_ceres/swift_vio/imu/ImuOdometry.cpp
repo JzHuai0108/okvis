@@ -13,6 +13,17 @@ namespace swift_vio {
 
 OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
+okvis::kinematics::Transformation
+propagationConstVelocity(const okvis::kinematics::Transformation &T_WS,
+                         const Eigen::Vector3d &v_WS,
+                         const Eigen::Vector3d &omega_S, double dt) {
+  okvis::kinematics::Transformation T_WSp = T_WS;
+  T_WSp.setTranslation(T_WS.r() + v_WS * dt);
+  Eigen::Vector3d aa = omega_S * dt;
+  T_WSp.setRotation(T_WS.q() * Eigen::AngleAxisd(aa.norm(), aa.normalized()));
+  return T_WSp;
+}
+
 // Propagates pose, speeds and biases with given IMU measurements with trapezoid
 // rules assume linear change of acceleration and angular rate between epochs
 int ImuOdometry::propagation(

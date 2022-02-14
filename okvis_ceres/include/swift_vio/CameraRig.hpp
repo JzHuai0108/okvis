@@ -247,9 +247,9 @@ class CameraRig {
 
   static std::shared_ptr<CameraRig> deepCopyPtr(const okvis::cameras::NCameraSystem &ncameraSystem);
 
-  void assignTo(std::shared_ptr<CameraRig> rig) const;
+  void assignTo(CameraRig *rig) const;
 
-  void assignTo(std::shared_ptr<okvis::cameras::NCameraSystem> rig) const;
+  void assignTo(okvis::cameras::NCameraSystem *rig) const;
 
   void computeOverlaps();
 

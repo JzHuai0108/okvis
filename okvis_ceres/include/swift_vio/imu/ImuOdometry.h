@@ -11,6 +11,11 @@
 #include "swift_vio/imu/odeHybrid.hpp"
 
 namespace swift_vio {
+okvis::kinematics::Transformation
+propagationConstVelocity(const okvis::kinematics::Transformation &T_WS,
+                         const Eigen::Vector3d &v_WS,
+                         const Eigen::Vector3d &omega_S, double dt);
+
 class ImuOdometry {
   /// \brief The type of the covariance.
   typedef Eigen::Matrix<double, 15, 15> covariance_t;

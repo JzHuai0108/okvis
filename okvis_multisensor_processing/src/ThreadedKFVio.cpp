@@ -806,7 +806,7 @@ void ThreadedKFVio::optimizationLoop() {
         std::lock_guard<std::mutex> lock(lastState_mutex_);
         lastOptimized_T_WS_ = latest_T_WS;
         lastOptimizedSpeedAndBiases_ = latestSpeedAndBias;
-        estimator_->getEstimatedCameraSystem(lastOptimizedCameraSystem_);
+        estimator_->getEstimatedCameraSystem(lastOptimizedCameraSystem_.get());
         lastOptimizedStateTimestamp_ = latestStateTime;
       }
       {
