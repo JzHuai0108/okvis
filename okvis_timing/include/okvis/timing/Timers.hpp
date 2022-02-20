@@ -29,13 +29,19 @@ namespace okvis {
           TIMER6(T6), TIMER7(T7), TIMER8(T8), TIMER9(T9) {}                    \
   };
 
-#define TimerRefStruct3(NAME, TIMER1, TIMER2, TIMER3)                          \
+#define TimerRefStruct6(NAME, TIMER1, TIMER2, TIMER3, TIMER4, TIMER5, TIMER6)  \
   struct NAME {                                                                \
-    okvis::TimerSwitchable &TIMER1;                                                   \
-    okvis::TimerSwitchable &TIMER2;                                                   \
-    okvis::TimerSwitchable &TIMER3;                                                   \
-    NAME(okvis::TimerSwitchable &T1, okvis::TimerSwitchable &T2, okvis::TimerSwitchable &T3)        \
-        : TIMER1(T1), TIMER2(T2), TIMER3(T3) {}                                \
+    okvis::TimerSwitchable &TIMER1;                                            \
+    okvis::TimerSwitchable &TIMER2;                                            \
+    okvis::TimerSwitchable &TIMER3;                                            \
+    okvis::TimerSwitchable &TIMER4;                                            \
+    okvis::TimerSwitchable &TIMER5;                                            \
+    okvis::TimerSwitchable &TIMER6;                                            \
+    NAME(okvis::TimerSwitchable &T1, okvis::TimerSwitchable &T2,               \
+         okvis::TimerSwitchable &T3, okvis::TimerSwitchable &T4,               \
+         okvis::TimerSwitchable &T5, okvis::TimerSwitchable &T6)               \
+        : TIMER1(T1), TIMER2(T2), TIMER3(T3), TIMER4(T4), TIMER5(T5),          \
+          TIMER6(T6) {}                                                        \
   };
 
 #define TimerRefStruct4(NAME, TIMER1, TIMER2, TIMER3, TIMER4)                  \
@@ -48,6 +54,16 @@ namespace okvis {
          okvis::TimerSwitchable &T4)                                                  \
         : TIMER1(T1), TIMER2(T2), TIMER3(T3), TIMER4(T4) {}                    \
   };
+
+#define TimerRefStruct3(NAME, TIMER1, TIMER2, TIMER3)                          \
+  struct NAME {                                                                \
+    okvis::TimerSwitchable &TIMER1;                                                   \
+    okvis::TimerSwitchable &TIMER2;                                                   \
+    okvis::TimerSwitchable &TIMER3;                                                   \
+    NAME(okvis::TimerSwitchable &T1, okvis::TimerSwitchable &T2, okvis::TimerSwitchable &T3)        \
+        : TIMER1(T1), TIMER2(T2), TIMER3(T3) {}                                \
+  };
+
 
 }  // namespace okvis
 
