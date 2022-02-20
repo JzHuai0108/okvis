@@ -93,14 +93,14 @@ class PinholeCamera : public CameraBase
 
   /// \brief Get the focal length along the u-dimension.
   /// \return The horizontal focal length in pixels.
-  double focalLengthU() const
+  double focalLengthU() const final
   {
     return fu_;
   }
 
   /// \brief Get the focal length along the v-dimension.
   /// \return The vertical focal length in pixels.
-  double focalLengthV() const
+  double focalLengthV() const final
   {
     return fv_;
   }

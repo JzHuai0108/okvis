@@ -168,6 +168,14 @@ class CameraBase
     imageDelaySecs_ = imageDelay;
   }
 
+  /// \brief Get the image centre along the u-dimension.
+  /// \return The horizontal centre in pixels.
+  virtual double focalLengthU() const = 0;
+
+  /// \brief Get the focal length along the v-dimension.
+  /// \return The vertical focal length in pixels.
+  virtual double focalLengthV() const = 0;
+
   /// \brief obtain all intrinsics
   virtual void getIntrinsics(Eigen::VectorXd & intrinsics) const = 0;
 

@@ -56,11 +56,11 @@ public:
 
   /// \brief Get the focal length along the u-dimension.
   /// \return The horizontal focal length in pixels.
-  double focalLengthU() const { return eucm_.getParam()[0]; }
+  double focalLengthU() const final { return eucm_.getParam()[0]; }
 
   /// \brief Get the focal length along the v-dimension.
   /// \return The vertical focal length in pixels.
-  double focalLengthV() const { return eucm_.getParam()[1]; }
+  double focalLengthV() const final { return eucm_.getParam()[1]; }
 
   /// \brief Get the image centre along the u-dimension.
   /// \return The horizontal centre in pixels.
