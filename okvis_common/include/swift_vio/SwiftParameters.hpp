@@ -81,6 +81,9 @@ struct FrontendOptions {
 
   double epipolarDistanceThreshold;
 
+  size_t numOldKeyframesToMatch;
+  size_t numKeyframesToMatch;
+
   int numThreads;
 
   FrontendOptions(FeatureTrackingScheme featureTrackingMethod =
@@ -91,7 +94,10 @@ struct FrontendOptions {
                   float keyframeInsertionOverlapThreshold = 0.6,
                   float keyframeInsertionMatchingRatioThreshold = 0.2,
                   bool stereoWithEpipolarCheck = true,
-                  double epipolarDistanceThreshold = 2.5, int numThreads = 4);
+                  double epipolarDistanceThreshold = 2.5,
+                  size_t numOldKeyframesToMatch = 2,
+                  size_t numKeyframesToMatch = 3,
+                  int numThreads = 4);
 
   std::string toString(std::string hint) const;
 };

@@ -70,7 +70,7 @@ FrontendOptions::FrontendOptions(
     int _maxNoKeypoints, float _keyframeInsertionOverlapThreshold,
     float _keyframeInsertionMatchingRatioThreshold,
     bool _stereoWithEpipolarCheck, double _epipolarDistanceThreshold,
-    int _numThreads)
+    size_t _numOldKeyframesToMatch, size_t _numKeyframesToMatch, int _numThreads)
     : featureTrackingMethod(_featureTrackingMethod), brisk(_brisk),
       useMedianFilter(_useMedianFilter), detectionOctaves(_detectionOctaves),
       detectionThreshold(_detectionThreshold), maxNoKeypoints(_maxNoKeypoints),
@@ -79,7 +79,8 @@ FrontendOptions::FrontendOptions(
           _keyframeInsertionMatchingRatioThreshold),
       stereoMatchWithEpipolarCheck(_stereoWithEpipolarCheck),
       epipolarDistanceThreshold(_epipolarDistanceThreshold),
-      numThreads(_numThreads) {}
+      numOldKeyframesToMatch(_numOldKeyframesToMatch),
+      numKeyframesToMatch(_numKeyframesToMatch), numThreads(_numThreads) {}
 
 std::string FrontendOptions::toString(std::string hint) const {
   std::stringstream ss(hint);
@@ -94,6 +95,8 @@ std::string FrontendOptions::toString(std::string hint) const {
      << keyframeInsertionMatchingRatioThreshold
      << " stereoMatchWithEpipolarCheck " << stereoMatchWithEpipolarCheck
      << " epipolarDistanceThreshold " << epipolarDistanceThreshold
+     << "\nnumOldKeyframesToMatch " << numOldKeyframesToMatch
+     << " numKeyframesToMatch " << numKeyframesToMatch
      << " numThreads " << numThreads;
   return ss.str();
 }
