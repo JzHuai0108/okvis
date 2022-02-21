@@ -40,6 +40,14 @@ struct BriskOptions {
   bool descriptionScaleInvariance;
   double matchingThreshold;
 
+  /**
+   * @brief BriskOptions
+   * @param detectionThreshold
+   * @param rotationInvariance false following maplab setting, see maplab/algorithms/feature-tracking/src/feature-tracking-types.cc,
+   * note it is true in okvis where the descriptor is computed relative to given gravity direction.
+   * @param scaleInvariance true following maplab setting, note it is false in okvis.
+   * @param threshold
+   */
   BriskOptions(double detectionThreshold = 800.0,
                bool rotationInvariance = true,
                bool scaleInvariance = false,

@@ -16,6 +16,8 @@ float TwoViewGeometry::computeErrorEssentialMat(
  * @param bearing_i [x, y, 1] undistorted image coordinate at z=1 for point in image i
  * @param bearing_j [x, y, 1] undistorted image coordinate at z=1 for point in image j
  * @param focal_length nominal focal length to convert the epipolar line error into error of pixel unit.
+ * @param sigmai sigma of bearing i
+ * @param sigmaj sigma of bearing j
  * @return squared distance to epipolar line. Distance has a unit of pixels.
  */
 float TwoViewGeometry::computeErrorEssentialMat(Eigen::Matrix3d E_ji,

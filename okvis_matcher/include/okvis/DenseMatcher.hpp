@@ -130,13 +130,13 @@ class DenseMatcher {
     typedef DenseMatcher::pairing_t pairing_t;
     typedef std::vector<pairing_t> pairing_list_t;
 
-    /// The list of best matches so far.
+    /// The list of best matches for each "A" point so far.
     std::vector<std::vector<pairing_t> > * vMyBest;
 
     /// The thread ID of this job.
     int iThreadID;
 
-    /// The list of pairs for this thread.
+    /// The list of pairs for each "B" point for this thread.
     DenseMatcher::pairing_list_t * vpairs;
 
     /// Mutexes for read/write synchronization in assignment of best match.

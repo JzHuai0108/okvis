@@ -146,7 +146,7 @@ struct Match
    * @param idxB_ Keypoint index of frame B.
    * @param distance_ Descriptor distance between those two keypoints.
    */
-  Match(size_t idxA_, size_t idxB_, float distance_)
+  Match(size_t idxA_ = 0u, size_t idxB_ = 0u, float distance_ = 0.0)
       : idxA(idxA_),
         idxB(idxB_),
         distance(distance_)

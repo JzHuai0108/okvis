@@ -115,6 +115,12 @@ class MatchingAlgorithm {
     return false;
   }
 
+  virtual void setSkipAList(const std::vector<bool> &/*skipA*/) {
+  }
+
+  virtual void setSkipBList(const std::vector<bool> &/*skipB*/) {
+  }
+
   /// \brief The "distance" between the two points.
   ///        For points that absolutely don't match. Please use float max.
   virtual float distance(size_t indexA, size_t indexB) const = 0;
