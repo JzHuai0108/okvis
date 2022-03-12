@@ -97,6 +97,11 @@ class CameraRig {
     return cameraGeometries_[camera_id];
   }
 
+  inline std::shared_ptr<okvis::cameras::CameraBase> cameraGeometryMutable(
+      size_t cameraIndex) {
+    return cameraGeometries_[cameraIndex];
+  }
+
   // get the specific geometry (will be fast to use)
   template<class GEOMETRY_T>
   std::shared_ptr<const GEOMETRY_T> geometryAs(int camera_id) const {

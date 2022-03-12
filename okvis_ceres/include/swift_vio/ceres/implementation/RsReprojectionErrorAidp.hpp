@@ -92,11 +92,12 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
   double readoutTime = parameters[Index::ReadoutTime][0]; //tr
   double cameraTd = parameters[Index::CameraTd][0];       //td
 
-  Eigen::Matrix<double, 9, 1> speedBgBa = Eigen::Map<const Eigen::Matrix<double, 9, 1>>(parameters[Index::SpeedAndBiases]);
+  Eigen::Matrix<double, 3, 1> speed = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(parameters[Index::Speed]);
+  Eigen::Matrix<double, 6, 1> bgBa = Eigen::Map<const Eigen::Matrix<double, 6, 1>>(parameters[Index::Biases]);
 
-  Eigen::Map<const Eigen::Matrix<double, 9, 1>> Tg(parameters[Index::T_gi]); // not used for now.
-  Eigen::Map<const Eigen::Matrix<double, 9, 1>> Ts(parameters[Index::T_si]); // not used for now.
-  Eigen::Map<const Eigen::Matrix<double, 6, 1>> Ta(parameters[Index::T_ai]); // not used for now.
+  Eigen::Map<const Eigen::Matrix<double, 9, 1>> Tg(parameters[Index::M_gi]); // not used for now.
+  Eigen::Map<const Eigen::Matrix<double, 9, 1>> Ts(parameters[Index::M_si]); // not used for now.
+  Eigen::Map<const Eigen::Matrix<double, 6, 1>> Ta(parameters[Index::M_ai]); // not used for now.
 
   double ypixel(measurement_[1]);
   uint32_t height = cameraGeometryBase_->imageHeight();
@@ -109,10 +110,10 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
   const double wedge = 5e-8;
   if (relativeFeatureTime >= wedge){
     swift_vio::ode::predictStates(*imuMeasCanopy_, imuParameters_->gravity(), pair_T_WBt,
-                                  speedBgBa, t_start, t_end);
+                                  speed, bgBa, t_start, t_end);
   } else if (relativeFeatureTime <= -wedge){
     swift_vio::ode::predictStatesBackward(*imuMeasCanopy_, imuParameters_->gravity(), pair_T_WBt,
-                                          speedBgBa, t_start, t_end);
+                                          speed, bgBa, t_start, t_end);
   }
   okvis::kinematics::Transformation T_WBt(pair_T_WBt.first, pair_T_WBt.second);
   Eigen::Quaterniond q_WBt = pair_T_WBt.second;
@@ -176,7 +177,8 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     Eigen::Matrix<double, 3, 6> dhC_deltaTWSh;
     Eigen::Matrix<double, 3, 6> dhC_dExtrinsich;
     Eigen::Vector3d dhC_td;
-    Eigen::Matrix<double, 3, 9> dhC_sb;
+    Eigen::Matrix<double, 3, 3> dhC_speed;
+    Eigen::Matrix<double, 3, 6> dhC_biases;
 
     //t
     Eigen::Vector3d p_BP_Wt = hp_Wt.head<3>() - p_WBt * hp_Wt[3];
@@ -216,11 +218,11 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     //other
     okvis::ImuMeasurement queryValue;
     swift_vio::ode::interpolateInertialData(*imuMeasCanopy_, t_end, queryValue);
-    queryValue.measurement.gyroscopes -= speedBgBa.segment<3>(3);
+    queryValue.measurement.gyroscopes -= bgBa.head<3>();
     Eigen::Vector3d p =
         okvis::kinematics::crossMx(queryValue.measurement.gyroscopes) *
             hp_Bt.head<3>() +
-        C_BWt * speedBgBa.head<3>() * hp_Wt[3];
+        C_BWt * speed * hp_Wt[3];
     dhC_td = -C_CBt * p;
 
     Eigen::Matrix3d dhC_vW = -C_CBt * C_BWt * relativeFeatureTime * hp_Wt[3];
@@ -229,11 +231,11 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
         okvis::kinematics::crossMx(hp_Wt.head<3>() - hp_Wt[3] * p_WBt) *
         relativeFeatureTime * q_WBt0.toRotationMatrix();
 
-    dhC_sb.topRightCorner<3, 3>().setZero();
-    dhC_sb.topLeftCorner<3, 3>() = dhC_vW;
-    dhC_sb.block<3, 3>(0, 3) = dhC_bg;
+    dhC_speed = dhC_vW;
 
-    //assignJacobians
+    dhC_biases.topRightCorner<3, 3>().setZero();
+    dhC_biases.topLeftCorner<3, 3>() = dhC_bg;
+
     if (jacobians[0] != NULL)
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J0_minimal;
@@ -378,65 +380,80 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     }
 
     // speed and gyro biases and accel biases
-    if (jacobians[8] != NULL)
+    if (jacobians[Index::Speed] != NULL)
     {
-      Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J8(jacobians[8]);
-      J8 = Jh_weighted * dhC_sb;
+      Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>> J(jacobians[Index::Speed]);
+      J = Jh_weighted * dhC_speed;
       if (jacobiansMinimal != NULL)
       {
-        if (jacobiansMinimal[8] != NULL)
+        if (jacobiansMinimal[Index::Speed] != NULL)
         {
-          Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>>
-              J8_minimal_mapped(jacobiansMinimal[8]);
-          J8_minimal_mapped = J8;
+          Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>>
+              J_minimal_mapped(jacobiansMinimal[Index::Speed]);
+          J_minimal_mapped = J;
         }
       }
     }
 
-    // T_gi
-    if (jacobians[9] != NULL)
+    if (jacobians[Index::Biases] != NULL)
     {
-      Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J9(jacobians[9]);
-      J9.setZero();
+      Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>> J(jacobians[Index::Biases]);
+      J = Jh_weighted * dhC_biases;
       if (jacobiansMinimal != NULL)
       {
-        if (jacobiansMinimal[9] != NULL)
-        {
-          Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>>
-              J9_minimal_mapped(jacobiansMinimal[9]);
-          J9_minimal_mapped = J9;
-        }
-      }
-    }
-
-    // T_si
-    if (jacobians[10] != NULL)
-    {
-      Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J10(jacobians[10]);
-      J10.setZero();
-      if (jacobiansMinimal != NULL)
-      {
-        if (jacobiansMinimal[10] != NULL)
-        {
-          Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>>
-              J10_minimal_mapped(jacobiansMinimal[10]);
-          J10_minimal_mapped = J10;
-        }
-      }
-    }
-
-    // T_ai
-    if (jacobians[11] != NULL)
-    {
-      Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>> J11(jacobians[11]);
-      J11.setZero();
-      if (jacobiansMinimal != NULL)
-      {
-        if (jacobiansMinimal[11] != NULL)
+        if (jacobiansMinimal[Index::Biases] != NULL)
         {
           Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>>
-              J11_minimal_mapped(jacobiansMinimal[11]);
-          J11_minimal_mapped = J11;
+              J_minimal_mapped(jacobiansMinimal[Index::Biases]);
+          J_minimal_mapped = J;
+        }
+      }
+    }
+
+    // M_gi
+    if (jacobians[Index::M_gi] != NULL)
+    {
+      Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J(jacobians[Index::M_gi]);
+      J.setZero();
+      if (jacobiansMinimal != NULL)
+      {
+        if (jacobiansMinimal[Index::M_gi] != NULL)
+        {
+          Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>>
+              J_minimal_mapped(jacobiansMinimal[Index::M_gi]);
+          J_minimal_mapped = J;
+        }
+      }
+    }
+
+    // M_si
+    if (jacobians[Index::M_si] != NULL)
+    {
+      Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J(jacobians[Index::M_si]);
+      J.setZero();
+      if (jacobiansMinimal != NULL)
+      {
+        if (jacobiansMinimal[Index::M_si] != NULL)
+        {
+          Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>>
+              J_minimal_mapped(jacobiansMinimal[Index::M_si]);
+          J_minimal_mapped = J;
+        }
+      }
+    }
+
+    // M_ai
+    if (jacobians[Index::M_ai] != NULL)
+    {
+      Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>> J(jacobians[Index::M_ai]);
+      J.setZero();
+      if (jacobiansMinimal != NULL)
+      {
+        if (jacobiansMinimal[Index::M_ai] != NULL)
+        {
+          Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>>
+              J_minimal_mapped(jacobiansMinimal[Index::M_ai]);
+          J_minimal_mapped = J;
         }
       }
     }
@@ -465,8 +482,9 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
       parameters[Index::T_BCh],
       parameters[Index::ReadoutTime],
       parameters[Index::CameraTd],
-      parameters[Index::SpeedAndBiases],
-      parameters[Index::T_gi], parameters[Index::T_si], parameters[Index::T_ai],
+      parameters[Index::Speed],
+      parameters[Index::Biases],
+      parameters[Index::M_gi], parameters[Index::M_si], parameters[Index::M_ai],
       deltaTWSt, deltaTWSh,
       deltaTSCt, deltaTSCh};
 
@@ -480,7 +498,8 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
   Eigen::Matrix<double, numOutputs, GEOMETRY_TYPE::NumIntrinsics, Eigen::RowMajor> dhC_Intrinsic;
   Eigen::Matrix<double, numOutputs, 1> dhC_tr;
   Eigen::Matrix<double, numOutputs, 1> dhC_td;
-  Eigen::Matrix<double, numOutputs, 9, Eigen::RowMajor> dhC_sb;
+  Eigen::Matrix<double, numOutputs, 3, Eigen::RowMajor> dhC_speed;
+  Eigen::Matrix<double, numOutputs, 6, Eigen::RowMajor> dhC_biases;
   Eigen::Matrix<double, numOutputs, 6, Eigen::RowMajor> dhC_deltaTWSt;
   Eigen::Matrix<double, numOutputs, 6, Eigen::RowMajor> dhC_deltaTWSh;
   Eigen::Matrix<double, numOutputs, 6, Eigen::RowMajor> dhC_dExtrinsict;
@@ -499,7 +518,7 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
       dhC_dExtrinsich_full.data(),
       dhC_tr.data(),
       dhC_td.data(),
-      dhC_sb.data(),
+      dhC_speed.data(), dhC_biases.data(),
       dhC_tgi.data(), dhC_tsi.data(), dhC_tai.data(),
       dhC_deltaTWSt.data(), dhC_deltaTWSh.data(),
       dhC_dExtrinsict.data(), dhC_dExtrinsich.data()};
@@ -509,7 +528,7 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
 
   bool diffState =
       ::ceres::internal::AutoDifferentiate<
-          ::ceres::internal::StaticParameterDims<7, 4, 7, 7, 7, 1, 1, 9, 9, 9, 6,
+          ::ceres::internal::StaticParameterDims<7, 4, 7, 7, 7, 1, 1, 3, 6, 9, 9, 6,
                                                  6, 6, 6, 6>>(rsre, expandedParams, numOutputs, php_C, dpC_deltaAll);
 
   if (!diffState)
@@ -579,7 +598,7 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
         dhC_dExtrinsict, dhC_dExtrinsich,
         dhC_td,
         kpN,
-        dhC_sb);
+        dhC_speed, dhC_biases);
   }
   return true;
 }
@@ -596,11 +615,12 @@ void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
   zeroJacobian<GEOMETRY_TYPE::NumIntrinsics, GEOMETRY_TYPE::NumIntrinsics, 2>(Index::Intrinsics, jacobians, jacobiansMinimal);
   zeroJacobian<1, 1, 2>(Index::ReadoutTime, jacobians, jacobiansMinimal);
   zeroJacobian<1, 1, 2>(Index::CameraTd, jacobians, jacobiansMinimal);
-  zeroJacobian<9, 9, 2>(Index::SpeedAndBiases, jacobians, jacobiansMinimal);
+  zeroJacobian<3, 3, 2>(Index::Speed, jacobians, jacobiansMinimal);
+  zeroJacobian<6, 6, 2>(Index::Biases, jacobians, jacobiansMinimal);
 
-  zeroJacobian<9, 9, 2>(Index::T_gi, jacobians, jacobiansMinimal);
-  zeroJacobian<9, 9, 2>(Index::T_si, jacobians, jacobiansMinimal);
-  zeroJacobian<6, 6, 2>(Index::T_ai, jacobians, jacobiansMinimal);
+  zeroJacobian<9, 9, 2>(Index::M_gi, jacobians, jacobiansMinimal);
+  zeroJacobian<9, 9, 2>(Index::M_si, jacobians, jacobiansMinimal);
+  zeroJacobian<6, 6, 2>(Index::M_ai, jacobians, jacobiansMinimal);
 }
 
 template <class GEOMETRY_TYPE>
@@ -616,8 +636,8 @@ void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
         const Eigen::Matrix<double, 4, 6> &dhC_dExtrinsict,
         const Eigen::Matrix<double, 4, 6> &dhC_dExtrinsich,
         const Eigen::Vector4d &dhC_td, double kpN,
-        const Eigen::Matrix<double, 4, 9> &dhC_sb) const
-{
+        const Eigen::Matrix<double, 4, 3> &dhC_speed,
+        const Eigen::Matrix<double, 4, 6> &dhC_biases) const {
   if (jacobians != NULL)
   {
     if (jacobians[0] != NULL)
@@ -764,65 +784,80 @@ void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     }
 
     // speed and gyro biases and accel biases
-    if (jacobians[8] != NULL)
+    if (jacobians[Index::Speed] != NULL)
     {
-      Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J8(jacobians[8]);
-      J8 = Jh_weighted * dhC_sb;
+      Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>> J(jacobians[Index::Speed]);
+      J = Jh_weighted * dhC_speed;
       if (jacobiansMinimal != NULL)
       {
-        if (jacobiansMinimal[8] != NULL)
+        if (jacobiansMinimal[Index::Speed] != NULL)
         {
-          Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>>
-              J8_minimal_mapped(jacobiansMinimal[8]);
-          J8_minimal_mapped = J8;
+          Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>>
+              J_minimal_mapped(jacobiansMinimal[Index::Speed]);
+          J_minimal_mapped = J;
         }
       }
     }
 
-    // T_gi
-    if (jacobians[9] != NULL)
+    if (jacobians[Index::Biases] != NULL)
     {
-      Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J9(jacobians[9]);
-      J9.setZero();
+      Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>> J(jacobians[Index::Biases]);
+      J = Jh_weighted * dhC_biases;
       if (jacobiansMinimal != NULL)
       {
-        if (jacobiansMinimal[9] != NULL)
+        if (jacobiansMinimal[Index::Biases] != NULL)
         {
-          Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>>
-              J9_minimal_mapped(jacobiansMinimal[9]);
-          J9_minimal_mapped = J9;
+          Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>>
+              J_minimal_mapped(jacobiansMinimal[Index::Biases]);
+          J_minimal_mapped = J;
         }
       }
     }
 
-    // T_si
-    if (jacobians[10] != NULL)
+    // M_gi
+    if (jacobians[Index::M_gi] != NULL)
     {
-      Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J10(jacobians[10]);
-      J10.setZero();
+      Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J(jacobians[Index::M_gi]);
+      J.setZero();
       if (jacobiansMinimal != NULL)
       {
-        if (jacobiansMinimal[10] != NULL)
+        if (jacobiansMinimal[Index::M_gi] != NULL)
         {
           Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>>
-              J10_minimal_mapped(jacobiansMinimal[10]);
-          J10_minimal_mapped = J10;
+              J_minimal_mapped(jacobiansMinimal[Index::M_gi]);
+          J_minimal_mapped = J;
         }
       }
     }
 
-    // T_ai
-    if (jacobians[11] != NULL)
+    // M_si
+    if (jacobians[Index::M_si] != NULL)
     {
-      Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>> J11(jacobians[11]);
-      J11.setZero();
+      Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>> J(jacobians[Index::M_si]);
+      J.setZero();
+      if (jacobiansMinimal != NULL)
+      {
+        if (jacobiansMinimal[Index::M_si] != NULL)
+        {
+          Eigen::Map<Eigen::Matrix<double, 2, 9, Eigen::RowMajor>>
+              J_minimal_mapped(jacobiansMinimal[Index::M_si]);
+          J_minimal_mapped = J;
+        }
+      }
+    }
+
+    // M_ai
+    if (jacobians[Index::M_ai] != NULL)
+    {
+      Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>> J(jacobians[Index::M_ai]);
+      J.setZero();
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[11] != NULL)
         {
           Eigen::Map<Eigen::Matrix<double, 2, 6, Eigen::RowMajor>>
-              J11_minimal_mapped(jacobiansMinimal[11]);
-          J11_minimal_mapped = J11;
+              J_minimal_mapped(jacobiansMinimal[Index::M_ai]);
+          J_minimal_mapped = J;
         }
       }
     }
@@ -846,8 +881,9 @@ operator()(const Scalar *const T_WBt,
            const Scalar *const T_BCh,
            const Scalar *const t_r,
            const Scalar *const t_d,
-           const Scalar *const speedAndBiases,
-           const Scalar *const /*T_g*/, const Scalar *const /*T_s*/, const Scalar *const /*T_a*/,
+           const Scalar *const speed,
+           const Scalar *const biases,
+           const Scalar *const /*M_g*/, const Scalar *const /*M_s*/, const Scalar *const /*M_a*/,
            const Scalar *const deltaT_WSt, const Scalar *const deltaT_WSh,
            const Scalar *const deltaExtrinsict, const Scalar *const deltaExtrinsich,
            Scalar residuals[4]) const
@@ -913,8 +949,12 @@ operator()(const Scalar *const T_WBt,
 
   std::pair<Eigen::Matrix<Scalar, 3, 1>, Eigen::Quaternion<Scalar>> pairT_WB_t(
       p_WB_t, q_WB_t);
-  Eigen::Matrix<Scalar, 9, 1> speedBgBa =
-      Eigen::Map<const Eigen::Matrix<Scalar, 9, 1>>(speedAndBiases);
+
+  Eigen::Matrix<Scalar, 3, 1> vW =
+      Eigen::Map<const Eigen::Matrix<Scalar, 3, 1>>(speed);
+
+  Eigen::Matrix<Scalar, 6, 1> bgba =
+      Eigen::Map<const Eigen::Matrix<Scalar, 6, 1>>(biases);
 
   Scalar t_start = (Scalar)rsre_.targetStateTime_.toSec();
   Scalar t_end = t_start + relativeFeatureTime;
@@ -932,10 +972,10 @@ operator()(const Scalar *const T_WBt,
   if (relativeFeatureTime >= Scalar(5e-8))
   {
     swift_vio::ode::predictStates(imuMeasurements, gW, pairT_WB_t,
-                                  speedBgBa, t_start, t_end);
+                                  vW, bgba, t_start, t_end);
   } else if (relativeFeatureTime <= Scalar(-5e-8)) {
     swift_vio::ode::predictStatesBackward(imuMeasurements, gW,
-                                          pairT_WB_t, speedBgBa, t_start, t_end);
+                                          pairT_WB_t, vW, bgba, t_start, t_end);
   }
 
   p_WB_t = pairT_WB_t.first;

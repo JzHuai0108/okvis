@@ -98,7 +98,7 @@ bool Estimator::addStates(
     if (initialNavState_.initializeToCustomPose)
       T_WS = okvis::kinematics::Transformation(initialNavState_.p_WS, initialNavState_.q_WS);
     else {
-      bool success0 = swift_vio::initPoseFromImu(imuMeasurements, T_WS);
+      bool success0 = swift_vio::initPoseFromImu(imuMeasurements, multiFrame->timestamp(), T_WS);
       OKVIS_ASSERT_TRUE_DBG(
           Exception, success0,
           "pose could not be initialized from imu measurements.");

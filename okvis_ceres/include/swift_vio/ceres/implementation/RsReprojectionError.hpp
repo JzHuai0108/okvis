@@ -95,8 +95,11 @@ bool RsReprojectionError<GEOMETRY_TYPE>::
   double relativeFeatureTime = tdLatestEstimate + trLatestEstimate * kpN + (imageTime_ - stateEpoch_).toSec();
   std::pair<Eigen::Matrix<double, 3, 1>, Eigen::Quaternion<double>> pairT_WB(
       t_WB_W0, q_WB0);
-  Eigen::Matrix<double, 9, 1> speedBgBa =
-      Eigen::Map<const Eigen::Matrix<double, 9, 1>>(parameters[Index::SpeedAndBiases]);
+  Eigen::Matrix<double, 3, 1> speed =
+      Eigen::Map<const Eigen::Matrix<double, 3, 1>>(parameters[Index::SpeedAndBiases]);
+
+  Eigen::Matrix<double, 6, 1> bgBa =
+      Eigen::Map<const Eigen::Matrix<double, 6, 1>>(parameters[Index::SpeedAndBiases] + 3);
 
   const okvis::Time t_start = stateEpoch_;
   const okvis::Time t_end = stateEpoch_ + okvis::Duration(relativeFeatureTime);
@@ -104,10 +107,10 @@ bool RsReprojectionError<GEOMETRY_TYPE>::
   Eigen::Vector3d gW = gravityMag_ * unitgW;
   if (relativeFeatureTime >= wedge) {
     swift_vio::ode::predictStates(*imuMeasCanopy_, gW, pairT_WB,
-                                speedBgBa, t_start, t_end);
+                                speed, bgBa, t_start, t_end);
   } else if (relativeFeatureTime <= -wedge) {
     swift_vio::ode::predictStatesBackward(*imuMeasCanopy_, gW, pairT_WB,
-                                        speedBgBa, t_start, t_end);
+                                        speed, bgBa, t_start, t_end);
   }
 
   Eigen::Quaterniond q_WB = pairT_WB.second;
@@ -169,19 +172,18 @@ bool RsReprojectionError<GEOMETRY_TYPE>::
       return true;
     }
     std::pair<Eigen::Matrix<double, 3, 1>, Eigen::Quaternion<double>> T_WB_lin = pairT_WB;
-    okvis::SpeedAndBiases speedAndBiasesLin = speedBgBa;
+    Eigen::Vector3d speedLin = speed;
     if (positionVelocityLin_) {
       // compute position and velocity at t_{f_i,j} with first estimates of
       // position and velocity at t_j.
       T_WB_lin = std::make_pair(positionVelocityLin_->head<3>(), q_WB0);
-      speedAndBiasesLin = Eigen::Map<const Eigen::Matrix<double, 9, 1>>(parameters[Index::SpeedAndBiases]);
-      speedAndBiasesLin.head<3>() = positionVelocityLin_->tail<3>();
+      speedLin = positionVelocityLin_->tail<3>();
       if (relativeFeatureTime >= wedge) {
         swift_vio::ode::predictStates(*imuMeasCanopy_, gW, T_WB_lin,
-                                    speedAndBiasesLin, t_start, t_end);
+                                      speedLin, bgBa, t_start, t_end);
       } else if (relativeFeatureTime <= -wedge) {
         swift_vio::ode::predictStatesBackward(*imuMeasCanopy_, gW, T_WB_lin,
-                                            speedAndBiasesLin, t_start, t_end);
+                                              speedLin, bgBa, t_start, t_end);
       }
       C_BW = T_WB_lin.second.toRotationMatrix().transpose();
       t_WB_W = T_WB_lin.first;
@@ -213,11 +215,11 @@ bool RsReprojectionError<GEOMETRY_TYPE>::
 
     okvis::ImuMeasurement queryValue;
     swift_vio::ode::interpolateInertialData(*imuMeasCanopy_, t_end, queryValue);
-    queryValue.measurement.gyroscopes -= speedAndBiasesLin.segment<3>(3);
+    queryValue.measurement.gyroscopes -= bgBa.head<3>();
     Eigen::Vector3d p =
         okvis::kinematics::crossMx(queryValue.measurement.gyroscopes) *
             hp_B.head<3>() +
-        C_BW * speedAndBiasesLin.head<3>() * hp_W[3];
+        C_BW * speedLin * hp_W[3];
     dhC_td.head<3>() = -C_CB * p;
     dhC_td[3] = 0;
 
@@ -528,8 +530,10 @@ operator()(const Scalar* const T_WB, const Scalar* const php_W,
 
   std::pair<Eigen::Matrix<Scalar, 3, 1>, Eigen::Quaternion<Scalar>> pairT_WB(
       t_WB_W, q_WB);
-  Eigen::Matrix<Scalar, 9, 1> speedBgBa =
-      Eigen::Map<const Eigen::Matrix<Scalar, 9, 1>>(speedAndBiases);
+  Eigen::Matrix<Scalar, 3, 1> speed =
+      Eigen::Map<const Eigen::Matrix<Scalar, 3, 1>>(speedAndBiases);
+  Eigen::Matrix<Scalar, 6, 1> bgBa =
+      Eigen::Map<const Eigen::Matrix<Scalar, 6, 1>>(speedAndBiases + 3);
   Eigen::Map<const Eigen::Matrix<Scalar, 3, 1>> gravityDirection(unitgW);
 
   Scalar t_start = (Scalar)rsre_.stateEpoch_.toSec();
@@ -546,10 +550,10 @@ operator()(const Scalar* const T_WB, const Scalar* const php_W,
   Eigen::Matrix<Scalar, 3, 1> gW = ((Scalar)rsre_.gravityMag_) * gravityDirection;
   if (relativeFeatureTime >= Scalar(5e-8)) {
     swift_vio::ode::predictStates(imuMeasurements, gW, pairT_WB,
-                                  speedBgBa, t_start, t_end);
+                                  speed, bgBa, t_start, t_end);
   } else if (relativeFeatureTime <= Scalar(-5e-8)) {
     swift_vio::ode::predictStatesBackward(imuMeasurements, gW, pairT_WB,
-                                          speedBgBa, t_start, t_end);
+                                          speed, bgBa, t_start, t_end);
   }
 
   q_WB = pairT_WB.second;

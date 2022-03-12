@@ -81,7 +81,8 @@ void EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
         double const* const* parameters, int index) const {
   double trLatestEstimate = parameters[5][0];
   double tdLatestEstimate = parameters[6][0];
-  Eigen::Matrix<double, 9, 1> speedBgBa = speedAndBiases_[index];
+  Eigen::Matrix<double, 3, 1> speed = speedAndBiases_[index].head<3>();
+  Eigen::Matrix<double, 6, 1> bgBa = speedAndBiases_[index].tail<6>();
 
   double relativeFeatureTime =
       tdLatestEstimate + trLatestEstimate * dtij_dtr_[index] + (imageTimes_[index] - stateEpoch_[index]).toSec();
@@ -91,15 +92,15 @@ void EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
   const double wedge = 5e-8;
   if (relativeFeatureTime >= wedge) {
     swift_vio::ode::predictStates(*imuMeasCanopy_[index], Eigen::Vector3d(0, 0, -gravityMag_), *pair_T_WB,
-                                speedBgBa, t_start, t_end);
+                                speed, bgBa, t_start, t_end);
   } else if (relativeFeatureTime <= -wedge) {
     swift_vio::ode::predictStatesBackward(*imuMeasCanopy_[index], Eigen::Vector3d(0, 0, -gravityMag_),
-                                        *pair_T_WB, speedBgBa, t_start, t_end);
+                                        *pair_T_WB, speed, bgBa, t_start, t_end);
   }
-  velAndOmega->head<3>() = speedBgBa.head<3>();
+  velAndOmega->head<3>() = speed;
   okvis::ImuMeasurement queryValue;
   swift_vio::ode::interpolateInertialData(*imuMeasCanopy_[index], t_end, queryValue);
-  queryValue.measurement.gyroscopes -= speedBgBa.segment<3>(3);
+  queryValue.measurement.gyroscopes -= bgBa.head<3>();
   velAndOmega->tail<3>() = queryValue.measurement.gyroscopes;
 }
 

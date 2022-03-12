@@ -28,9 +28,9 @@
 // B: body frame
 // Ci: camera i's frame relates to B by T_BCi
 // Ai: accelerometer triad i's frame relates to B by T_BAi
-// Gi: gyroscope triad i's frame relates to B by T_BGi = T_BAi * T_AiGi.
+// Gi: gyroscope triad i's frame relates to B by T_BGi = T_BAi * M_aiGi.
 // W: world frame
-// H: used as subscript to denote the host or anchor frame.
+// H: used as subscript to denote the host (anchor) frame.
 
 // States
 // T_WBi stamped by the base IMU clock.
@@ -38,14 +38,9 @@
 // landmark hp_Ch = [alpha, beta, 1, rho] = [X/Z, Y/Z, 1, 1/Z] where X, Y, Z are the coordinates of the landmark in the host camera frame Ch.
 
 // IMU intrinsic parameters have three blocks
-// Tgi: a fully populated matrix for R_AiGi, scale factors, and misalignment.
-// Tsi: a fully populated matrix for g-sensitivity.
-// Tai: 6 parameters for scale factors, and misalignment.
-
-// IMU measurements timestamped by the IMU itself.
-// w_m = T_gi * R_AiB * w_B + T_s * R_AiB * a_B + b_g
-// a_m = T_ai * R_AiB * a_B + b_a
-// Comparing to the IMU model in extending Kalibr, this model ignores the size effect.
+// Mg: a fully populated matrix for R_AiGi, scale factors, and misalignment.
+// Ms: a fully populated matrix for g-sensitivity.
+// Ma: 6 parameters for scale factors, and misalignment.
 
 // Camera intrinsic parameters
 // For pinhole cameras, these parameters include projection intrinsics and distortion intrinsics.
@@ -58,7 +53,7 @@
 
 // Camera time offset relative to the base IMU.
 
-// Camera measurements
+// Camera measurements of feature j in camera i.
 // z = h((T_WB(t_{ij}) * T_BCi)^{-1} * T_WBh(t_h) * T_BCh * hp_Ch, camera intrinsics)
 
 // Error definitions.
@@ -77,7 +72,10 @@ template <class GEOMETRY_TYPE>
 class LocalBearingVectorAidp;
 
 /// \brief The 2D keypoint reprojection error accounting for rolling shutter
-///     skew and time offset and camera intrinsics.
+///     skew and time offset and camera intrinsics, using anchored inverse depth parameterization,
+///     and BG_BA_MG_MS_MA model.
+/// This factor works whether the host camera and target camera are different or not.
+///
 /// The IMU data is used to predict camera positions at different image rows.
 /// This factor works with the case where the host and target poses are the same.
 /// \warning A potential problem with this reprojection error happens when
@@ -97,10 +95,11 @@ class RsReprojectionErrorAidp
           GEOMETRY_TYPE::NumIntrinsics,
           1 /* frame readout time */,
           1 /* camera time offset */,
-          9 /* speed, bg_i and ba_i */,
-          9 /* T_gi */,
-          9 /* T_si */,
-          6 /* T_ai */>,
+          3 /* speed */,
+          6 /* bg_i and ba_i */,
+          9 /* M_gi */,
+          9 /* M_si */,
+          6 /* M_ai */>,
       public RsReprojectionErrorAidpBase {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -123,10 +122,11 @@ class RsReprojectionErrorAidp
           GEOMETRY_TYPE::NumIntrinsics,
           1 /* frame readout time */,
           1 /* camera time offset */,
-          9 /* velocity, bg_i and ba_i */,
-          9 /* T_gi */,
-          9 /* T_si */,
-          6 /* T_ai */> base_t;
+          3 /* vW */,
+          6 /* bg_i ba_i */,
+          9,
+          9,
+          6> base_t;
 
   enum Index
   {
@@ -138,10 +138,11 @@ class RsReprojectionErrorAidp
     Intrinsics,
     ReadoutTime,
     CameraTd,
-    SpeedAndBiases,
-    T_gi,
-    T_si,
-    T_ai
+    Speed,
+    Biases,
+    M_gi,
+    M_si,
+    M_ai
   };
 
   /// \brief The keypoint type (measurement type).
@@ -256,7 +257,8 @@ class RsReprojectionErrorAidp
       const Eigen::Matrix<double, 4, 6> &dhC_dExtrinsict,
       const Eigen::Matrix<double, 4, 6> &dhC_dExtrinsich,
       const Eigen::Vector4d &dhC_td, double kpN,
-      const Eigen::Matrix<double, 4, 9> &dhC_sb) const;
+      const Eigen::Matrix<double, 4, 3> &dhC_speed,
+      const Eigen::Matrix<double, 4, 6> &dhC_biases) const;
 
   friend class LocalBearingVectorAidp<GEOMETRY_TYPE>;
  protected:
@@ -287,7 +289,7 @@ public:
   template <typename Scalar>
   bool operator()(const Scalar *const T_WS, const Scalar *const hp_W, const Scalar *const T_WSh,
                   const Scalar *const extrinsic, const Scalar *const extrinsich, const Scalar *const t_r,
-                  const Scalar *const t_d, const Scalar *const speedAndBiases,
+                  const Scalar *const t_d, const Scalar *const speed, const Scalar *const biases,
                   const Scalar *const deltaT_WS, const Scalar *const deltaT_WSh,
                   const Scalar *const deltaExtrinsic, const Scalar *const deltaExtrinsich,
                   const Scalar *const T_g, const Scalar *const T_s, const Scalar *const T_a,

@@ -18,10 +18,11 @@ int predictStates(
     const GenericImuMeasurementDeque<Scalar> &imuMeasurements,
     const Eigen::Matrix<Scalar, 3, 1> &gW,
     std::pair<Eigen::Matrix<Scalar, 3, 1>, Eigen::Quaternion<Scalar>> &T_WS,
-    Eigen::Matrix<Scalar, 9, 1> &speedBgBa, const Scalar t_start,
+    Eigen::Matrix<Scalar, 3, 1> &speed,
+    Eigen::Matrix<Scalar, 6, 1> &bgBa, const Scalar t_start,
     const Scalar t_end) {
   Eigen::Matrix<Scalar, 3, 1> r_old(T_WS.first), r_new(r_old),
-      v_old(speedBgBa.template head<3>()), v_new(v_old);
+      v_old(speed), v_new(v_old);
   Eigen::Quaternion<Scalar> q_old(T_WS.second.conjugate()),
       q_new(q_old); // rotation from world to sensor
   assert(imuMeasurements.front().timeStamp <= t_start &&
@@ -74,9 +75,9 @@ int predictStates(
 
     // actual propagation
     Eigen::Matrix<Scalar, 3, 1> a_est =
-        Scalar(0.5) * (acc_S_0 + acc_S_1) - speedBgBa.template tail<3>();
+        Scalar(0.5) * (acc_S_0 + acc_S_1) - bgBa.template tail<3>();
     Eigen::Matrix<Scalar, 3, 1> w_est = Scalar(0.5) * (omega_S_0 + omega_S_1) -
-                                        speedBgBa.template segment<3>(3);
+                                        bgBa.template head<3>();
 
     Eigen::Quaternion<Scalar> qb = okvis::kinematics::rvec2quat(-w_est * dt);
     q_new = qb * q_old;
@@ -104,7 +105,7 @@ int predictStates(
 
   T_WS.second = q_new.conjugate();
   T_WS.first = r_new;
-  speedBgBa.template head<3>() = v_new;
+  speed = v_new;
   return i;
 }
 
@@ -180,6 +181,7 @@ int predictStates(
   return i;
 }
 
+// backward propagation for GenericImuMeasurementsDeque
 // time_pair[0] timestamp of the provided state values. time_pair[0] >=
 // time_pair[1],
 template <typename Scalar>
@@ -187,10 +189,12 @@ int predictStatesBackward(
     const GenericImuMeasurementDeque<Scalar> &imuMeasurements,
     const Eigen::Matrix<Scalar, 3, 1> &gW,
     std::pair<Eigen::Matrix<Scalar, 3, 1>, Eigen::Quaternion<Scalar>> &T_WS,
-    Eigen::Matrix<Scalar, 9, 1> &speedBgBa, const Scalar t_start,
+    Eigen::Matrix<Scalar, 3, 1> &speed,
+    Eigen::Matrix<Scalar, 6, 1> &bgBa,
+    const Scalar t_start,
     const Scalar t_end) {
   Eigen::Matrix<Scalar, 3, 1> r_old(T_WS.first), r_new(r_old),
-      v_old(speedBgBa.template head<3>()), v_new(v_old);
+      v_old(speed), v_new(v_old);
   Eigen::Quaternion<Scalar> q_old(T_WS.second.conjugate()),
       q_new(q_old); // rotation from world to sensor
   assert(imuMeasurements.front().timeStamp <= t_end &&
@@ -244,9 +248,9 @@ int predictStatesBackward(
     // actual propagation
 
     Eigen::Matrix<Scalar, 3, 1> a_est =
-        Scalar(0.5) * (acc_S_0 + acc_S_1) - speedBgBa.template tail<3>();
+        Scalar(0.5) * (acc_S_0 + acc_S_1) - bgBa.template tail<3>();
     Eigen::Matrix<Scalar, 3, 1> w_est = Scalar(0.5) * (omega_S_0 + omega_S_1) -
-                                        speedBgBa.template segment<3>(3);
+                                        bgBa.template head<3>();
 
     Eigen::Quaternion<Scalar> qb = okvis::kinematics::rvec2quat(-w_est * dt);
     q_new = qb * q_old;
@@ -274,7 +278,7 @@ int predictStatesBackward(
 
   T_WS.second = q_new.conjugate();
   T_WS.first = r_new;
-  speedBgBa.template head<3>() = v_new;
+  speed = v_new;
   return i;
 }
 
@@ -283,10 +287,11 @@ int predictStates(
     const okvis::ImuMeasurementDeque &imuMeasurements,
     const Eigen::Matrix<Scalar, 3, 1> &gW,
     std::pair<Eigen::Matrix<Scalar, 3, 1>, Eigen::Quaternion<Scalar>> &T_WS,
-    Eigen::Matrix<Scalar, 9, 1> &speedBgBa, const okvis::Time t_start,
+    Eigen::Matrix<Scalar, 3, 1> &speed,
+    Eigen::Matrix<Scalar, 6, 1> &bgBa, const okvis::Time t_start,
     const okvis::Time t_end) {
   Eigen::Matrix<Scalar, 3, 1> r_old(T_WS.first), r_new(r_old),
-      v_old(speedBgBa.template head<3>()), v_new(v_old);
+      v_old(speed), v_new(v_old);
   Eigen::Quaternion<Scalar> q_old(T_WS.second.conjugate()),
       q_new(q_old); // rotation from world to sensor
   assert(imuMeasurements.front().timeStamp <= t_start &&
@@ -340,9 +345,9 @@ int predictStates(
 
     // actual propagation
     Eigen::Matrix<Scalar, 3, 1> a_est =
-        Scalar(0.5) * (acc_S_0 + acc_S_1) - speedBgBa.template tail<3>();
+        Scalar(0.5) * (acc_S_0 + acc_S_1) - bgBa.template tail<3>();
     Eigen::Matrix<Scalar, 3, 1> w_est = Scalar(0.5) * (omega_S_0 + omega_S_1) -
-                                        speedBgBa.template segment<3>(3);
+                                        bgBa.template head<3>();
 
     Eigen::Quaternion<Scalar> qb = okvis::kinematics::rvec2quat(-w_est * dt);
     q_new = qb * q_old;
@@ -370,10 +375,11 @@ int predictStates(
 
   T_WS.second = q_new.conjugate();
   T_WS.first = r_new;
-  speedBgBa.template head<3>() = v_new;
+  speed = v_new;
   return i;
 }
 
+// backward propagation for ImuMeasurementsDeque
 // time_pair[0] timestamp of the provided state values. time_pair[0] >=
 // time_pair[1],
 template <typename Scalar>
@@ -381,10 +387,12 @@ int predictStatesBackward(
     const okvis::ImuMeasurementDeque &imuMeasurements,
     const Eigen::Matrix<Scalar, 3, 1> &gW,
     std::pair<Eigen::Matrix<Scalar, 3, 1>, Eigen::Quaternion<Scalar>> &T_WS,
-    Eigen::Matrix<Scalar, 9, 1> &speedBgBa, const okvis::Time t_start,
+    Eigen::Matrix<Scalar, 3, 1> &speed,
+    Eigen::Matrix<Scalar, 6, 1> &bgBa,
+    const okvis::Time t_start,
     const okvis::Time t_end) {
   Eigen::Matrix<Scalar, 3, 1> r_old(T_WS.first), r_new(r_old),
-      v_old(speedBgBa.template head<3>()), v_new(v_old);
+      v_old(speed), v_new(v_old);
   Eigen::Quaternion<Scalar> q_old(T_WS.second.conjugate()),
       q_new(q_old); // rotation from world to sensor
   assert(imuMeasurements.front().timeStamp <= t_end &&
@@ -441,9 +449,9 @@ int predictStatesBackward(
     // actual propagation
 
     Eigen::Matrix<Scalar, 3, 1> a_est =
-        Scalar(0.5) * (acc_S_0 + acc_S_1) - speedBgBa.template tail<3>();
+        Scalar(0.5) * (acc_S_0 + acc_S_1) - bgBa.template tail<3>();
     Eigen::Matrix<Scalar, 3, 1> w_est = Scalar(0.5) * (omega_S_0 + omega_S_1) -
-                                        speedBgBa.template segment<3>(3);
+                                        bgBa.template head<3>();
 
     Eigen::Quaternion<Scalar> qb = okvis::kinematics::rvec2quat(-w_est * dt);
     q_new = qb * q_old;
@@ -471,7 +479,7 @@ int predictStatesBackward(
 
   T_WS.second = q_new.conjugate();
   T_WS.first = r_new;
-  speedBgBa.template head<3>() = v_new;
+  speed = v_new;
   return i;
 }
 
