@@ -54,6 +54,19 @@ void alignZ(const Eigen::Vector3d &a_S, Eigen::Quaterniond *q_WS);
 bool initPoseFromImu(const okvis::ImuMeasurementDeque &imuMeasurements,
                      okvis::kinematics::Transformation &T_WS);
 
+/**
+ * @brief Initialize orientation at time by using acceleration in [time - radius, time + radius],
+ * translation is set to zero.
+ * @param imuMeasurements
+ * @param time
+ * @param T_WS
+ * @param radius
+ * @return
+ */
+bool initPoseFromImu(const okvis::ImuMeasurementDeque &imuMeasurements,
+                     okvis::Time time, okvis::kinematics::Transformation &T_WS,
+                     okvis::Duration radius = okvis::Duration(0.05));
+
 void initBiasesFromStaticImu(const okvis::ImuMeasurementDeque &imuMeasurements,
                              const Eigen::Vector3d &gravityB,
                              okvis::ImuMeasurement *biases);

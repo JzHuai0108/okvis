@@ -108,6 +108,41 @@ bool initPoseFromImu(
   return true;
 }
 
+bool initPoseFromImu(const okvis::ImuMeasurementDeque &imuMeasurements,
+                     okvis::Time time, okvis::kinematics::Transformation &T_WS,
+                     okvis::Duration radius) {
+  T_WS.setIdentity();
+
+  // acceleration vector
+  Eigen::Vector3d acc_B = Eigen::Vector3d::Zero();
+  size_t usedImuData = 0u;
+  okvis::Time start = time - radius;
+  okvis::Time finish = time + radius;
+
+  for (okvis::ImuMeasurementDeque::const_iterator it = imuMeasurements.begin();
+      it < imuMeasurements.end(); ++it) {
+    if (it->timeStamp >= start && it->timeStamp <= finish) {
+      acc_B += it->measurement.accelerometers;
+      ++usedImuData;
+    }
+  }
+  if (usedImuData == 0u)
+    return false;
+
+  acc_B /= double(usedImuData);
+  Eigen::Vector3d e_acc = acc_B.normalized();
+
+  // align with ez_W:
+  Eigen::Vector3d ez_W(0.0, 0.0, 1.0);
+  Eigen::Matrix<double, 6, 1> poseIncrement;
+  poseIncrement.head<3>() = Eigen::Vector3d::Zero();
+  poseIncrement.tail<3>() = ez_W.cross(e_acc).normalized();
+  double angle = std::acos(ez_W.transpose() * e_acc);
+  poseIncrement.tail<3>() *= angle;
+  T_WS.oplus(-poseIncrement);
+  return true;
+}
+
 void initBiasesFromStaticImu(const okvis::ImuMeasurementDeque &imuMeasurements,
                              const Eigen::Vector3d &gravityB,
                              okvis::ImuMeasurement *biases) {
