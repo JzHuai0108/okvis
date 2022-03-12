@@ -63,6 +63,7 @@ public:
 
     void checkAgainstMultipleTransformJacobian() const {
       swift_vio::MultipleTransformPointJacobian mtpj({T_AB_}, {1}, hpB_);
+      mtpj.computeJacobians();
       Eigen::Matrix<double, 4, 4> dhpA_dhpB = mtpj.dp_dpoint();
       EXPECT_LT((dhpA_dhpB_numeric_ - dhpA_dhpB).lpNorm<Eigen::Infinity>(),
                 tol);
@@ -201,6 +202,7 @@ public:
       T_CB_.setRandom();
       hpC_.setRandom();
       mtpj_.initialize({T_AB_, T_CB_}, {1, -1}, hpC_);
+      mtpj_.computeJacobians();
       hpA_ = mtpj_.evaluate();
       computeNumericJacobians();
     }
@@ -295,6 +297,7 @@ public:
       T_BC_.setRandom();
       hpC_.setRandom();
       mtpj_.initialize({T_BA_, T_BC_}, {-1, 1}, hpC_);
+      mtpj_.computeJacobians();
       hpA_ = mtpj_.evaluate();
       computeNumericJacobians();
     }

@@ -11,7 +11,9 @@
 
 #include <swift_vio/ceres/JacobianHelpers.hpp>
 #include <swift_vio/Measurements.hpp>
+#include <swift_vio/MultipleTransformPointJacobian.hpp>
 #include <swift_vio/imu/SimpleImuOdometry.hpp>
+#include <swift_vio/imu/SimpleImuPropagationJacobian.hpp>
 
 namespace okvis {
 namespace ceres {
@@ -72,8 +74,8 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
   Eigen::Map<const Eigen::Quaterniond> q_WBt0(parameters[Index::T_WBt] + 3);
 
   Eigen::Matrix<double, 4, 4, Eigen::RowMajor> dh_dl;
-  Eigen::Vector4d hp_Ch;
-  swift_vio::InverseDepthParameterization::toHomogeneousPoint(parameters[Index::AIDP], hp_Ch.data(), dh_dl.data());
+
+  Eigen::Map<const Eigen::Matrix<double, 4, 1>> hp_Ch(parameters[Index::AIDP]);
 
   Eigen::Map<const Eigen::Vector3d> p_BCt(parameters[Index::T_BCt]);
   Eigen::Map<const Eigen::Quaterniond> q_BCt(parameters[Index::T_BCt] + 3);
@@ -117,24 +119,10 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
   }
   okvis::kinematics::Transformation T_WBt(pair_T_WBt.first, pair_T_WBt.second);
   Eigen::Quaterniond q_WBt = pair_T_WBt.second;
-  Eigen::Vector3d p_WBt = pair_T_WBt.first;
-
-  // hp_Ct = (T_WBt * T_BCt).inverse() * (T_WBh * T_BCh) * hp_Ch
-  // hp_W = (T_WBh * T_BCh) * hp_Ch
-  // transform the point into the camera:
-  Eigen::Matrix3d C_BCt = q_BCt.toRotationMatrix();
-  Eigen::Matrix3d C_CBt = C_BCt.transpose();
-  Eigen::Matrix4d T_CBt = Eigen::Matrix4d::Identity();
-  T_CBt.topLeftCorner<3, 3>() = C_CBt;
-  T_CBt.topRightCorner<3, 1>() = -C_CBt * p_BCt;
   Eigen::Matrix3d C_WBt = q_WBt.toRotationMatrix();
-  Eigen::Matrix3d C_BWt = C_WBt.transpose();
-  Eigen::Matrix4d T_BWt = Eigen::Matrix4d::Identity();
-  T_BWt.topLeftCorner<3, 3>() = C_BWt;
-  T_BWt.topRightCorner<3, 1>() = -C_BWt * p_WBt;
-  Eigen::Vector4d hp_Wt = (T_WBh * T_BCh).T() * hp_Ch;
-  Eigen::Vector4d hp_Bt = T_BWt * hp_Wt;
-  Eigen::Vector4d hp_Ct = T_CBt * hp_Bt;
+
+  swift_vio::MultipleTransformPointJacobian mtpj({T_BCt, T_WBt, T_WBh, T_BCh}, {-1, -1, 1, 1}, hp_Ch);
+  Eigen::Vector4d hp_Ct = mtpj.evaluate();
 
   // calculate the reprojection error
   measurement_t kp;
@@ -171,81 +159,43 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
       return true;
     }
 
-    Eigen::Matrix<double, 3, 6> dhC_deltaTWSt;   // T_WB
-    Eigen::Matrix<double, 3, 6> dhC_dExtrinsict; // T_BC
-    Eigen::Matrix<double, 3, 4> dhC_deltahpCh;   // Jacobian of the first 3 components of h^C relative to hp^Ch = [x, y, z, 1]^Ch
-    Eigen::Matrix<double, 3, 6> dhC_deltaTWSh;
-    Eigen::Matrix<double, 3, 6> dhC_dExtrinsich;
-    Eigen::Vector3d dhC_td;
-    Eigen::Matrix<double, 3, 3> dhC_speed;
-    Eigen::Matrix<double, 3, 6> dhC_biases;
+    mtpj.computeJacobians();
 
-    //t
-    Eigen::Vector3d p_BP_Wt = hp_Wt.head<3>() - p_WBt * hp_Wt[3];
-    Eigen::Matrix<double, 4, 6> dhS_deltaTWSt;
-    dhS_deltaTWSt.topLeftCorner<3, 3>() = -C_BWt * hp_Wt[3];                            //p
-    dhS_deltaTWSt.topRightCorner<3, 3>() = C_BWt * okvis::kinematics::crossMx(p_BP_Wt); //q
-    dhS_deltaTWSt.row(3).setZero();
-
-    dhC_deltaTWSt = (T_CBt * dhS_deltaTWSt).topRows<3>();
-
-    Eigen::Matrix<double, 4, 6> dhC_dExtrinsict_temp;
-    dhC_dExtrinsict_temp.block<3, 3>(0, 0) = -C_CBt * hp_Ct[3];
-    dhC_dExtrinsict_temp.block<3, 3>(0, 3) = okvis::kinematics::crossMx(hp_Ct.head<3>()) * C_CBt;
-    dhC_dExtrinsict_temp.row(3).setZero();
-    dhC_dExtrinsict = dhC_dExtrinsict_temp.topRows<3>();
-
-    Eigen::Vector3d p_BP_Wh = (T_BCh.T() * hp_Ch).head<3>();
-    Eigen::Matrix3d C_WBh = q_WBh.toRotationMatrix();
-    Eigen::Matrix<double, 4, 6> dhW_deltaTWSh;
-    dhW_deltaTWSh.topLeftCorner<3, 3>() = Eigen::Matrix3d::Identity() * (T_BCh.T() * hp_Ch)[3]; //p
-    dhW_deltaTWSh.topRightCorner<3, 3>() = okvis::kinematics::crossMx(C_WBh * (-p_BP_Wh)); //q
-    dhW_deltaTWSh.row(3).setZero();
-
-    dhC_deltaTWSh = ((T_WBt * T_BCt).inverse().T() * dhW_deltaTWSh).topRows<3>();
-    dhC_deltahpCh = ((T_WBt * T_BCt).inverse() * (T_WBh * T_BCh)).T().topRows<3>();
-
-    Eigen::Vector3d p_BP_Ch = hp_Ch.head<3>();
-    Eigen::Matrix3d C_BCh = q_BCh.toRotationMatrix();
-    Eigen::Matrix<double, 4, 6> dhW_dExtrinsich;
-    dhW_dExtrinsich.topLeftCorner<3, 3>() = Eigen::Matrix3d::Identity() * hp_Ch[3];        //p
-    dhW_dExtrinsich.topRightCorner<3, 3>() = okvis::kinematics::crossMx(C_BCh * (-p_BP_Ch)); //q
-    dhW_dExtrinsich.row(3).setZero();
-    dhW_dExtrinsich = T_WBh.T() * dhW_dExtrinsich;
-
-    dhC_dExtrinsich = ((T_WBt * T_BCt).inverse().T() * dhW_dExtrinsich).topRows<3>();
-
-    //other
     okvis::ImuMeasurement queryValue;
     swift_vio::ode::interpolateInertialData(*imuMeasCanopy_, t_end, queryValue);
     queryValue.measurement.gyroscopes -= bgBa.head<3>();
-    Eigen::Vector3d p =
-        okvis::kinematics::crossMx(queryValue.measurement.gyroscopes) *
-            hp_Bt.head<3>() +
-        C_BWt * speed * hp_Wt[3];
-    dhC_td = -C_CBt * p;
+    swift_vio::SimpleImuPropagationJacobian sipj(t_start, t_end,
+                                                 T_WBt,
+                                                 speed,
+                                                 queryValue.measurement.gyroscopes);
+    Eigen::Matrix<double, 6, 1> dT_WB_dt;
+    Eigen::Vector3d dp_WB_dt;
+    sipj.dp_dt(&dp_WB_dt);
+    Eigen::Vector3d dq_WB_dt;
+    sipj.dtheta_dt(&dq_WB_dt);
+    dT_WB_dt.head<3>() = dp_WB_dt;
+    dT_WB_dt.tail<3>() = dq_WB_dt;
 
-    Eigen::Matrix3d dhC_vW = -C_CBt * C_BWt * relativeFeatureTime * hp_Wt[3];
-    Eigen::Matrix3d dhC_bg =
-        -C_CBt * C_BWt *
-        okvis::kinematics::crossMx(hp_Wt.head<3>() - hp_Wt[3] * p_WBt) *
-        relativeFeatureTime * q_WBt0.toRotationMatrix();
+    Eigen::Matrix3d dp_WB_dvW;
+    sipj.dp_dv_WB(&dp_WB_dvW);
 
-    dhC_speed = dhC_vW;
-
-    dhC_biases.topRightCorner<3, 3>().setZero();
-    dhC_biases.topLeftCorner<3, 3>() = dhC_bg;
+    Eigen::Vector3d dhC_td = mtpj.dp_dT(1).topRows<3>() * dT_WB_dt;
+    Eigen::Matrix3d dhC_vW = mtpj.dp_dT(1).topRows<3>().leftCols<3>() * dp_WB_dvW;
+    Eigen::Matrix3d dtheta_dbg = - C_WBt * relativeFeatureTime;
+    Eigen::Matrix3d dhC_bg = mtpj.dp_dT(1).topRows<3>().rightCols<3>() * dtheta_dbg;
+    Eigen::Matrix<double, 3, 6> dhC_biases;
+    dhC_biases.rightCols<3>().setZero();
+    dhC_biases.leftCols<3>() = dhC_bg;
 
     if (jacobians[0] != NULL)
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J0_minimal;
-      J0_minimal = Jh_weighted * dhC_deltaTWSt;
-
-      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[Index::T_WBt], J_lift.data());
+      J0_minimal = Jh_weighted * mtpj.dp_dT(1).topRows<3>();
 
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J0(jacobians[0]);
-      J0 = J0_minimal * J_lift;
+      J0.leftCols<6>() = J0_minimal;
+      J0.col(6).setZero();
+
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[0] != NULL)
@@ -260,7 +210,7 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     if (jacobians[1] != NULL)
     {
       Eigen::Map<Eigen::Matrix<double, 2, 4, Eigen::RowMajor>> J1(jacobians[1]);
-      J1 = Jh_weighted * dhC_deltahpCh * dh_dl;
+      J1 = Jh_weighted * mtpj.dp_dpoint().topRows<3>();
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[1] != NULL)
@@ -278,11 +228,12 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     if (jacobians[2] != NULL)
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J2_minimal;
-      J2_minimal = Jh_weighted * dhC_deltaTWSh;
+      J2_minimal = Jh_weighted * mtpj.dp_dT(2).topRows<3>();
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J2(jacobians[2]);
-      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[Index::T_WBh], J_lift.data());
-      J2 = J2_minimal * J_lift;
+
+      J2.leftCols<6>() = J2_minimal;
+      J2.col(6).setZero();
+
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[2] != NULL)
@@ -297,11 +248,11 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     if (jacobians[3] != NULL)
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor>
-          J3_minimal = Jh_weighted * dhC_dExtrinsict;
+          J3_minimal = Jh_weighted * mtpj.dp_dT(0).topRows<3>();
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J3(jacobians[3]);
-      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[Index::T_BCt], J_lift.data());
-      J3 = J3_minimal * J_lift;
+
+      J3.leftCols<6>() = J3_minimal;
+      J3.col(6).setZero();
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[3] != NULL)
@@ -316,11 +267,10 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     if (jacobians[4] != NULL)
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor>
-          J4_minimal = Jh_weighted * dhC_dExtrinsich;
+          J4_minimal = Jh_weighted * mtpj.dp_dT(3).topRows<3>();
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J4(jacobians[4]);
-      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[Index::T_BCh], J_lift.data());
-      J4 = J4_minimal * J_lift;
+      J4.leftCols<6>() = J4_minimal;
+      J4.col(6).setZero();
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[4] != NULL)
@@ -383,7 +333,7 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     if (jacobians[Index::Speed] != NULL)
     {
       Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>> J(jacobians[Index::Speed]);
-      J = Jh_weighted * dhC_speed;
+      J = Jh_weighted * dhC_vW;
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[Index::Speed] != NULL)
@@ -644,10 +594,10 @@ void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J0_minimal;
       J0_minimal = Jh_weighted * dhC_deltaTWSt;
-      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[Index::T_WBt], J_lift.data());
+
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J0(jacobians[0]);
-      J0 = J0_minimal * J_lift;
+      J0.leftCols<6>() = J0_minimal;
+      J0.col(6).setZero();
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[0] != NULL)
@@ -681,10 +631,9 @@ void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J2_minimal;
       J2_minimal = Jh_weighted * dhC_deltaTWSh;
 
-      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[Index::T_WBh], J_lift.data());
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J2(jacobians[2]);
-      J2 = J2_minimal * J_lift;
+      J2.leftCols<6>() = J2_minimal;
+      J2.col(6).setZero();
 
       if (jacobiansMinimal != NULL)
       {
@@ -702,9 +651,8 @@ void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor>
           J3_minimal = Jh_weighted * dhC_dExtrinsict;
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J3(jacobians[3]);
-      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[Index::T_BCt], J_lift.data());
-      J3 = J3_minimal * J_lift;
+      J3.leftCols<6>() = J3_minimal;
+      J3.col(6).setZero();
       if (jacobiansMinimal != NULL)
       {
         if (jacobiansMinimal[3] != NULL)
@@ -721,9 +669,8 @@ void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor>
           J4_minimal = Jh_weighted * dhC_dExtrinsich;
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J4(jacobians[4]);
-      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[Index::T_BCh], J_lift.data());
-      J4 = J4_minimal * J_lift;
+      J4.leftCols<6>() = J4_minimal;
+      J4.col(6).setZero();
 
       if (jacobiansMinimal != NULL)
       {
@@ -783,7 +730,7 @@ void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
       }
     }
 
-    // speed and gyro biases and accel biases
+    // speed
     if (jacobians[Index::Speed] != NULL)
     {
       Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::RowMajor>> J(jacobians[Index::Speed]);

@@ -53,7 +53,7 @@ class MultipleTransformPointJacobian {
         point_(point),
         transformPointObject_(new TransformPointJacobian()),
         inverseTransformPointObject_(new InverseTransformPointJacobian()) {
-    computeJacobians();
+//    computeJacobians();
   }
 
   MultipleTransformPointJacobian(
@@ -66,7 +66,7 @@ class MultipleTransformPointJacobian {
         point_(point),
         transformPointObject_(tpj),
         inverseTransformPointObject_(itpj) {
-    computeJacobians();
+//    computeJacobians();
   }
 
   void initialize(
@@ -77,7 +77,7 @@ class MultipleTransformPointJacobian {
     point_ = point;
     transformPointObject_.reset(new TransformPointJacobian());
     inverseTransformPointObject_.reset(new InverseTransformPointJacobian());
-    computeJacobians();
+//    computeJacobians();
   }
 
   void initialize(
@@ -88,7 +88,7 @@ class MultipleTransformPointJacobian {
     initialize(transformList, exponentList, point);
     transformPointObject_ = tpj;
     inverseTransformPointObject_ = itpj;
-    computeJacobians();
+//    computeJacobians();
   }
 
   Eigen::Vector4d evaluate() const;
