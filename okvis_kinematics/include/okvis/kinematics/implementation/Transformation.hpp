@@ -110,9 +110,11 @@ inline Transformation::Transformation(const Eigen::Vector3d & r_AB,
     : r_(&parameters_[0]),
       q_(&parameters_[3]) {
   r_ = r_AB;
-  q_ = q_AB.normalized();
+//  q_ = q_AB.normalized();
+  q_ = q_AB;
   updateC();
 }
+
 inline Transformation::Transformation(const Eigen::Matrix4d & T_AB)
     : r_(&parameters_[0]),
       q_(&parameters_[3]),
@@ -197,7 +199,8 @@ inline void Transformation::set(const Eigen::Matrix4d & T_AB) {
 inline void Transformation::set(const Eigen::Vector3d & r_AB,
                                 const Eigen::Quaternion<double> & q_AB) {
   r_ = r_AB;
-  q_ = q_AB.normalized();
+//  q_ = q_AB.normalized();
+  q_ = q_AB;
   updateC();
 }
 
@@ -265,7 +268,7 @@ inline bool Transformation::oplus(
   dq.template head<3>() = sinc(halfnorm) * 0.5 * delta.template tail<3>();
   dq[3] = cos(halfnorm);
   q_ = (Eigen::Quaterniond(dq) * q_);
-  q_.normalize();
+//  q_.normalize();
   updateC();
   return true;
 }
