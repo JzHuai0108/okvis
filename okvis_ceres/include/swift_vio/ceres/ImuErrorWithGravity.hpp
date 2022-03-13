@@ -51,9 +51,6 @@ class ImuErrorWithGravity :
   /// \warning This is w.r.t. minimal tangential space coordinates...
   typedef Eigen::Matrix<double, 15, 7> jacobian0_t;
 
-  /// \brief The type of Jacobian w.r.t. Speed and biases
-  typedef Eigen::Matrix<double, 15, 9> jacobian1_t;
-
   /// \brief Default constructor -- assumes information recomputation.
   ImuErrorWithGravity() {
   }

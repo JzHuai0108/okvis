@@ -24,9 +24,11 @@ namespace ceres {
 /// \brief Implements a nonlinear IMU factor.
 /// 15 /* number of residuals */,
 ///  7 /* size of first parameter (PoseParameterBlock k) */,
-///  9 /* size of second parameter (SpeedAndBiasParameterBlock k) */,
-///  7 /* size of third parameter (PoseParameterBlock k+1) */,
-///  9 /* size of fourth parameter (SpeedAndBiasParameterBlock k+1) */,
+///  3 /* size of second parameter (SpeedParameterBlock k) */,
+///  6 /* size of third parameter (BiasParameterBlock k) */,
+///  7 /* size of fourth parameter (PoseParameterBlock k+1) */,
+///  3 /* size of fifth parameter (SpeedParameterBlock k+1) */,
+///  6 /* size of sixth parameter (BiasParameterBlock k+1) */,
 ///  3 /* size of gravity direction */,
 ///  others /* number of extra parameters depending on the IMU model.
 template <typename ImuModelT>
@@ -37,6 +39,17 @@ class DynamicImuError :
 
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
+
+  enum Index {
+    T_WB0 = 0,
+    v_WB0,
+    bgBa0,
+    T_WB1,
+    v_WB1,
+    bgBa1,
+    unitgW,
+    extra,
+  };
 
   /// \brief The base in ceres we derive from
   typedef ::ceres::DynamicCostFunction base_t;
@@ -56,9 +69,6 @@ class DynamicImuError :
   /// \brief The type of the Jacobian w.r.t. poses --
   /// \warning This is w.r.t. minimal tangential space coordinates...
   typedef Eigen::Matrix<double, 15, 7> jacobian0_t;
-
-  /// \brief The type of Jacobian w.r.t. Speed and biases
-  typedef Eigen::Matrix<double, 15, 9> jacobian1_t;
 
   /// \brief Default constructor -- assumes information recomputation.
   DynamicImuError() {
@@ -80,12 +90,10 @@ class DynamicImuError :
   /**
    * @brief Propagates pose, speeds and biases with given IMU measurements.
    * @warning This is not actually const, since the re-propagation must somehow be stored...
-   * @param[in] T_WS Start pose.
-   * @param[in] speedAndBiases Start speed and biases.
+   * @param[in] biases Start biases.
    * @return Number of integration steps.
    */
-  int redoPreintegration(const okvis::kinematics::Transformation& T_WS,
-                         const okvis::SpeedAndBias & speedAndBiases) const;
+  int redoPreintegration(const Eigen::Matrix<double, 6, 1> &biases) const;
 
   // setters
 
@@ -216,7 +224,7 @@ class DynamicImuError :
   mutable ImuModelT imuModel_;
 
   /// \brief Reference biases that are updated when called redoPreintegration.
-  mutable SpeedAndBiases speedAndBiases_ref_ = SpeedAndBiases::Zero();
+  mutable Eigen::Matrix<double, 6, 1> biases_ref_ = Eigen::Matrix<double, 6, 1>::Zero();
 
   mutable bool redo_ = true; ///< Keeps track of whether or not this redoPreintegration() needs to be called.
   mutable int redoCounter_ = 0; ///< Counts the number of preintegrations for statistics.

@@ -2,10 +2,13 @@
 #include "ceres/ceres.h"
 #include "glog/logging.h"
 #include <gtest/gtest.h>
-#include <swift_vio/ParallaxAnglePoint.hpp>
+
 #include <swift_vio/ceres/DynamicImuError.hpp>
 #include <swift_vio/ceres/NormalVectorParameterBlock.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
+#include <swift_vio/ceres/EuclideanParamError.hpp>
+#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ParallaxAnglePoint.hpp>
 
 #include <okvis/ceres/PoseError.hpp>
 #include <okvis/ceres/PoseLocalParameterization.hpp>
@@ -147,25 +150,29 @@ public:
     // problem.SetParameterBlockConstant(poseParameterBlock_0.parameters());
 
     // create the speed and bias
-    speedAndBiasParameterBlock_0 =
-        okvis::ceres::SpeedAndBiasParameterBlock(speedAndBias_0, 1, t_0);
-    speedAndBiasParameterBlock_1 =
-        okvis::ceres::SpeedAndBiasParameterBlock(speedAndBias_1, 3, t_1);
+    speedParameterBlock_0 = okvis::ceres::EuclideanParamBlockSized<3>(speedAndBias_0.head<3>(), 11, t_0);
+    biasParameterBlock_0 = okvis::ceres::EuclideanParamBlockSized<6>(speedAndBias_0.tail<6>(), 12, t_0);
+
     problem.AddParameterBlock(
-        speedAndBiasParameterBlock_0.parameters(),
-        okvis::ceres::SpeedAndBiasParameterBlock::Dimension);
+        speedParameterBlock_0.parameters(), 3);
     problem.AddParameterBlock(
-        speedAndBiasParameterBlock_1.parameters(),
-        okvis::ceres::SpeedAndBiasParameterBlock::Dimension);
+        biasParameterBlock_0.parameters(), 6);
+
+    speedParameterBlock_1 = okvis::ceres::EuclideanParamBlockSized<3>(speedAndBias_1.head<3>(), 13, t_1);
+    biasParameterBlock_1 = okvis::ceres::EuclideanParamBlockSized<6>(speedAndBias_1.tail<6>(), 14, t_1);
+
+    problem.AddParameterBlock(
+        speedParameterBlock_1.parameters(), 3);
+    problem.AddParameterBlock(
+        biasParameterBlock_1.parameters(), 6);
 
     // let's use our own local quaternion perturbation
     std::cout << "setting local parameterization for pose... " << std::flush;
-    ::ceres::LocalParameterization *poseLocalParameterization2d =
-        new okvis::ceres::PoseLocalParameterization2d;
+
     ::ceres::LocalParameterization *poseLocalParameterization =
-        new okvis::ceres::PoseLocalParameterization;
+        new swift_vio::PoseLocalParameterizationSimplified;
     problem.SetParameterization(poseParameterBlock_0.parameters(),
-                                poseLocalParameterization2d);
+                                poseLocalParameterization);
     problem.SetParameterization(poseParameterBlock_1.parameters(),
                                 poseLocalParameterization);
 
@@ -201,15 +208,19 @@ public:
     DynamicImuErrorT *cost_function_imu =
         new DynamicImuErrorT(imuMeasurements, imuParameters, t_0, t_1);
     std::vector<double *> params = {poseParameterBlock_0.parameters(),
-                                    speedAndBiasParameterBlock_0.parameters(),
+                                    speedParameterBlock_0.parameters(),
+                                    biasParameterBlock_0.parameters(),
                                     poseParameterBlock_1.parameters(),
-                                    speedAndBiasParameterBlock_1.parameters(),
+                                    speedParameterBlock_1.parameters(),
+                                    biasParameterBlock_1.parameters(),
                                     gravityDirectionBlock.parameters()};
 
     cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(6);
     cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(6);
     cost_function_imu->AddParameterBlock(3);
     cost_function_imu->SetNumResiduals(15);
 
@@ -227,18 +238,22 @@ public:
     DynamicImuErrorT *cost_function_imu =
         new DynamicImuErrorT(imuMeasurements, imuParameters, t_0, t_1);
     std::vector<double *> params = {poseParameterBlock_0.parameters(),
-                                    speedAndBiasParameterBlock_0.parameters(),
+                                    speedParameterBlock_0.parameters(),
+                                    biasParameterBlock_0.parameters(),
                                     poseParameterBlock_1.parameters(),
-                                    speedAndBiasParameterBlock_1.parameters(),
+                                    speedParameterBlock_1.parameters(),
+                                    biasParameterBlock_1.parameters(),
                                     gravityDirectionBlock.parameters(),
                                     Tg.parameters(),
                                     Ts.parameters(),
                                     Ta.parameters()};
 
     cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(6);
     cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(6);
     cost_function_imu->AddParameterBlock(3);
     cost_function_imu->AddParameterBlock(9);
     cost_function_imu->AddParameterBlock(9);
@@ -258,22 +273,25 @@ public:
   void addImuErrorMgTsMa() {
     typedef okvis::ceres::DynamicImuError<swift_vio::Imu_BG_BA_MG_TS_MA>
         DynamicImuErrorT;
-    // create the Imu error term
     DynamicImuErrorT *cost_function_imu =
         new DynamicImuErrorT(imuMeasurements, imuParameters, t_0, t_1);
     std::vector<double *> params = {poseParameterBlock_0.parameters(),
-                                    speedAndBiasParameterBlock_0.parameters(),
+                                    speedParameterBlock_0.parameters(),
+                                    biasParameterBlock_0.parameters(),
                                     poseParameterBlock_1.parameters(),
-                                    speedAndBiasParameterBlock_1.parameters(),
+                                    speedParameterBlock_1.parameters(),
+                                    biasParameterBlock_1.parameters(),
                                     gravityDirectionBlock.parameters(),
                                     Mg.parameters(),
                                     Ts.parameters(),
                                     Ma.parameters()};
 
     cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(6);
     cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(6);
     cost_function_imu->AddParameterBlock(3);
     cost_function_imu->AddParameterBlock(9);
     cost_function_imu->AddParameterBlock(9);
@@ -292,15 +310,25 @@ public:
 
   void addPriors() {
     // let's also add some priors to check this alongside
-    ::ceres::CostFunction *cost_function_pose =
+    ::ceres::CostFunction *prior_pose =
         new okvis::ceres::PoseError(T_WS_0, 1e-12, 1e-4); // pose prior...
-    problem.AddResidualBlock(cost_function_pose, NULL,
+    problem.AddResidualBlock(prior_pose, NULL,
                              poseParameterBlock_0.parameters());
-    ::ceres::CostFunction *cost_function_speedAndBias =
-        new okvis::ceres::SpeedAndBiasError(speedAndBias_0, 1e-12, 1e-12,
-                                            1e-12); // speed and biases prior...
-    problem.AddResidualBlock(cost_function_speedAndBias, NULL,
-                             speedAndBiasParameterBlock_0.parameters());
+    Eigen::Vector3d variance;
+    variance << 1e-12, 1e-12, 1e-12;
+    ::ceres::CostFunction *prior_speed =
+        new okvis::ceres::EuclideanParamError<3>(speedAndBias_0.head<3>(),
+                                                 variance);
+    problem.AddResidualBlock(prior_speed, NULL,
+                             speedParameterBlock_0.parameters());
+
+    Eigen::Matrix<double, 6, 1> bvariances;
+    bvariances << 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12;
+    ::ceres::CostFunction *prior_bias =
+        new okvis::ceres::EuclideanParamError<6>(speedAndBias_0.tail<6>(),
+                                                 bvariances);
+    problem.AddResidualBlock(prior_bias, NULL,
+                             biasParameterBlock_0.parameters());
   }
 
   void solve() {
@@ -354,8 +382,12 @@ private:
 
   okvis::ceres::PoseParameterBlock poseParameterBlock_0;
   okvis::ceres::PoseParameterBlock poseParameterBlock_1;
-  okvis::ceres::SpeedAndBiasParameterBlock speedAndBiasParameterBlock_0;
-  okvis::ceres::SpeedAndBiasParameterBlock speedAndBiasParameterBlock_1;
+
+  okvis::ceres::EuclideanParamBlockSized<3> speedParameterBlock_0;
+  okvis::ceres::EuclideanParamBlockSized<6> biasParameterBlock_0;
+  okvis::ceres::EuclideanParamBlockSized<3> speedParameterBlock_1;
+  okvis::ceres::EuclideanParamBlockSized<6> biasParameterBlock_1;
+
   okvis::ceres::NormalVectorParameterBlock gravityDirectionBlock;
   okvis::ceres::EuclideanParamBlockSized<9> Tg;
   okvis::ceres::EuclideanParamBlockSized<9> Ts;

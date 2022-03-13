@@ -51,7 +51,7 @@ class EuclideanParamError : public ::ceres::SizedCostFunction<
 
   /// \brief Construct with measurement and variance.
   /// @param[in] measurement The measurement.
-  /// @param[in] variance The variance of each dim of the measurement, i.e. information_ has variance in its diagonal.
+  /// @param[in] variance The variance of each dim of the measurement, i.e. information_ has 1/variance in its diagonal.
   EuclideanParamError(const Eigen::Matrix<double, kParamDim, 1>& measurement,
                       const Eigen::Matrix<double, kParamDim, 1>& variance);
 
