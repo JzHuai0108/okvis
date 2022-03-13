@@ -423,60 +423,60 @@ void Imu_BG_BA_MG_TS_MA::propagate(double dt,
   // covariance propagation of \f$\delta p^{S0}, \alpha, \delta v^{S0}, b_g, b_a
   // \f$. We discard the Jacobian relative to the extra IMU parameters because they
   // do not contribute to P_delta since it starts from a zero matrix.
-  Eigen::Matrix<double, 15, 15> F_delta = Eigen::Matrix<double, 15, 15>::Identity();
-  F_delta.block<3, 3>(3, 9) = -0.5 * dt * (C_1 + C) * Mg_;
-  F_delta.block<3, 3>(3, 12) = 0.5 * dt * (C_1 + C) * MgTs_;
+  F_delta_.setIdentity();
+  F_delta_.block<3, 3>(3, 9) = -0.5 * dt * (C_1 + C) * Mg_;
+  F_delta_.block<3, 3>(3, 12) = 0.5 * dt * (C_1 + C) * MgTs_;
 
-  F_delta.block<3, 3>(6, 9) = 0.25 * dt * dt *
+  F_delta_.block<3, 3>(6, 9) = 0.25 * dt * dt *
                               okvis::kinematics::crossMx(C_1 * acc_est_1) *
                               (C + C_1) * Mg_;
-  F_delta.block<3, 3>(6, 12) = -0.5 * dt * (C + C_1) * Ma_ -
+  F_delta_.block<3, 3>(6, 12) = -0.5 * dt * (C + C_1) * Ma_ -
                                0.25 * pow(dt, 2) *
                                    okvis::kinematics::crossMx(C_1 * acc_est_1) *
                                    (C + C_1) * MgTs_;
 
-  F_delta.block<3, 3>(6, 3) = -okvis::kinematics::crossMx(
+  F_delta_.block<3, 3>(6, 3) = -okvis::kinematics::crossMx(
       0.5 * (C * acc_est_0 + C_1 * acc_est_1) * dt);                // vq
-  F_delta.block<3, 3>(0, 3) = 0.5 * dt * F_delta.block<3, 3>(6, 3); // pq
+  F_delta_.block<3, 3>(0, 3) = 0.5 * dt * F_delta_.block<3, 3>(6, 3); // pq
 
-  F_delta.block<3, 3>(0, 6) = Eigen::Matrix3d::Identity() * dt;
-  F_delta.block<3, 3>(0, 9) = 0.5 * dt * F_delta.block<3, 3>(6, 9);
-  F_delta.block<3, 3>(0, 12) = 0.5 * dt * F_delta.block<3, 3>(6, 12);
+  F_delta_.block<3, 3>(0, 6) = Eigen::Matrix3d::Identity() * dt;
+  F_delta_.block<3, 3>(0, 9) = 0.5 * dt * F_delta_.block<3, 3>(6, 9);
+  F_delta_.block<3, 3>(0, 12) = 0.5 * dt * F_delta_.block<3, 3>(6, 12);
 
-  P_delta_ = F_delta * P_delta_ * F_delta.transpose();
+  P_delta_ = F_delta_ * P_delta_ * F_delta_.transpose();
   // add noise. note the scaling effect of T_g and T_a
   Eigen::Matrix<double, 15, 15> GQG = Eigen::Matrix<double, 15, 15>::Zero();
   Eigen::Matrix<double, 15, 15> GQG_1 = Eigen::Matrix<double, 15, 15>::Zero();
-  Eigen::Matrix3d CinvTg = C * Mg_;
-  Eigen::Matrix3d CinvTg_1 = C_1 * Mg_;
-  Eigen::Matrix3d CinvTa = C * Ma_;
-  Eigen::Matrix3d CinvTa_1 = C_1 * Ma_;
-  Eigen::Matrix3d CinvTgsa = C * MgTs_;
-  Eigen::Matrix3d CinvTgsa_1 = C_1 * MgTs_;
+  Eigen::Matrix3d CMg = C * Mg_;
+  Eigen::Matrix3d CMg_1 = C_1 * Mg_;
+  Eigen::Matrix3d CMa = C * Ma_;
+  Eigen::Matrix3d CMa_1 = C_1 * Ma_;
+  Eigen::Matrix3d CMgTs = C * MgTs_;
+  Eigen::Matrix3d CMgTs_1 = C_1 * MgTs_;
   GQG.block<3, 3>(3, 3) =
-      CinvTg * sigma_g_c * sigma_g_c * CinvTg.transpose() +
-      CinvTgsa * sigma_a_c * sigma_a_c * CinvTgsa.transpose();
-  GQG.block<3, 3>(3, 6) = CinvTgsa * sigma_a_c * sigma_a_c * CinvTa.transpose();
+      CMg * sigma_g_c * sigma_g_c * CMg.transpose() +
+      CMgTs * sigma_a_c * sigma_a_c * CMgTs.transpose();
+  GQG.block<3, 3>(3, 6) = CMgTs * sigma_a_c * sigma_a_c * CMa.transpose();
   GQG.block<3, 3>(6, 3) = GQG.block<3, 3>(3, 6).transpose();
-  GQG.block<3, 3>(6, 6) = CinvTa * sigma_a_c * sigma_a_c * CinvTa.transpose();
+  GQG.block<3, 3>(6, 6) = CMa * sigma_a_c * sigma_a_c * CMa.transpose();
   GQG.block<3, 3>(9, 9) = Eigen::Matrix3d::Identity() * sigma_gw_c * sigma_gw_c;
   GQG.block<3, 3>(12, 12) =
       Eigen::Matrix3d::Identity() * sigma_aw_c * sigma_aw_c;
 
   GQG_1.block<3, 3>(3, 3) =
-      CinvTg_1 * sigma_g_c * sigma_g_c * CinvTg_1.transpose() +
-      CinvTgsa_1 * sigma_a_c * sigma_a_c * CinvTgsa_1.transpose();
+      CMg_1 * sigma_g_c * sigma_g_c * CMg_1.transpose() +
+      CMgTs_1 * sigma_a_c * sigma_a_c * CMgTs_1.transpose();
   GQG_1.block<3, 3>(3, 6) =
-      CinvTgsa_1 * sigma_a_c * sigma_a_c * CinvTa_1.transpose();
+      CMgTs_1 * sigma_a_c * sigma_a_c * CMa_1.transpose();
   GQG_1.block<3, 3>(6, 3) = GQG_1.block<3, 3>(3, 6).transpose();
   GQG_1.block<3, 3>(6, 6) =
-      CinvTa_1 * sigma_a_c * sigma_a_c * CinvTa_1.transpose();
+      CMa_1 * sigma_a_c * sigma_a_c * CMa_1.transpose();
   GQG_1.block<3, 3>(9, 9) =
       Eigen::Matrix3d::Identity() * sigma_gw_c * sigma_gw_c;
   GQG_1.block<3, 3>(12, 12) =
       Eigen::Matrix3d::Identity() * sigma_aw_c * sigma_aw_c;
 
-  P_delta_ += 0.5 * dt * (F_delta * GQG * F_delta.transpose() + GQG_1);
+  P_delta_ += 0.5 * dt * (F_delta_ * GQG * F_delta_.transpose() + GQG_1);
 
   // memory shift
   Delta_q_ = Delta_q_1;
@@ -519,6 +519,7 @@ void Imu_BG_BA_MG_TS_MA::resetPreintegration() {
   dp_dT_s_.setZero();
   dp_dM_a_.setZero();
 
+  F_delta_.setIdentity();
   P_delta_.setZero();
 }
 

@@ -41,7 +41,7 @@ ImuParameters::ImuParameters()
       sigma_Mg_element(5e-3),
       sigma_Ts_element(1e-3),
       sigma_Ma_element(5e-3),
-      model_type("BG_BA_TG_TS_TA"),
+      model_type("BG_BA_MG_TS_MA"),
       estimateGravityDirection(false),
       sigmaGravityDirection(0.05),
       normalGravity(0, 0, -1) {

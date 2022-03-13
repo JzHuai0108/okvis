@@ -794,7 +794,7 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
   if (node["model_type"].isString()) {
     node["model_type"] >> imuParams->model_type;
   } else {
-    imuParams->model_type = "BG_BA_TG_TS_TA";
+    imuParams->model_type = "BG_BA_MG_TS_MA";
     LOG(WARNING) << "'imu_params: model_type' parameter missing in "
                     "configuration file. Setting to "
                  << imuParams->model_type;

@@ -785,6 +785,7 @@ private:
  Eigen::Matrix<double, 3, 9> dp_dT_s_ = Eigen::Matrix<double, 3, 9>::Zero();
  Eigen::Matrix<double, 3, 6> dp_dM_a_ = Eigen::Matrix<double, 3, 6>::Zero();
 
+ Eigen::Matrix<double, 15, 15> F_delta_;
  // the Jacobian of the increment (w/o biases)
  Eigen::Matrix<double, 15, 15> P_delta_ = Eigen::Matrix<double, 15, 15>::Zero();
 };

@@ -129,7 +129,7 @@ struct ImuParameters{
   Eigen::Matrix<double, 9, 1> Mg0;  // initial Tg estimate
   Eigen::Matrix<double, 9, 1> Ts0;
   Eigen::Matrix<double, 6, 1> Ma0;
-  std::string model_type; // 0 bg_ba, 1 bg_ba_Tg_Ts_Ta, 2, scaledmisaligned
+  std::string model_type;
   bool estimateGravityDirection;
   double sigmaGravityDirection; // The uncertainty in both roll and pitch of the gravity direction.
 
