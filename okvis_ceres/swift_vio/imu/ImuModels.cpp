@@ -385,8 +385,8 @@ void Imu_BG_BA_MG_TS_MA::propagate(double dt,
                        C_1 * dmatrix3_dvector9_multiply(omega_nobias_1));
   dalpha_dT_s_1 =
       dalpha_dT_s_ + 0.5 * dt *
-                         (C * Mg_ * dmatrix3_dvector9_multiply(acc_est_0) +
-                          C_1 * Mg_ * dmatrix3_dvector9_multiply(acc_est_1));
+                         (C * Mg_ * dmatrix3_dvector9_multiply(acc_S_0 - ba_) +
+                          C_1 * Mg_ * dmatrix3_dvector9_multiply(acc_S_1 - ba_));
   dalpha_dM_a_1 = dalpha_dM_a_ +
                   0.5 * dt *
                       (C * Mg_ * Ts_ * dltm3_dvector6_multiply(acc_S_0 - ba_) +
@@ -425,7 +425,7 @@ void Imu_BG_BA_MG_TS_MA::propagate(double dt,
   // do not contribute to P_delta since it starts from a zero matrix.
   Eigen::Matrix<double, 15, 15> F_delta = Eigen::Matrix<double, 15, 15>::Identity();
   F_delta.block<3, 3>(3, 9) = -0.5 * dt * (C_1 + C) * Mg_;
-  F_delta.block<3, 3>(3, 12) = 0.5 * dt * (C_1 + C) * invTgsa_;
+  F_delta.block<3, 3>(3, 12) = 0.5 * dt * (C_1 + C) * MgTs_;
 
   F_delta.block<3, 3>(6, 9) = 0.25 * dt * dt *
                               okvis::kinematics::crossMx(C_1 * acc_est_1) *
@@ -433,7 +433,7 @@ void Imu_BG_BA_MG_TS_MA::propagate(double dt,
   F_delta.block<3, 3>(6, 12) = -0.5 * dt * (C + C_1) * Ma_ -
                                0.25 * pow(dt, 2) *
                                    okvis::kinematics::crossMx(C_1 * acc_est_1) *
-                                   (C + C_1) * invTgsa_;
+                                   (C + C_1) * MgTs_;
 
   F_delta.block<3, 3>(6, 3) = -okvis::kinematics::crossMx(
       0.5 * (C * acc_est_0 + C_1 * acc_est_1) * dt);                // vq
@@ -451,8 +451,8 @@ void Imu_BG_BA_MG_TS_MA::propagate(double dt,
   Eigen::Matrix3d CinvTg_1 = C_1 * Mg_;
   Eigen::Matrix3d CinvTa = C * Ma_;
   Eigen::Matrix3d CinvTa_1 = C_1 * Ma_;
-  Eigen::Matrix3d CinvTgsa = C * invTgsa_;
-  Eigen::Matrix3d CinvTgsa_1 = C_1 * invTgsa_;
+  Eigen::Matrix3d CinvTgsa = C * MgTs_;
+  Eigen::Matrix3d CinvTgsa_1 = C_1 * MgTs_;
   GQG.block<3, 3>(3, 3) =
       CinvTg * sigma_g_c * sigma_g_c * CinvTg.transpose() +
       CinvTgsa * sigma_a_c * sigma_a_c * CinvTgsa.transpose();

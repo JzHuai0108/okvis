@@ -38,18 +38,18 @@ ImuParameters::ImuParameters()
       g0(0, 0, 0),
       a0(0, 0, 0),
       rate(100),
-      sigma_TGElement(5e-3),
-      sigma_TSElement(1e-3),
-      sigma_TAElement(5e-3),
+      sigma_Mg_element(5e-3),
+      sigma_Ts_element(1e-3),
+      sigma_Ma_element(5e-3),
       model_type("BG_BA_TG_TS_TA"),
       estimateGravityDirection(false),
       sigmaGravityDirection(0.05),
       normalGravity(0, 0, -1) {
   Eigen::Matrix<double, 9, 1> eye;
   eye << 1, 0, 0, 0, 1, 0, 0, 0, 1;
-  Tg0 = eye;
+  Mg0 = eye;
   Ts0.setZero();
-  Ta0 = eye;
+  Ma0 << 1, 0, 1, 0, 0, 1;
 }
 
 const Eigen::Vector3d &ImuParameters::gravityDirection() const {

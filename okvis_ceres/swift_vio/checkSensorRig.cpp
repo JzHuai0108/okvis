@@ -14,6 +14,7 @@ bool doesExtrinsicModelFitImuModel(const std::string& extrinsicModel,
       }
       break;
     case Imu_BG_BA::kModelId:
+    case Imu_BG_BA_MG_TS_MA::kModelId:
     case ScaledMisalignedImu::kModelId:
       if (extrinsicModelId != Extrinsic_p_BC_q_BC::kModelId) {
         LOG(ERROR) << "When IMU model is BG_BA or ScaledMisalignedImu, the "

@@ -123,12 +123,12 @@ struct ImuParameters{
   Eigen::Vector3d a0;  ///< Mean of the prior accelerometer bias.
   int rate;  ///< IMU rate in Hz.
 
-  double sigma_TGElement;  /// std for every element in shape matrix T_g
-  double sigma_TSElement;
-  double sigma_TAElement;
-  Eigen::Matrix<double, 9, 1> Tg0;  // initial Tg estimate
+  double sigma_Mg_element;  /// std for every element in matrix M_g
+  double sigma_Ts_element;
+  double sigma_Ma_element;
+  Eigen::Matrix<double, 9, 1> Mg0;  // initial Tg estimate
   Eigen::Matrix<double, 9, 1> Ts0;
-  Eigen::Matrix<double, 9, 1> Ta0;
+  Eigen::Matrix<double, 6, 1> Ma0;
   std::string model_type; // 0 bg_ba, 1 bg_ba_Tg_Ts_Ta, 2, scaledmisaligned
   bool estimateGravityDirection;
   double sigmaGravityDirection; // The uncertainty in both roll and pitch of the gravity direction.

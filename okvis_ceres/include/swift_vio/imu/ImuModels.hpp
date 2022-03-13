@@ -335,7 +335,7 @@ private:
 class Imu_BG_BA_TG_TS_TA {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  static const int kModelId = 1;
+  static const int kModelId = 3;
   static const size_t kAugmentedDim = 27;
   static const size_t kAugmentedMinDim = 27;
   static const size_t kGlobalDim = kAugmentedDim + kBgBaDim;
@@ -353,9 +353,7 @@ class Imu_BG_BA_TG_TS_TA {
                        okvis::ImuParameters *imuParams) {
     imuParams->g0 = bg;
     imuParams->a0 = ba;
-    imuParams->Tg0 = params.template head<9>();
-    imuParams->Ts0 = params.template segment<9>(9);
-    imuParams->Ta0 = params.template tail<9>();
+    throw std::runtime_error("assignTo not implemented for Imu_BG_BA_TG_TS_TA!");
   }
 
   static inline int getAugmentedDim() { return kAugmentedDim; }
@@ -581,7 +579,7 @@ private:
  * a_m = M_a^{-1} * a_B + b_a + n_a
  * M_a is a lower triangular matrix, M_g and T_s are fully populated 3x3 matrices.
  * Therefore,
- * w_B = M_g * (w_m - b_w - T_s * a_B)
+ * w_B = M_g * (w_m - b_w - T_s * (a_m - b_a))
  * a_B = M_a * (a_m - b_a)
  */
 class Imu_BG_BA_MG_TS_MA {
@@ -605,15 +603,9 @@ public:
                       okvis::ImuParameters *imuParams) {
    imuParams->g0 = bg;
    imuParams->a0 = ba;
-   Eigen::Matrix3d Mg, Ts, Ma, Tg, Ta;
-   vectorToMatrix<T>(params.data(), 0, &Mg);
-   vectorToMatrix<T>(params.data(), 9, &Ts);
-   vectorToLowerTriangularMatrix<T>(params.data(), 18, &Ma);
-   Tg = Mg.inverse();
-   matrixToVector(Tg, imuParams->Tg0.data(), 0);
-   matrixToVector(Ts, imuParams->Ts0.data(), 0);
-   invertLowerTriangularMatrix(Ma.data(), 0, &Ta);
-   matrixToVector(Ta, imuParams->Ta0.data(), 0);
+   imuParams->Mg0 = params.template head<9>();
+   imuParams->Ts0 = params.template segment<9>(9);
+   imuParams->Ma0 = params.template tail<6>();
  }
 
  static inline int getAugmentedDim() { return kAugmentedDim; }
@@ -625,7 +617,9 @@ public:
    eye << 1, 0, 0, 0, 1, 0, 0, 0, 1;
    Eigen::Matrix<T, kAugmentedDim, 1> augmentedParams;
    augmentedParams.template head<9>() = eye;
-   lowerTriangularMatrixToVector(eye, augmentedParams.data(), 18);
+   augmentedParams.template segment<9>(9).setZero();
+   Eigen::Matrix<T, 3, 3> identity = Eigen::Matrix<T, 3, 3>::Identity();
+   lowerTriangularMatrixToVector(identity, augmentedParams.data(), 18);
    return augmentedParams;
  }
 
@@ -654,7 +648,7 @@ public:
  void correct(const Eigen::Matrix<T, 3, 1> &w, const Eigen::Matrix<T, 3, 1> &a,
          Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b) const {
    *a_b = Ma_ * (a - ba_);
-   *w_b = Mg_ * (w - bg_ - Ts_ * (*a_b));
+   *w_b = Mg_ * (w - bg_ - Ts_ * (a - ba_));
  }
 
  void updateParameters(const double * bgba, double const *const * xparams) {
@@ -663,7 +657,7 @@ public:
    vectorToMatrix<double>(xparams[0], 0, &Mg_);
    vectorToMatrix<double>(xparams[1], 0, &Ts_);
    vectorToLowerTriangularMatrix<double>(xparams[2], 0, &Ma_);
-   invTgsa_ = Mg_ * Ts_ * Ma_;
+   MgTs_ = Mg_ * Ts_;
  }
 
  void getWeight(Eigen::Matrix<double, 15, 15> *information) {
@@ -704,6 +698,7 @@ public:
    if constexpr (XBlockId == 2)
      return -dalpha_dM_a_;
  }
+
  template <size_t XBlockId>
  Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDv_dx() const {
    if constexpr (XBlockId == 0)
@@ -729,17 +724,17 @@ public:
 
  Eigen::Matrix<double, 3, 3> dDp_dbg() const { return dp_db_g_; }
  Eigen::Matrix<double, 3, 3> dDp_dba() const {
-   return -(C_doubleintegral_ * Ma_ + dp_db_g_ * Ts_ * Ma_);
+   return -(C_doubleintegral_ * Ma_ + dp_db_g_ * Ts_);
  }
  Eigen::Matrix<double, 3, 3> dDrot_dbg() const {
    return -(C_integral_ * Mg_);
  }
  Eigen::Matrix<double, 3, 3> dDrot_dba() const {
-   return C_integral_ * invTgsa_;
+   return C_integral_ * MgTs_;
  }
  Eigen::Matrix<double, 3, 3> dDv_dbg() const { return dv_db_g_; }
  Eigen::Matrix<double, 3, 3> dDv_dba() const {
-   return -(C_integral_ * Ma_ + dv_db_g_ * Ts_ * Ma_);
+   return -(C_integral_ * Ma_ + dv_db_g_ * Ts_);
  }
 
 private:
@@ -748,7 +743,7 @@ private:
  Eigen::Matrix3d Ts_;
  Eigen::Matrix3d Mg_;
  Eigen::Matrix3d Ma_;
- Eigen::Matrix3d invTgsa_;
+ Eigen::Matrix3d MgTs_;
 
  Eigen::Quaterniond Delta_q_ = Eigen::Quaterniond(1, 0, 0, 0);  // quaternion of DCM from Si to S0
  //$\int_{t_0}^{t_i} R_S^{S_0} dt$
@@ -1048,6 +1043,7 @@ class ScaledMisalignedImu {
 #ifndef IMU_ERROR_MODEL_CASES
 #define IMU_ERROR_MODEL_CASES                                                  \
   IMU_ERROR_MODEL_CASE(Imu_BG_BA)                                              \
+  IMU_ERROR_MODEL_CASE(Imu_BG_BA_MG_TS_MA)                                     \
   IMU_ERROR_MODEL_CASE(Imu_BG_BA_TG_TS_TA)                                     \
   IMU_ERROR_MODEL_CASE(ScaledMisalignedImu)
 #endif
@@ -1115,6 +1111,20 @@ inline void ImuModelToAugmentedDesiredStdevs(const int imu_model,
       (*stdevs)[i + index] = 5e-3;
     }
     break;
+  case Imu_BG_BA_MG_TS_MA::kModelId:
+    stdevs->resize(24);
+    for (int i = 0; i < 9; ++i) {
+      (*stdevs)[i] = 4e-3;
+    }
+    index = 9;
+    for (int i = 0; i < 9; ++i) {
+      (*stdevs)[i + index] = 1e-3;
+    }
+    index += 9;
+    for (int i = 0; i < 6; ++i) {
+      (*stdevs)[i + index] = 5e-3;
+    }
+    break;
   case ScaledMisalignedImu::kModelId:
     stdevs->resize(24);
     for (int i = 0; i < 6; ++i) {
@@ -1146,6 +1156,12 @@ ImuModelToMinimalAugmentedDimensionLabels(const int imu_model,
                                           std::vector<std::string> *labels) {
   std::vector<std::string> extraLabels;
   switch (imu_model) {
+  case Imu_BG_BA_MG_TS_MA::kModelId:
+    extraLabels = {"Mg_1", "Mg_2", "Mg_3", "Mg_4", "Mg_5", "Mg_6", "Mg_7",
+                   "Mg_8", "Mg_9", "Ts_1", "Ts_2", "Ts_3", "Ts_4", "Ts_5",
+                   "Ts_6", "Ts_7", "Ts_8", "Ts_9", "Ma_1", "Ma_2", "Ma_3",
+                   "Ma_4", "Ma_5", "Ma_6"};
+    break;
   case Imu_BG_BA_TG_TS_TA::kModelId:
     extraLabels = {"Tg_1", "Tg_2", "Tg_3", "Tg_4", "Tg_5", "Tg_6", "Tg_7",
                    "Tg_8", "Tg_9", "Ts_1", "Ts_2", "Ts_3", "Ts_4", "Ts_5",
@@ -1171,6 +1187,12 @@ ImuModelToAugmentedDimensionLabels(const int imu_model,
                                    std::vector<std::string> *labels) {
   std::vector<std::string> extraLabels;
   switch (imu_model) {
+  case Imu_BG_BA_MG_TS_MA::kModelId:
+    extraLabels = {"Mg_1", "Mg_2", "Mg_3", "Mg_4", "Mg_5", "Mg_6", "Mg_7",
+                   "Mg_8", "Mg_9", "Ts_1", "Ts_2", "Ts_3", "Ts_4", "Ts_5",
+                   "Ts_6", "Ts_7", "Ts_8", "Ts_9", "Ma_1", "Ma_2", "Ma_3",
+                   "Ma_4", "Ma_5", "Ma_6"};
+    break;
   case Imu_BG_BA_TG_TS_TA::kModelId:
     extraLabels = {"Tg_1", "Tg_2", "Tg_3", "Tg_4", "Tg_5", "Tg_6", "Tg_7",
                    "Tg_8", "Tg_9", "Ts_1", "Ts_2", "Ts_3", "Ts_4", "Ts_5",
@@ -1211,7 +1233,7 @@ inline int ImuModelNameToId(std::string imu_error_model_descrip) {
   } else if (imu_error_model_descrip.compare("BG_BA") == 0) {
     return Imu_BG_BA::kModelId;
   } else {
-    return Imu_BG_BA_TG_TS_TA::kModelId;
+    return Imu_BG_BA_MG_TS_MA::kModelId;
   }
 }
 
@@ -1237,41 +1259,6 @@ inline Eigen::Matrix<double, Eigen::Dynamic, 1> ImuModelNominalAugmentedParams(i
 #define IMU_ERROR_MODEL_CASE(ImuModel) \
     case ImuModel::kModelId:             \
   return ImuModel::getNominalAugmentedParams<double>();
-
-    MODEL_SWITCH_CASES
-
-    #undef IMU_ERROR_MODEL_CASE
-    #undef MODEL_CASES
-    }
-}
-
-inline void ImuModelPredict(int model_id, const Eigen::Vector3d& bg, const Eigen::Vector3d& ba,
-                            const Eigen::Matrix<double, Eigen::Dynamic, 1>& params,
-                            const Eigen::Matrix<double, 3, 1>& w_b, const Eigen::Matrix<double, 3, 1>& a_b,
-                            Eigen::Matrix<double, 3, 1>* w, Eigen::Matrix<double, 3, 1>* a) {
-  switch (model_id) {
-#define MODEL_CASES IMU_ERROR_MODEL_CASES
-#define IMU_ERROR_MODEL_CASE(ImuModel) \
-    case ImuModel::kModelId:             \
-  return ImuModel::predict<double>(bg, ba, params, w_b, a_b, w, a);
-
-    MODEL_SWITCH_CASES
-
-    #undef IMU_ERROR_MODEL_CASE
-    #undef MODEL_CASES
-    }
-}
-
-inline void ImuModelCorrect(int model_id,
-                            const Eigen::Vector3d& bg, const Eigen::Vector3d& ba,
-                            const Eigen::Matrix<double, Eigen::Dynamic, 1>& params,
-                            const Eigen::Matrix<double, 3, 1>& w, const Eigen::Matrix<double, 3, 1>& a,
-                            Eigen::Matrix<double, 3, 1>* w_b, Eigen::Matrix<double, 3, 1>* a_b) {
-  switch (model_id) {
-#define MODEL_CASES IMU_ERROR_MODEL_CASES
-#define IMU_ERROR_MODEL_CASE(ImuModel) \
-    case ImuModel::kModelId:             \
-  return ImuModel::correct<double>(bg, ba, params, w, a, w_b, a_b);
 
     MODEL_SWITCH_CASES
 

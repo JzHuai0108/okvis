@@ -800,37 +800,37 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
                  << imuParams->model_type;
   }
 
-  if (node["sigma_TGElement"].isReal()) {
-    node["sigma_TGElement"] >> imuParams->sigma_TGElement;
+  if (node["sigma_Mg_element"].isReal()) {
+    node["sigma_Mg_element"] >> imuParams->sigma_Mg_element;
   } else {
-    imuParams->sigma_TGElement = 0.0;
-    LOG(WARNING) << "'imu_params: sigma_TGElement' parameter missing in "
+    imuParams->sigma_Mg_element = 0.0;
+    LOG(WARNING) << "'imu_params: sigma_Mg_element' parameter missing in "
                     "configuration file. Setting to "
-                 << imuParams->sigma_TGElement;
+                 << imuParams->sigma_Mg_element;
   }
-  if (node["sigma_TSElement"].isReal()) {
-    node["sigma_TSElement"] >> imuParams->sigma_TSElement;
+  if (node["sigma_Ts_element"].isReal()) {
+    node["sigma_Ts_element"] >> imuParams->sigma_Ts_element;
   } else {
-    imuParams->sigma_TSElement = 0.0;
-    LOG(WARNING) << "'imu_params: sigma_TSElement' parameter missing in "
+    imuParams->sigma_Ts_element = 0.0;
+    LOG(WARNING) << "'imu_params: sigma_Ts_element' parameter missing in "
                     "configuration file. Setting to "
-                 << imuParams->sigma_TSElement;
+                 << imuParams->sigma_Ts_element;
   }
-  if (node["sigma_TAElement"].isReal()) {
-    node["sigma_TAElement"] >> imuParams->sigma_TAElement;
+  if (node["sigma_Ma_element"].isReal()) {
+    node["sigma_Ma_element"] >> imuParams->sigma_Ma_element;
   } else {
-    imuParams->sigma_TAElement = 0.0;
-    LOG(WARNING) << "'imu_params: sigma_TAElement' parameter missing in "
+    imuParams->sigma_Ma_element = 0.0;
+    LOG(WARNING) << "'imu_params: sigma_Ma_element' parameter missing in "
                     "configuration file. Setting to "
-                 << imuParams->sigma_TAElement;
+                 << imuParams->sigma_Ma_element;
   }
 
-  cv::FileNode initTg = node["Tg0"];
-  if (initTg.isSeq()) {
-    Eigen::Matrix<double, 9, 1> Tg;
-    Tg << initTg[0], initTg[1], initTg[2], initTg[3], initTg[4], initTg[5],
-        initTg[6], initTg[7], initTg[8];
-    imuParams->Tg0 = Tg;
+  cv::FileNode initMg = node["Mg0"];
+  if (initMg.isSeq()) {
+    Eigen::Matrix<double, 9, 1> Mg;
+    Mg << initMg[0], initMg[1], initMg[2], initMg[3], initMg[4], initMg[5],
+        initMg[6], initMg[7], initMg[8];
+    imuParams->Mg0 = Mg;
   }
 
   cv::FileNode initTs = node["Ts0"];
@@ -841,15 +841,12 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
     imuParams->Ts0 = Ts;
   }
 
-  cv::FileNode initTa = node["Ta0"];
-  if (initTa.isSeq()) {
-    Eigen::Matrix<double, 9, 1> Ta;
-    Ta << initTa[0], initTa[1], initTa[2], initTa[3], initTa[4], initTa[5],
-        initTa[6], initTa[7], initTa[8];
-    imuParams->Ta0 = Ta;
+  cv::FileNode initMa = node["Ma0"];
+  if (initMa.isSeq()) {
+    Eigen::Matrix<double, 6, 1> Ma;
+    Ma << initMa[0], initMa[1], initMa[2], initMa[3], initMa[4], initMa[5];
+    imuParams->Ma0 = Ma;
   }
-  s.str(std::string());
-  s << imuParams->Ta0.transpose();
 }
 
 // Parses booleans from a cv::FileNode. OpenCV sadly has no implementation like this.
