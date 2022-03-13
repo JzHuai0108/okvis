@@ -38,7 +38,7 @@ class EuclideanParamBlockSized
   /// @param[in] id The (unique) ID of this block.
   /// @param[in] timestamp The timestamp of this state.
   EuclideanParamBlockSized(const Eigen::Matrix<double, Dim, 1>& intrinsicParams,
-                           uint64_t id, const okvis::Time& timestamp) : linPointFixed_(false) {
+                           uint64_t id) : linPointFixed_(false) {
     setEstimate(intrinsicParams);
     okvis::ceres::ParameterBlock::setId(id);
     okvis::ceres::ParameterBlock::setFixed(false);

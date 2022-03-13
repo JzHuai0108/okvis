@@ -150,16 +150,16 @@ public:
     // problem.SetParameterBlockConstant(poseParameterBlock_0.parameters());
 
     // create the speed and bias
-    speedParameterBlock_0 = okvis::ceres::EuclideanParamBlockSized<3>(speedAndBias_0.head<3>(), 11, t_0);
-    biasParameterBlock_0 = okvis::ceres::EuclideanParamBlockSized<6>(speedAndBias_0.tail<6>(), 12, t_0);
+    speedParameterBlock_0 = okvis::ceres::EuclideanParamBlockSized<3>(speedAndBias_0.head<3>(), 11);
+    biasParameterBlock_0 = okvis::ceres::EuclideanParamBlockSized<6>(speedAndBias_0.tail<6>(), 12);
 
     problem.AddParameterBlock(
         speedParameterBlock_0.parameters(), 3);
     problem.AddParameterBlock(
         biasParameterBlock_0.parameters(), 6);
 
-    speedParameterBlock_1 = okvis::ceres::EuclideanParamBlockSized<3>(speedAndBias_1.head<3>(), 13, t_1);
-    biasParameterBlock_1 = okvis::ceres::EuclideanParamBlockSized<6>(speedAndBias_1.tail<6>(), 14, t_1);
+    speedParameterBlock_1 = okvis::ceres::EuclideanParamBlockSized<3>(speedAndBias_1.head<3>(), 13);
+    biasParameterBlock_1 = okvis::ceres::EuclideanParamBlockSized<6>(speedAndBias_1.tail<6>(), 14);
 
     problem.AddParameterBlock(
         speedParameterBlock_1.parameters(), 3);
@@ -189,15 +189,15 @@ public:
 
     Eigen::Matrix<double, 9, 1> eye;
     eye << 1, 0, 0, 0, 1, 0, 0, 0, 1;
-    Tg = okvis::ceres::EuclideanParamBlockSized<9>(eye, 5, t_0);
-    Ts = okvis::ceres::EuclideanParamBlockSized<9>(Eigen::Matrix<double, 9, 1>::Zero(), 6, t_0);
-    Ta = okvis::ceres::EuclideanParamBlockSized<9>(eye, 7, t_0);
+    Tg = okvis::ceres::EuclideanParamBlockSized<9>(eye, 5);
+    Ts = okvis::ceres::EuclideanParamBlockSized<9>(Eigen::Matrix<double, 9, 1>::Zero(), 6);
+    Ta = okvis::ceres::EuclideanParamBlockSized<9>(eye, 7);
 
-    Mg = okvis::ceres::EuclideanParamBlockSized<9>(eye, 8, t_0);
+    Mg = okvis::ceres::EuclideanParamBlockSized<9>(eye, 8);
     Eigen::Matrix<double, 6, 1> lowerTriangularMat;
     Eigen::Matrix3d identity = Eigen::Matrix3d::Identity();
     swift_vio::lowerTriangularMatrixToVector(identity, lowerTriangularMat.data(), 0);
-    Ma = okvis::ceres::EuclideanParamBlockSized<6>(lowerTriangularMat, 9, t_0);
+    Ma = okvis::ceres::EuclideanParamBlockSized<6>(lowerTriangularMat, 9);
     std::cout << " [ OK ] " << std::endl;
   }
 

@@ -349,7 +349,7 @@ class Imu_BG_BA_TG_TS_TA {
   template <typename T>
   static void assignTo(const Eigen::Matrix<T, 3, 1> &bg,
                        const Eigen::Matrix<T, 3, 1> &ba,
-                       const Eigen::Matrix<T, Eigen::Dynamic, 1> & params,
+                       const Eigen::Matrix<T, Eigen::Dynamic, 1> & /*params*/,
                        okvis::ImuParameters *imuParams) {
     imuParams->g0 = bg;
     imuParams->a0 = ba;
