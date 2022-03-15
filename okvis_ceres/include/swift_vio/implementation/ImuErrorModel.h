@@ -103,7 +103,7 @@ void ImuErrorModel<Scalar>::setBa(const Eigen::Matrix<Scalar, 3, 1>& ba) {
 //}
 
 template <class Scalar>
-void ImuErrorModel<Scalar>::estimate(const Eigen::Matrix<Scalar, 3, 1>& w_m,
+void ImuErrorModel<Scalar>::correct(const Eigen::Matrix<Scalar, 3, 1>& w_m,
                                      const Eigen::Matrix<Scalar, 3, 1>& a_m,
                                      Eigen::Matrix<Scalar, 3, 1>* w_s,
                                      Eigen::Matrix<Scalar, 3, 1>* a_s) const {

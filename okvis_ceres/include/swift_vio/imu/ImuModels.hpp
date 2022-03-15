@@ -15,6 +15,8 @@
 #include <okvis/Parameters.hpp>
 #include <okvis/Time.hpp>
 
+#include <swift_vio/matrixUtilities.h>
+
 #define IMU_MODEL_SHARED_MEMBERS                                               \
 public:                                                                        \
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW                                              \
@@ -90,79 +92,6 @@ private:                                                                       \
 
 namespace swift_vio {
 static const int kBgBaDim = 6; // bg ba
-
-template <typename T>
-void vectorToLowerTriangularMatrix(const T* data, int startIndex, Eigen::Matrix<T, 3, 3>* mat33) {
-  (*mat33)(0, 0) = data[startIndex];
-  (*mat33)(0, 1) = 0;
-  (*mat33)(0, 2) = 0;
-  (*mat33)(1, 0) = data[startIndex + 1];
-  (*mat33)(1, 1) = data[startIndex + 2];
-  (*mat33)(1, 2) = 0;
-  (*mat33)(2, 0) = data[startIndex + 3];
-  (*mat33)(2, 1) = data[startIndex + 4];
-  (*mat33)(2, 2) = data[startIndex + 5];
-}
-
-template <typename T>
-void lowerTriangularMatrixToVector(const Eigen::Matrix<T, 3, 3> &mat33, T *data, int startIndex) {
-  data[startIndex] = mat33(0, 0);
-  data[startIndex + 1] = mat33(1, 0);
-  data[startIndex + 2] = mat33(1, 1);
-  data[startIndex + 3] = mat33(2, 0);
-  data[startIndex + 4] = mat33(2, 1);
-  data[startIndex + 5] = mat33(2, 2);
-}
-
-template <typename T>
-void vectorToMatrix(const T* data, int startIndex, Eigen::Matrix<T, 3, 3>* mat33) {
-  (*mat33)(0, 0) = data[startIndex];
-  (*mat33)(0, 1) = data[startIndex + 1];
-  (*mat33)(0, 2) = data[startIndex + 2];
-  (*mat33)(1, 0) = data[startIndex + 3];
-  (*mat33)(1, 1) = data[startIndex + 4];
-  (*mat33)(1, 2) = data[startIndex + 5];
-  (*mat33)(2, 0) = data[startIndex + 6];
-  (*mat33)(2, 1) = data[startIndex + 7];
-  (*mat33)(2, 2) = data[startIndex + 8];
-}
-
-template <typename T>
-void matrixToVector(const Eigen::Matrix<T, 3, 3> &mat33, T* data, int startIndex) {
-  data[startIndex] = (*mat33)(0, 0);
-  data[startIndex + 1] = (*mat33)(0, 1);
-  data[startIndex + 2] = (*mat33)(0, 2);
-  data[startIndex + 3] = (*mat33)(1, 0);
-  data[startIndex + 4] = (*mat33)(1, 1);
-  data[startIndex + 5] = (*mat33)(1, 2);
-  data[startIndex + 6] = (*mat33)(2, 0);
-  data[startIndex + 7] = (*mat33)(2, 1);
-  data[startIndex + 8] = (*mat33)(2, 2);
-}
-
-template <typename T>
-void invertLowerTriangularMatrix(const T* data, int startIndex, Eigen::Matrix<T, 3, 3>* mat33) {
-  //  syms a b c d e f positive
-  //  g = [a, 0, 0, b, c, 0, d, e, f]
-  //  [ a, 0, 0]
-  //  [ b, c, 0]
-  //  [ d, e, f]
-  //  inv(g)
-  //  [                 1/a,        0,   0]
-  //  [            -b/(a*c),      1/c,   0]
-  //  [ (b*e - c*d)/(a*c*f), -e/(c*f), 1/f]
-  (*mat33)(0, 0) = 1 / data[startIndex];
-  (*mat33)(0, 1) = 0;
-  (*mat33)(0, 2) = 0;
-  (*mat33)(1, 0) = - data[startIndex + 1] / (data[startIndex] * data[startIndex + 2]);
-  (*mat33)(1, 1) = 1 / data[startIndex + 2];
-  (*mat33)(1, 2) = 0;
-  (*mat33)(2, 0) = (data[startIndex + 1] * data[startIndex + 4] -
-      data[startIndex + 2] * data[startIndex + 3]) /
-      (data[startIndex] * data[startIndex + 2] * data[startIndex + 5]);
-  (*mat33)(2, 1) = - data[startIndex + 4] / (data[startIndex + 2] * data[startIndex + 5]);
-  (*mat33)(2, 2) = 1 / data[startIndex + 5];
-}
 
 /**
  * @brief The Imu_BG_BA class
@@ -251,14 +180,25 @@ class Imu_BG_BA {
       return Eigen::VectorXd(0);
   }
 
-  template<typename T>
+  template <typename T>
   void correct(const Eigen::Matrix<T, 3, 1> &w, const Eigen::Matrix<T, 3, 1> &a,
-          Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b) const {
+               Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b,
+               Eigen::Matrix<T, 6, kGlobalDim> *jacobian = nullptr) const {
     *a_b = a - ba_;
     *w_b = w - bg_;
+    if (jacobian) {
+      jacobian->setZero();
+      for (size_t i = 0u; i < kGlobalDim; ++i)
+        (*jacobian)(i, i) = -1;
+    }
   }
 
   void updateParameters(const double * bgba, double const * const * /*xparams*/) {
+    bg_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba);
+    ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
+  }
+
+  void updateParameters(const double * bgba, double const * /*xparams*/) {
     bg_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba);
     ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
   }
@@ -365,6 +305,7 @@ class Imu_BG_BA_TG_TS_TA {
     eye << 1, 0, 0, 0, 1, 0, 0, 0, 1;
     Eigen::Matrix<T, kAugmentedDim, 1> augmentedParams;
     augmentedParams.template head<9>() = eye;
+    augmentedParams.template segment<9>(9).setZero();
     augmentedParams.template tail<9>() = eye;
     return augmentedParams;
   }
@@ -421,11 +362,15 @@ class Imu_BG_BA_TG_TS_TA {
     xplusm = xm + incm;
   }
 
-  template<typename T>
+  template <typename T>
   void correct(const Eigen::Matrix<T, 3, 1> &w, const Eigen::Matrix<T, 3, 1> &a,
-          Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b) const {
+               Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b,
+               Eigen::Matrix<T, 6, kGlobalDim> *jacobian = nullptr) const {
     *a_b = invTa_ * (a - ba_);
     *w_b = invTg_ * (w - bg_ - Ts_ * (*a_b));
+    if (jacobian) {
+      dwa_B_dbgbaSTS(*w_b, *a_b, *jacobian);
+    }
   }
 
   void updateParameters(const double * bgba, double const *const * xparams) {
@@ -439,6 +384,11 @@ class Imu_BG_BA_TG_TS_TA {
     invTg_ = T_g.inverse();
     invTa_ = T_a.inverse();
     invTgsa_ = invTg_ * Ts_ * invTa_;
+  }
+
+  void updateParameters(const double * bgba, double const * xparams) {
+    std::vector<const double *> xparamPtrs{xparams, xparams + 9, xparams + 18};
+    updateParameters(bgba, xparamPtrs.data());
   }
 
   void getWeight(Eigen::Matrix<double, 15, 15> *information) {
@@ -518,6 +468,62 @@ class Imu_BG_BA_TG_TS_TA {
   }
 
 private:
+
+  template <class Scalar>
+  Eigen::Matrix<Scalar, 3, 6> domega_B_dbgba() const {
+    Eigen::Matrix<Scalar, 3, 6> dwB_dbgba = Eigen::Matrix<Scalar, 3, 6>::Zero();
+    dwB_dbgba.template block<3, 3>(0, 0) = -invTg_;
+    dwB_dbgba.template block<3, 3>(0, 3) = invTg_ * Ts_ * invTa_;
+    return dwB_dbgba;
+  }
+
+  template <class Scalar>
+  Eigen::Matrix<Scalar, 3, 27> domega_B_dSgTsSa(
+      const Eigen::Matrix<Scalar, 3, 1>& w_est,
+      const Eigen::Matrix<Scalar, 3, 1>& a_est) const {
+    Eigen::Matrix<Scalar, 3, 27> dwB_dSgTsSa =
+        Eigen::Matrix<Scalar, 3, 27>::Zero();
+    dwB_dSgTsSa.template block<3, 9>(0, 0) =
+        -invTg_ * dmatrix3_dvector9_multiply(w_est);
+    dwB_dSgTsSa.template block<3, 9>(0, 9) =
+        -invTg_ * dmatrix3_dvector9_multiply(a_est);
+    dwB_dSgTsSa.template block<3, 9>(0, 18) =
+        invTg_ * Ts_ * invTa_ * dmatrix3_dvector9_multiply(a_est);
+    return dwB_dSgTsSa;
+  }
+
+  template <class Scalar>
+  Eigen::Matrix<Scalar, 3, 6> dacc_B_dbgba() const {
+    Eigen::Matrix<Scalar, 3, 6> daB_dbgba = Eigen::Matrix<Scalar, 3, 6>::Zero();
+    daB_dbgba.template block<3, 3>(0, 3) = -invTa_;
+    return daB_dbgba;
+  }
+
+  template <class Scalar>
+  Eigen::Matrix<Scalar, 3, 27> dacc_B_dSgTsSa(
+      const Eigen::Matrix<Scalar, 3, 1>& a_est) const {
+    Eigen::Matrix<Scalar, 3, 27> daB_dSgTsSa =
+        Eigen::Matrix<Scalar, 3, 27>::Zero();
+    daB_dSgTsSa.template block<3, 9>(0, 18) =
+        -invTa_ * dmatrix3_dvector9_multiply(a_est);
+    return daB_dSgTsSa;
+  }
+
+  /**
+   * w_est ideal gyroscope measurement
+   * a_est ideal accelerometer measurement
+   */
+  template <class Scalar>
+  void dwa_B_dbgbaSTS(
+      const Eigen::Matrix<Scalar, 3, 1>& w_est,
+      const Eigen::Matrix<Scalar, 3, 1>& a_est,
+      Eigen::Matrix<Scalar, 6, 6 + 27>& output) const {
+    output.template block<3, 6>(0, 0) = domega_B_dbgba<Scalar>();
+    output.template block<3, 6>(3, 0) = dacc_B_dbgba<Scalar>();
+    output.template block<3, 27>(0, 6) = domega_B_dSgTsSa(w_est, a_est);
+    output.template block<3, 27>(3, 6) = dacc_B_dSgTsSa(a_est);
+  }
+
   Eigen::Vector3d bg_;
   Eigen::Vector3d ba_;
   Eigen::Matrix3d Ts_;
@@ -644,11 +650,28 @@ public:
    xplusm = xm + incm;
  }
 
- template<typename T>
+ template <typename T>
  void correct(const Eigen::Matrix<T, 3, 1> &w, const Eigen::Matrix<T, 3, 1> &a,
-         Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b) const {
-   *a_b = Ma_ * (a - ba_);
-   *w_b = Mg_ * (w - bg_ - Ts_ * (a - ba_));
+              Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b,
+              Eigen::Matrix<T, 6, kGlobalDim> *jacobian = nullptr) const {
+   Eigen::Matrix<T, 3, 1> alternatea = a - ba_;
+   *a_b = Ma_ * alternatea;
+   Eigen::Matrix<T, 3, 1> alternatew = w - bg_ - Ts_ * (a - ba_);
+   *w_b = Mg_ * alternatew;
+   if (jacobian) {
+     // w_b relative to bg ba Mg Ts Ma
+     jacobian->template block<3, 3>(0, 0) = -Mg_;
+     jacobian->template block<3, 3>(0, 3) = Mg_ * Ts_;
+     jacobian->template block<3, 9>(0, 6) = dmatrix3_dvector9_multiply(alternatew);
+     jacobian->template block<3, 9>(0, 15) = -Mg_ * dmatrix3_dvector9_multiply(alternatea);
+     jacobian->template block<3, 6>(0, 24).setZero();
+
+     // a_b relative to bg ba Mg Ts Ma
+     jacobian->template block<3, 3>(3, 0).setZero();
+     jacobian->template block<3, 3>(3, 3) = -Ma_;
+     jacobian->template block<3, 18>(3, 6).setZero();
+     jacobian->template block<3, 6>(3, 24) = dltm3_dvector6_multiply(alternatea);
+   }
  }
 
  void updateParameters(const double * bgba, double const *const * xparams) {
@@ -658,6 +681,11 @@ public:
    vectorToMatrix<double>(xparams[1], 0, &Ts_);
    vectorToLowerTriangularMatrix<double>(xparams[2], 0, &Ma_);
    MgTs_ = Mg_ * Ts_;
+ }
+
+ void updateParameters(const double * bgba, double const * xparams) {
+   std::vector<const double *> xparamPtrs{xparams, xparams + 9, xparams + 18};
+   updateParameters(bgba, xparamPtrs.data());
  }
 
  void getWeight(Eigen::Matrix<double, 15, 15> *information) {
@@ -967,12 +995,16 @@ class ScaledMisalignedImu {
 
   template <typename T>
   void correct(const Eigen::Matrix<T, 3, 1> &w, const Eigen::Matrix<T, 3, 1> &a,
-               Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b) const {
+               Eigen::Matrix<T, 3, 1> *w_b, Eigen::Matrix<T, 3, 1> *a_b,
+               Eigen::Matrix<T, 6, 6 + kAugmentedMinDim> *jacobian = nullptr) const {
     *a_b = C_b_i_ * M_accel_inv_ * (a - ba_);
     Eigen::Matrix<T, 3, 3> C_gyro_i = q_gyro_i_.toRotationMatrix();
     Eigen::Matrix<T, 3, 3> C_gyro_b = C_gyro_i * C_i_b_;
     *w_b = C_gyro_b.transpose() *
            (M_gyro_inv_ * (w - bg_ - M_accel_gyro_ * (C_gyro_b * (*a_b))));
+    if (jacobian) {
+      throw std::runtime_error("Jacobian for ScaledMisalignedImu::correct() is not implemented!");
+    }
   }
 
   static Eigen::VectorXd
@@ -1016,6 +1048,11 @@ class ScaledMisalignedImu {
     q_gyro_i_ = Eigen::Map<const Eigen::Quaterniond>(xparams[3]);
     invertLowerTriangularMatrix(xparams[0], 0, &M_gyro_inv_);
     invertLowerTriangularMatrix(xparams[2], 0, &M_accel_inv_);
+  }
+
+  void updateParameters(const double * bgba, double const * xparams) {
+    std::vector<const double *> xparamPtrs{xparams, xparams + 6, xparams + 15, xparams + 21};
+    updateParameters(bgba, xparamPtrs.data());
   }
 
   void propagate(double dt, const Eigen::Vector3d &omega_S_0,

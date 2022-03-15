@@ -11,8 +11,6 @@
 
 namespace swift_vio {
 
-OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
-
 okvis::kinematics::Transformation
 propagationConstVelocity(const okvis::kinematics::Transformation &T_WS,
                          const Eigen::Vector3d &v_WS,
@@ -206,11 +204,11 @@ int ImuOdometry::propagation(
 
     Eigen::Vector3d omega_est;
     Eigen::Vector3d acc_est;
-    iem.estimate(omega_S_0, acc_S_0, &omega_est, &acc_est);
+    iem.correct(omega_S_0, acc_S_0, &omega_est, &acc_est);
 
     Eigen::Vector3d omega_est_1;
     Eigen::Vector3d acc_est_1;
-    iem.estimate(omega_S_1, acc_S_1, &omega_est_1, &acc_est_1);
+    iem.correct(omega_S_1, acc_S_1, &omega_est_1, &acc_est_1);
 
     const Eigen::Vector3d omega_S_true = 0.5 * (omega_est + omega_est_1);
     const double theta_half = omega_S_true.norm() * 0.5 * dt;
@@ -324,7 +322,7 @@ int ImuOdometry::propagation(
       F_delta.block<3, 3>(0, 9) = 0.5 * dt * F_delta.block<3, 3>(6, 9);
       F_delta.block<3, 3>(0, 12) = 0.5 * dt * F_delta.block<3, 3>(6, 12);
 
-      if (covRows >= Imu_BG_BA_TG_TS_TA::getMinimalDim() + ode::kNavErrorStateDim) {
+      if (covRows >= (int)(Imu_BG_BA_TG_TS_TA::getMinimalDim() + kNavErrorStateDim)) {
         F_delta.block<3, 9>(3, 15) =
             -0.5 * dt *
             (C * iem.invT_g * dmatrix3_dvector9_multiply(omega_est) +
@@ -471,7 +469,7 @@ int ImuOdometry::propagation(
     F.block<3, 3>(6, 12) = -C_WS_0 * dv_db_a;
 
     if (covRows >=
-        Imu_BG_BA_TG_TS_TA::getMinimalDim() + ode::kNavErrorStateDim) {
+        (int)(Imu_BG_BA_TG_TS_TA::getMinimalDim() + kNavErrorStateDim)) {
       F.block<3, 9>(0, 15) = C_WS_0 * dp_dT_g;
       F.block<3, 9>(0, 24) = C_WS_0 * dp_dT_s;
       F.block<3, 9>(0, 33) = -C_WS_0 * dp_dT_a;
@@ -636,11 +634,11 @@ int ImuOdometry::propagationRightInvariantError(
     Eigen::Quaterniond dq;  // q_{S_{i+1}}^{S_i}
     Eigen::Vector3d omega_est;
     Eigen::Vector3d acc_est;
-    iem.estimate(omega_S_0, acc_S_0, &omega_est, &acc_est);
+    iem.correct(omega_S_0, acc_S_0, &omega_est, &acc_est);
 
     Eigen::Vector3d omega_est_1;
     Eigen::Vector3d acc_est_1;
-    iem.estimate(omega_S_1, acc_S_1, &omega_est_1, &acc_est_1);
+    iem.correct(omega_S_1, acc_S_1, &omega_est_1, &acc_est_1);
 
     const Eigen::Vector3d omega_S_true = 0.5 * (omega_est + omega_est_1);
     const double theta_half = omega_S_true.norm() * 0.5 * dt;
@@ -857,11 +855,11 @@ int ImuOdometry::propagationBackward(
 
     Eigen::Vector3d omega_est;
     Eigen::Vector3d acc_est;
-    iem.estimate(omega_S_0, acc_S_0, &omega_est, &acc_est);
+    iem.correct(omega_S_0, acc_S_0, &omega_est, &acc_est);
 
     Eigen::Vector3d omega_est_1;
     Eigen::Vector3d acc_est_1;
-    iem.estimate(omega_S_1, acc_S_1, &omega_est_1, &acc_est_1);
+    iem.correct(omega_S_1, acc_S_1, &omega_est_1, &acc_est_1);
 
     const Eigen::Vector3d omega_S_true = 0.5 * (omega_est + omega_est_1);
     const double theta_half = omega_S_true.norm() * 0.5 * dt;
@@ -905,210 +903,6 @@ int ImuOdometry::propagationBackward(
   return i;
 }
 
-// propagate pose, speedAndBias, and possibly covariance
-// note the RungeKutta method assumes that the z direction of the world frame is
-// negative gravity direction
-int ImuOdometry::propagation_RungeKutta(
-    const okvis::ImuMeasurementDeque& imuMeasurements, const okvis::ImuParameters& imuParams,
-    okvis::kinematics::Transformation& T_WS, okvis::SpeedAndBiases& speedAndBias,
-    const ImuErrorModel<double>& iem, const okvis::Time& startTime,
-    const okvis::Time& finishTime,
-    Eigen::MatrixXd* P_ptr,
-    Eigen::MatrixXd* F_tot_ptr) {
-  if (imuMeasurements.begin()->timeStamp > startTime) {
-    std::cout << "imuMeas begin time and startTime "
-              << imuMeasurements.begin()->timeStamp << " " << startTime
-              << std::endl;
-    OKVIS_ASSERT_TRUE(Exception,
-                      imuMeasurements.begin()->timeStamp <= startTime,
-                      "IMU data do not extend to the previous state epoch");
-  }
-  OKVIS_ASSERT_TRUE(Exception,
-                    imuMeasurements.rbegin()->timeStamp >= finishTime,
-                    "IMU data do not extend to the current estimated epoch");
-
-  Eigen::Vector3d p_WS_W = T_WS.r();
-  Eigen::Quaterniond q_WS = T_WS.q();
-
-  bool hasStarted = false;
-  int numUsedImuMeasurements = 0;
-  auto iterLast = imuMeasurements.end();
-  for (auto iter = imuMeasurements.begin(); iter != imuMeasurements.end();
-       ++iter) {
-    if (iter->timeStamp <= startTime) {
-      iterLast = iter;
-      continue;
-    }
-
-    if (hasStarted == false) {
-      hasStarted = true;
-      if (iter->timeStamp >= finishTime)  // in case the interval of start and
-                                          // finish time is very small
-      {
-        ode::integrateOneStep_RungeKutta(
-            iterLast->measurement.gyroscopes,
-            iterLast->measurement.accelerometers, iter->measurement.gyroscopes,
-            iter->measurement.accelerometers, imuParams.g, imuParams.sigma_g_c,
-            imuParams.sigma_a_c, imuParams.sigma_gw_c, imuParams.sigma_aw_c,
-            (finishTime - startTime).toSec(), p_WS_W, q_WS, speedAndBias,
-            iem, P_ptr, F_tot_ptr);
-        ++numUsedImuMeasurements;
-        break;
-      }
-
-      ode::integrateOneStep_RungeKutta(
-          iterLast->measurement.gyroscopes,
-          iterLast->measurement.accelerometers, iter->measurement.gyroscopes,
-          iter->measurement.accelerometers, imuParams.g, imuParams.sigma_g_c,
-          imuParams.sigma_a_c, imuParams.sigma_gw_c, imuParams.sigma_aw_c,
-          (iter->timeStamp - startTime).toSec(), p_WS_W, q_WS, speedAndBias,
-          iem, P_ptr, F_tot_ptr);
-
-    } else {
-      if (iter->timeStamp >= finishTime) {
-        ode::integrateOneStep_RungeKutta(
-            iterLast->measurement.gyroscopes,
-            iterLast->measurement.accelerometers, iter->measurement.gyroscopes,
-            iter->measurement.accelerometers, imuParams.g, imuParams.sigma_g_c,
-            imuParams.sigma_a_c, imuParams.sigma_gw_c, imuParams.sigma_aw_c,
-            (finishTime - iterLast->timeStamp).toSec(), p_WS_W, q_WS,
-            speedAndBias, iem, P_ptr, F_tot_ptr);
-        ++numUsedImuMeasurements;
-        break;
-      }
-
-      ode::integrateOneStep_RungeKutta(
-          iterLast->measurement.gyroscopes,
-          iterLast->measurement.accelerometers, iter->measurement.gyroscopes,
-          iter->measurement.accelerometers, imuParams.g, imuParams.sigma_g_c,
-          imuParams.sigma_a_c, imuParams.sigma_gw_c, imuParams.sigma_aw_c,
-          (iter->timeStamp - iterLast->timeStamp).toSec(), p_WS_W, q_WS,
-          speedAndBias, iem, P_ptr, F_tot_ptr);
-    }
-    iterLast = iter;
-    ++numUsedImuMeasurements;
-  }
-  T_WS = okvis::kinematics::Transformation(p_WS_W, q_WS);
-  return numUsedImuMeasurements;
-}
-
-int ImuOdometry::propagationBackward_RungeKutta(
-    const okvis::ImuMeasurementDeque& imuMeasurements, const okvis::ImuParameters& imuParams,
-    okvis::kinematics::Transformation& T_WS, okvis::SpeedAndBiases& speedAndBias,
-    const ImuErrorModel<double>& iem, const okvis::Time& startTime,
-    const okvis::Time& finishTime) {
-  OKVIS_ASSERT_TRUE(
-      Exception, imuMeasurements.begin()->timeStamp <= finishTime,
-      "Backward: IMU data do not extend to the current estimated epoch");
-  OKVIS_ASSERT_TRUE(
-      Exception, imuMeasurements.rbegin()->timeStamp >= startTime,
-      "Backward: IMU data do not extend to the previous state epoch");
-
-  Eigen::Vector3d p_WS_W = T_WS.r();
-  Eigen::Quaterniond q_WS = T_WS.q();
-
-  bool hasStarted = false;
-  int numUsedImuMeasurements = 0;
-  auto iterLast = imuMeasurements.rend();
-  for (auto iter = imuMeasurements.rbegin(); iter != imuMeasurements.rend();
-       ++iter) {
-    if (iter->timeStamp >= startTime) {
-      iterLast = iter;
-      continue;
-    }
-
-    if (hasStarted == false) {
-      hasStarted = true;
-      if (iter->timeStamp <= finishTime)  // in case the interval of start and
-                                          // finish time is very small
-      {
-        ode::integrateOneStepBackward_RungeKutta(
-            iter->measurement.gyroscopes, iter->measurement.accelerometers,
-            iterLast->measurement.gyroscopes,
-            iterLast->measurement.accelerometers, imuParams.g,
-            imuParams.sigma_g_c, imuParams.sigma_a_c, imuParams.sigma_gw_c,
-            imuParams.sigma_aw_c, (startTime - finishTime).toSec(), p_WS_W,
-            q_WS, speedAndBias, iem);
-        ++numUsedImuMeasurements;
-        break;
-      }
-
-      ode::integrateOneStepBackward_RungeKutta(
-          iter->measurement.gyroscopes, iter->measurement.accelerometers,
-          iterLast->measurement.gyroscopes,
-          iterLast->measurement.accelerometers, imuParams.g,
-          imuParams.sigma_g_c, imuParams.sigma_a_c, imuParams.sigma_gw_c,
-          imuParams.sigma_aw_c, (startTime - iter->timeStamp).toSec(), p_WS_W,
-          q_WS, speedAndBias, iem);
-
-    } else {
-      if (iter->timeStamp <= finishTime) {
-        ode::integrateOneStepBackward_RungeKutta(
-            iter->measurement.gyroscopes, iter->measurement.accelerometers,
-            iterLast->measurement.gyroscopes,
-            iterLast->measurement.accelerometers, imuParams.g,
-            imuParams.sigma_g_c, imuParams.sigma_a_c, imuParams.sigma_gw_c,
-            imuParams.sigma_aw_c, (iterLast->timeStamp - finishTime).toSec(),
-            p_WS_W, q_WS, speedAndBias, iem);
-        ++numUsedImuMeasurements;
-        break;
-      }
-
-      ode::integrateOneStepBackward_RungeKutta(
-          iter->measurement.gyroscopes, iter->measurement.accelerometers,
-          iterLast->measurement.gyroscopes,
-          iterLast->measurement.accelerometers, imuParams.g,
-          imuParams.sigma_g_c, imuParams.sigma_a_c, imuParams.sigma_gw_c,
-          imuParams.sigma_aw_c, (iterLast->timeStamp - iter->timeStamp).toSec(),
-          p_WS_W, q_WS, speedAndBias, iem);
-    }
-    iterLast = iter;
-    ++numUsedImuMeasurements;
-  }
-  T_WS = okvis::kinematics::Transformation(p_WS_W, q_WS);
-  return numUsedImuMeasurements;
-}
-
-bool ImuOdometry::interpolateInertialData(
-    const okvis::ImuMeasurementDeque& imuMeas, const ImuErrorModel<double>& iem,
-    const okvis::Time& queryTime, okvis::ImuMeasurement& queryValue) {
-  OKVIS_ASSERT_GT(Exception, imuMeas.size(), 0u, "not enough imu meas!");
-  auto iterLeft = imuMeas.begin(), iterRight = imuMeas.end();
-  OKVIS_ASSERT_TRUE_DBG(Exception, iterLeft->timeStamp <= queryTime,
-                        "Imu measurements has wrong timestamps");
-  if (imuMeas.back().timeStamp < queryTime) {
-    LOG(WARNING) << "Using the gyro value at " << imuMeas.back().timeStamp
-                 << " instead of the requested at " << queryTime;
-    queryValue = imuMeas.back();
-    return false;
-  }
-  for (auto iter = imuMeas.begin(); iter != imuMeas.end(); ++iter) {
-    if (iter->timeStamp < queryTime) {
-      iterLeft = iter;
-    } else if (iter->timeStamp == queryTime) {
-      queryValue = *iter;
-      return true;
-    } else {
-      iterRight = iter;
-      break;
-    }
-  }
-  double ratio = (queryTime - iterLeft->timeStamp).toSec() /
-                 (iterRight->timeStamp - iterLeft->timeStamp).toSec();
-  queryValue.timeStamp = queryTime;
-  Eigen::Vector3d omega_S0 =
-      (iterRight->measurement.gyroscopes - iterLeft->measurement.gyroscopes) *
-          ratio +
-      iterLeft->measurement.gyroscopes;
-  Eigen::Vector3d acc_S0 = (iterRight->measurement.accelerometers -
-                            iterLeft->measurement.accelerometers) *
-                               ratio +
-                           iterLeft->measurement.accelerometers;
-  iem.estimate(omega_S0, acc_S0, &queryValue.measurement.gyroscopes,
-               &queryValue.measurement.accelerometers);
-  return true;
-}
-
 void poseAndVelocityAtObservation(
     const okvis::ImuMeasurementDeque& imuMeas,
     const Eigen::Matrix<double, Eigen::Dynamic, 1>& imuAugmentedParams,
@@ -1116,10 +910,12 @@ void poseAndVelocityAtObservation(
     const okvis::Duration& featureTime, okvis::kinematics::Transformation* T_WB,
     okvis::SpeedAndBiases* sb, okvis::ImuMeasurement* interpolatedInertialData,
     bool use_RK4) {
-  ImuErrorModel<double> iem(sb->tail<6>(), imuAugmentedParams, true);
   const double wedge = 5e-8;
   double relFeatureTime = featureTime.toSec();
+
   if (use_RK4) {
+    Imu_BG_BA_TG_TS_TA iem;
+    iem.updateParameters(sb->data() + 3, imuAugmentedParams.data());
     if (relFeatureTime >= wedge) {
       ImuOdometry::propagation_RungeKutta(imuMeas, imuParameters, *T_WB, *sb,
                                           iem, stateEpoch,
@@ -1129,7 +925,10 @@ void poseAndVelocityAtObservation(
                                                   *sb, iem, stateEpoch,
                                                   stateEpoch + featureTime);
     }
+    ImuOdometry::interpolateInertialData(imuMeas, iem, stateEpoch + featureTime,
+                                         *interpolatedInertialData);
   } else {
+    ImuErrorModel<double> iem(sb->tail<6>(), imuAugmentedParams, true);
     Eigen::Vector3d tempV_WS = sb->head<3>();
     if (relFeatureTime >= wedge) {
       ImuOdometry::propagation(imuMeas, imuParameters, *T_WB, tempV_WS, iem,
@@ -1140,9 +939,9 @@ void poseAndVelocityAtObservation(
                                        stateEpoch + featureTime);
     }
     sb->head<3>() = tempV_WS;
+    ImuOdometry::interpolateInertialData(imuMeas, iem, stateEpoch + featureTime,
+                                         *interpolatedInertialData);
   }
-  ImuOdometry::interpolateInertialData(imuMeas, iem, stateEpoch + featureTime,
-                                       *interpolatedInertialData);
 }
 
 void poseAndLinearVelocityAtObservation(

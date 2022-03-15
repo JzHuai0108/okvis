@@ -41,6 +41,7 @@
 #define INCLUDE_SWIFT_VIO_ODE_HYBRID_HPP_
 
 #include <swift_vio/imu/ImuErrorModel.h>
+#include <swift_vio/imu/ImuRig.hpp>
 
 #include <Eigen/Core>
 
@@ -52,20 +53,26 @@
 #include <okvis/kinematics/operators.hpp>
 
 namespace swift_vio {
+static const size_t kNavErrorStateDim = 9;
+static const size_t kNavStateMinDim = 9;
+static const size_t kNavStateBiasMinDim = 15;
+
 namespace ode {
-const int kNavErrorStateDim = 9;
 // Note this function assume that the W frame has z axis along the negative gravity.
 // This fact is used in computing velocity in the W frame.
+template<typename ImuModelT>
 __inline__ void evaluateContinuousTimeOde(
     const Eigen::Vector3d& gyr, const Eigen::Vector3d& acc, double g,
     const Eigen::Vector3d& p_WS_W, const Eigen::Quaterniond& q_WS,
-    const okvis::SpeedAndBiases& sb,
-    const ImuErrorModel<double>& iem, Eigen::Vector3d& p_WS_W_dot,
-    Eigen::Vector4d& q_WS_dot, okvis::SpeedAndBiases& sb_dot,
+    const Eigen::Matrix<double, 9, 1> &sb,
+    const ImuModelT &imuModel,
+    Eigen::Vector3d& p_WS_W_dot,
+    Eigen::Vector4d& q_WS_dot, Eigen::Matrix<double, 9, 1> &sb_dot,
     Eigen::MatrixXd* F_c_ptr = 0) {
   Eigen::Vector3d omega_S;
   Eigen::Vector3d acc_S;
-  iem.estimate(gyr, acc, &omega_S, &acc_S);
+  Eigen::Matrix<double, 6, ImuModelT::kAugmentedMinDim + 6> jacobian;
+  imuModel.correct(gyr, acc, &omega_S, &acc_S, &jacobian);
 
   // nonlinear states
   // start with the pose
@@ -82,8 +89,7 @@ __inline__ void evaluateContinuousTimeOde(
   // know the position nor yaw (except if coupled with GPS and magnetometer).
   Eigen::Vector3d G =
       -p_WS_W - Eigen::Vector3d(0, 0, 6371009);  // vector to Earth center
-  sb_dot.head<3>() = (C_WS * acc_S + g * G.normalized());  // s
-  // biases
+  sb_dot.head<3>() = (C_WS * acc_S + g * G.normalized());
   sb_dot.tail<6>().setZero();
 
   // linearized system:
@@ -96,10 +102,7 @@ __inline__ void evaluateContinuousTimeOde(
     Eigen::Matrix<double, 9, 6> N = Eigen::Matrix<double, 9, 6>::Zero();
     N.block<3, 3>(3, 0) = C_WS;
     N.block<3, 3>(6, 3) = C_WS;
-    int colsF = F_c_ptr->cols();
-    Eigen::Matrix<double, 6, 6 + 27> dwaB_dbgbaSTS;
-    iem.dwa_B_dbgbaSTS(omega_S, acc_S, dwaB_dbgbaSTS);
-    F_c_ptr->block(0, 9, 9, colsF - 9) = N * dwaB_dbgbaSTS.rightCols(colsF - 9);
+    F_c_ptr->block<9, ImuModelT::kAugmentedMinDim + 6>(0, 9) = N * jacobian;
   }
 }
 
@@ -130,14 +133,19 @@ $y_{n+1}=y_n\oplus\left(h(k_1 +2k_2 +2k_3 +k_4)/6 \right )$
 Caution: provide both F_tot_ptr(e.g., identity) and P_ptr(e.g., zero matrix) if
 covariance is to be computed
 */
+template<typename ImuModelT>
 __inline__ void integrateOneStep_RungeKutta(
     const Eigen::Vector3d& gyr_0, const Eigen::Vector3d& acc_0,
     const Eigen::Vector3d& gyr_1, const Eigen::Vector3d& acc_1, double g,
     double sigma_g_c, double sigma_a_c, double sigma_gw_c, double sigma_aw_c,
     double dt, Eigen::Vector3d& p_WS_W, Eigen::Quaterniond& q_WS,
-    okvis::SpeedAndBiases& sb, const ImuErrorModel<double>& iem,
-    Eigen::MatrixXd* P_ptr = 0,
-    Eigen::MatrixXd* F_tot_ptr = 0) {
+    okvis::SpeedAndBiases& sb, const ImuModelT &imuModel,
+    Eigen::Matrix<double, ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim,
+                  ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim> *P_ptr =
+        nullptr,
+    Eigen::Matrix<double, ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim,
+                  ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim>
+        *F_tot_ptr = nullptr) {
   Eigen::Vector3d k1_p_WS_W_dot;
   Eigen::Vector4d k1_q_WS_dot;
 
@@ -163,7 +171,7 @@ __inline__ void integrateOneStep_RungeKutta(
       k4_F_c_ptr = &k4_F_c;
   }
 
-  evaluateContinuousTimeOde(gyr_0, acc_0, g, p_WS_W, q_WS, sb, iem,
+  evaluateContinuousTimeOde(gyr_0, acc_0, g, p_WS_W, q_WS, sb, imuModel,
                             k1_p_WS_W_dot, k1_q_WS_dot, k1_sb_dot, k1_F_c_ptr);
 
   Eigen::Vector3d p_WS_W1 = p_WS_W;
@@ -184,7 +192,7 @@ __inline__ void integrateOneStep_RungeKutta(
   Eigen::Vector4d k2_q_WS_dot;
   okvis::SpeedAndBiases k2_sb_dot;
   evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1), 0.5 * (acc_0 + acc_1), g,
-                            p_WS_W1, q_WS1, sb1, iem, k2_p_WS_W_dot,
+                            p_WS_W1, q_WS1, sb1, imuModel, k2_p_WS_W_dot,
                             k2_q_WS_dot, k2_sb_dot, k2_F_c_ptr);
 
   Eigen::Vector3d p_WS_W2 = p_WS_W;
@@ -205,7 +213,7 @@ __inline__ void integrateOneStep_RungeKutta(
   Eigen::Vector4d k3_q_WS_dot;
   okvis::SpeedAndBiases k3_sb_dot;
   evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1), 0.5 * (acc_0 + acc_1), g,
-                            p_WS_W2, q_WS2, sb2, iem, k3_p_WS_W_dot,
+                            p_WS_W2, q_WS2, sb2, imuModel, k3_p_WS_W_dot,
                             k3_q_WS_dot, k3_sb_dot, k3_F_c_ptr);
 
   Eigen::Vector3d p_WS_W3 = p_WS_W;
@@ -225,7 +233,7 @@ __inline__ void integrateOneStep_RungeKutta(
   Eigen::Vector3d k4_p_WS_W_dot;
   Eigen::Vector4d k4_q_WS_dot;
   okvis::SpeedAndBiases k4_sb_dot;
-  evaluateContinuousTimeOde(gyr_1, acc_1, g, p_WS_W3, q_WS3, sb3, iem,
+  evaluateContinuousTimeOde(gyr_1, acc_1, g, p_WS_W3, q_WS3, sb3, imuModel,
                             k4_p_WS_W_dot, k4_q_WS_dot, k4_sb_dot, k4_F_c_ptr);
 
   // now assemble
@@ -250,7 +258,8 @@ __inline__ void integrateOneStep_RungeKutta(
   if (F_tot_ptr) {
     // compute state transition matrix, note $\frac{d\Phi(t, t_0)}{dt}=
     // F(t)\Phi(t, t_0)$
-    Eigen::MatrixXd& F_tot = *F_tot_ptr;
+    Eigen::Matrix<double, ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim,
+                    ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim>& F_tot = *F_tot_ptr;
     const Eigen::MatrixXd& J1 = k1_F_c;
     const Eigen::MatrixXd J2 =
         k2_F_c * (Eigen::MatrixXd::Identity(covRows, covRows) + 0.5 * dt * J1);
@@ -265,7 +274,8 @@ __inline__ void integrateOneStep_RungeKutta(
             .eval();  // F is $\Phi(t_k, t_{k-1})$, F_tot is $\Phi(t_k, t_{0})$
 
     if (P_ptr) {
-      Eigen::MatrixXd& cov = *P_ptr;
+      Eigen::Matrix<double, ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim,
+                      ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim>& cov = *P_ptr;
       cov = F * (cov * F.transpose()).eval();
 
       // add process noise
@@ -287,7 +297,6 @@ __inline__ void integrateOneStep_RungeKutta(
       cov(14, 14) += Q_aw;
 
       // force symmetric
-      // huai: this may help keep cov positive semi-definite after propagation
       cov = 0.5 * cov + 0.5 * cov.transpose().eval();
     }
   }
@@ -311,12 +320,13 @@ $k_3 = f(t_{n+1}+h/2,y_{n+1}\oplus k_2 h/2 ,(u_n +u_{n+1})/2)$
 $k_4 = f(t_n,y_{n+1}\oplus k_3 h , u_{n})$
 $y_{n}=y_{n+1}\oplus\left(h(k_1 +2k_2 +2k_3 +k_4)/6 \right )$
 */
+template<typename ImuModelT>
 __inline__ void integrateOneStepBackward_RungeKutta(
     const Eigen::Vector3d& gyr_0, const Eigen::Vector3d& acc_0,
     const Eigen::Vector3d& gyr_1, const Eigen::Vector3d& acc_1, double g,
     double sigma_g_c, double sigma_a_c, double sigma_gw_c, double sigma_aw_c,
     double dt, Eigen::Vector3d& p_WS_W, Eigen::Quaterniond& q_WS,
-    okvis::SpeedAndBiases& sb, const ImuErrorModel<double>& iem,
+    okvis::SpeedAndBiases& sb, const ImuModelT& imuModel,
     Eigen::MatrixXd* P_ptr = 0,
     Eigen::MatrixXd* F_tot_ptr = 0) {
   Eigen::Vector3d k1_p_WS_W_dot;
@@ -344,7 +354,7 @@ __inline__ void integrateOneStepBackward_RungeKutta(
       k4_F_c_ptr = &k4_F_c;
   }
 
-  evaluateContinuousTimeOde(gyr_1, acc_1, g, p_WS_W, q_WS, sb, iem,
+  evaluateContinuousTimeOde(gyr_1, acc_1, g, p_WS_W, q_WS, sb, imuModel,
                             k1_p_WS_W_dot, k1_q_WS_dot, k1_sb_dot, k1_F_c_ptr);
 
   Eigen::Vector3d p_WS_W1 = p_WS_W;
@@ -365,7 +375,7 @@ __inline__ void integrateOneStepBackward_RungeKutta(
   Eigen::Vector4d k2_q_WS_dot;
   okvis::SpeedAndBiases k2_sb_dot;
   evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1), 0.5 * (acc_0 + acc_1), g,
-                            p_WS_W1, q_WS1, sb1, iem, k2_p_WS_W_dot,
+                            p_WS_W1, q_WS1, sb1, imuModel, k2_p_WS_W_dot,
                             k2_q_WS_dot, k2_sb_dot, k2_F_c_ptr);
 
   Eigen::Vector3d p_WS_W2 = p_WS_W;
@@ -386,7 +396,7 @@ __inline__ void integrateOneStepBackward_RungeKutta(
   Eigen::Vector4d k3_q_WS_dot;
   okvis::SpeedAndBiases k3_sb_dot;
   evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1), 0.5 * (acc_0 + acc_1), g,
-                            p_WS_W2, q_WS2, sb2, iem, k3_p_WS_W_dot,
+                            p_WS_W2, q_WS2, sb2, imuModel, k3_p_WS_W_dot,
                             k3_q_WS_dot, k3_sb_dot, k3_F_c_ptr);
 
   Eigen::Vector3d p_WS_W3 = p_WS_W;
@@ -406,7 +416,7 @@ __inline__ void integrateOneStepBackward_RungeKutta(
   Eigen::Vector3d k4_p_WS_W_dot;
   Eigen::Vector4d k4_q_WS_dot;
   okvis::SpeedAndBiases k4_sb_dot;
-  evaluateContinuousTimeOde(gyr_0, acc_0, g, p_WS_W3, q_WS3, sb3, iem,
+  evaluateContinuousTimeOde(gyr_0, acc_0, g, p_WS_W3, q_WS3, sb3, imuModel,
                             k4_p_WS_W_dot, k4_q_WS_dot, k4_sb_dot, k4_F_c_ptr);
 
   // now assemble
