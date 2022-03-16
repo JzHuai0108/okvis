@@ -30,8 +30,8 @@ class ImuOdometry {
   /**
    * @brief Propagates pose, speeds and biases with given IMU measurements.
    * Extends okvis::ceres::ImuError::propagation to handle a generic IMU error
-   * model and given linearization point for position and velocity.
-   * @remark This can be used externally to perform propagation
+   * model Imu_BG_BA_TG_TS_TA and given linearization point for position and velocity.
+   * @remark This can be used externally to perform propagation.
    * @warning covariance and jacobian should be provided at the same time.
    * @param[in] imuMeasurements All the IMU measurements.
    * @param[in] imuParams The parameters to be used.
@@ -54,6 +54,33 @@ class ImuOdometry {
       const okvis::ImuParameters& imuParams,
       okvis::kinematics::Transformation& T_WS, Eigen::Vector3d& v_WS,
       const ImuErrorModel<double>& iem, const okvis::Time& t_start,
+      const okvis::Time& t_end,
+      Eigen::MatrixXd* covariance = nullptr,
+      Eigen::MatrixXd* jacobian = nullptr,
+      const Eigen::Matrix<double, 6, 1>* positionVelocityLin = nullptr);
+
+  /**
+   * @brief propagation with Imu_BG_BA_MG_TS_MA model.
+   * @param imuMeasurements
+   * @param imuParams
+   * @param T_WS
+   * @param v_WS
+   * @param iem
+   * @param t_start
+   * @param t_end
+   * @param covariance for error state of the state vector
+   * \f$ [p_{WS}, R_{WS}, v_{WS}, b_g, b_a, X_{imu}, g^W] \f$
+   * \f$ R_{WS} = exp(\alpha) \hat{R}_{WS} \f$.
+   * \f$ p_{WS} = \hat{p}_{WS} + \delta p_{WS} \f$.
+   * @param jacobian
+   * @param positionVelocityLin
+   * @return number used IMU measurements
+   */
+  static int propagation(
+      const okvis::ImuMeasurementDeque& imuMeasurements,
+      const okvis::ImuParameters& imuParams,
+      okvis::kinematics::Transformation& T_WS, Eigen::Vector3d& v_WS,
+      Imu_BG_BA_MG_TS_MA &iem, const okvis::Time& t_start,
       const okvis::Time& t_end,
       Eigen::MatrixXd* covariance = nullptr,
       Eigen::MatrixXd* jacobian = nullptr,

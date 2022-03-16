@@ -396,7 +396,7 @@ private:
   okvis::ceres::EuclideanParamBlockSized<6> Ma;
 };
 
-TEST(DynamicImuErrorTestSuite, Imu_BG_BA) {
+TEST(ImuOdometryFactor, Imu_BG_BA) {
   DynamicImuErrorTest test;
   test.setup();
   test.addPriors();
@@ -404,7 +404,7 @@ TEST(DynamicImuErrorTestSuite, Imu_BG_BA) {
   test.solve();
 }
 
-TEST(DynamicImuErrorTestSuite, Imu_BG_BA_TG_TS_TA) {
+TEST(ImuOdometryFactor, Imu_BG_BA_TG_TS_TA) {
   DynamicImuErrorTest test;
   test.setup();
   test.addPriors();
@@ -412,7 +412,7 @@ TEST(DynamicImuErrorTestSuite, Imu_BG_BA_TG_TS_TA) {
   test.solve();
 }
 
-TEST(DynamicImuErrorTestSuite, Imu_BG_BA_MG_TS_MA) {
+TEST(ImuOdometryFactor, Imu_BG_BA_MG_TS_MA) {
   DynamicImuErrorTest test;
   test.setup();
   test.addPriors();

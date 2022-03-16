@@ -889,7 +889,7 @@ bool DynamicImuError<ImuModelT>::checkJacobians(double *const * parameters) {
                 << "\ndiff\n"
                 << (*jacPtrs[i] - *jacNumericPtrs[i]) << "\n";
 
-    OKVIS_ASSERT_LT(Exception, diffNorm, jacobianTolerance,
+    OKVIS_ASSERT_LT(Exception, diffNorm, 1e-2,
                     "For XParam " << i << ", numeric Jacobian differs by "
                                   << diffNorm << " from the analytic one.");
 
@@ -898,7 +898,7 @@ bool DynamicImuError<ImuModelT>::checkJacobians(double *const * parameters) {
       std::cerr << "Minimal XParam " << i << " Jacobian =\n"
                 << *jacMinPtrs[i] << "\nnumDiff Jacobian =\n"
                 << *jacMinNumericPtrs[i] << "\nDiff inf norm " << diffNorm << "\n";
-    OKVIS_ASSERT_LT(Exception, diffNorm, jacobianTolerance, "For XParam " << i << ", numeric Jacobian differs by "
+    OKVIS_ASSERT_LT(Exception, diffNorm, 1e-2, "For XParam " << i << ", numeric Jacobian differs by "
                     << diffNorm << " from the analytic one.");
   }
   return true;

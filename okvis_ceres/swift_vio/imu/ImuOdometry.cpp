@@ -496,6 +496,205 @@ int ImuOdometry::propagation(
   return i;
 }
 
+int ImuOdometry::propagation(
+    const okvis::ImuMeasurementDeque& imuMeasurements,
+    const okvis::ImuParameters& imuParams,
+    okvis::kinematics::Transformation& T_WS, Eigen::Vector3d& v_WS,
+    Imu_BG_BA_MG_TS_MA &iem, const okvis::Time& t_start,
+    const okvis::Time& t_end,
+    Eigen::MatrixXd* covariance,
+    Eigen::MatrixXd* jacobian,
+    const Eigen::Matrix<double, 6, 1>* positionVelocityLin) {
+  okvis::Time time = t_start;
+
+  // sanity check:
+  if (imuMeasurements.front().timeStamp > time) {
+    LOG(WARNING)
+        << "IMU front meas timestamp is greater than start integration time "
+        << imuMeasurements.front().timeStamp << " " << time;
+  }
+
+  if (imuMeasurements.back().timeStamp < t_end) {
+    LOG(WARNING) << "Imu last reading has an epoch "
+                 << imuMeasurements.back().timeStamp
+                 << " less than propagation right target " << t_end;
+    return -1;
+  }
+
+  // initial condition at sensor frame SO
+  const Eigen::Matrix3d C_WS_0 = T_WS.C();
+  const Eigen::Vector3d g_W = imuParams.g * imuParams.gravityDirection();
+
+  Eigen::Matrix<double, 6, 1> posVelLinPointAtStart;
+  if (positionVelocityLin != nullptr) {
+    posVelLinPointAtStart = *positionVelocityLin;
+  } else {
+    posVelLinPointAtStart << T_WS.r(), v_WS;
+  }
+
+  // increments (initialise with identity)
+  // denote t_start by $t_0$
+//  Eigen::Quaterniond Delta_q(1, 0, 0, 0);  // quaternion of DCM from Si to S0
+//  //$\int_{t_0}^{t_i} R_S^{S_0} dt$
+//  Eigen::Matrix3d C_integral =
+//      Eigen::Matrix3d::Zero();  // integrated DCM up to Si expressed in S0 frame
+//  // $\int_{t_0}^{t_i} \int_{t_0}^{s} R_S^{S_0} dt ds$
+//  Eigen::Matrix3d C_doubleintegral =
+//      Eigen::Matrix3d::Zero();  // double integrated DCM up to Si expressed in
+//                                // S0 frame
+//  // $\int_{t_0}^{t_i} R_S^{S_0} a^S dt$
+//  Eigen::Vector3d acc_integral =
+//      Eigen::Vector3d::Zero();  // integrated acceleration up to Si expressed in
+//                                // S0 frame
+//  // $\int_{t_0}^{t_i} \int_{t_0}^{s} R_S^{S_0} a^S dt ds$
+//  Eigen::Vector3d acc_doubleintegral =
+//      Eigen::Vector3d::Zero();  // double integrated acceleration up to Si
+//                                // expressed in S0 frame
+//  // sub-Jacobians
+//  // $R_{S_0}^W \frac{d^{S_0}\alpha_{l+1}}{d b_g_{l}} = \frac{d^W\alpha_{l+1}}{d
+//  // b_g_{l}} $ for ease of implementation, we compute all the Jacobians with
+//  // positive increment, thus there can be a sign difference between, for
+//  // instance, dalpha_db_g and \frac{d^{S_0}\alpha_{l+1}}{d b_g_{(l)}}. This
+//  // difference is adjusted when putting all Jacobians together
+//  Eigen::Matrix3d dalpha_db_g = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix3d dalpha_db_a = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix<double, 3, 9> dalpha_dT_g = Eigen::Matrix<double, 3, 9>::Zero();
+//  Eigen::Matrix<double, 3, 9> dalpha_dT_s = Eigen::Matrix<double, 3, 9>::Zero();
+//  Eigen::Matrix<double, 3, 9> dalpha_dT_a = Eigen::Matrix<double, 3, 9>::Zero();
+
+//  Eigen::Matrix3d dv_db_g = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix3d dv_db_a = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix<double, 3, 9> dv_dT_g = Eigen::Matrix<double, 3, 9>::Zero();
+//  Eigen::Matrix<double, 3, 9> dv_dT_s = Eigen::Matrix<double, 3, 9>::Zero();
+//  Eigen::Matrix<double, 3, 9> dv_dT_a = Eigen::Matrix<double, 3, 9>::Zero();
+
+//  Eigen::Matrix3d dp_db_g = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix3d dp_db_a = Eigen::Matrix3d::Zero();
+//  Eigen::Matrix<double, 3, 9> dp_dT_g = Eigen::Matrix<double, 3, 9>::Zero();
+//  Eigen::Matrix<double, 3, 9> dp_dT_s = Eigen::Matrix<double, 3, 9>::Zero();
+//  Eigen::Matrix<double, 3, 9> dp_dT_a = Eigen::Matrix<double, 3, 9>::Zero();
+
+//  // intermediate variables, must assign values to them before using.
+//  Eigen::Matrix<double, 3, 9> dalpha_dT_g_1;
+//  Eigen::Matrix<double, 3, 9> dalpha_dT_s_1;
+//  Eigen::Matrix<double, 3, 9> dalpha_dT_a_1;
+//  Eigen::Matrix3d dv_db_g_1;
+//  Eigen::Matrix<double, 3, 9> dv_dT_g_1;
+//  Eigen::Matrix<double, 3, 9> dv_dT_s_1;
+//  Eigen::Matrix<double, 3, 9> dv_dT_a_1;
+
+  iem.resetPreintegration();
+  iem.setPosVelLinPoint(posVelLinPointAtStart);
+
+  Eigen::MatrixXd P_delta;
+  Eigen::MatrixXd T;
+  int covRows = 0;
+  if (covariance || jacobian) {
+    covRows = covariance ?  covariance->rows() : jacobian->rows();
+    T = Eigen::MatrixXd::Identity(covRows, covRows);
+    T.topLeftCorner<3, 3>() = C_WS_0.transpose();
+    T.block<3, 3>(3, 3) = C_WS_0.transpose();
+    T.block<3, 3>(6, 6) = C_WS_0.transpose();
+    // transform from actual states to local S0 frame
+    P_delta = T * (*covariance) * T.transpose();
+    jacobian->setIdentity();
+  }
+
+  NormalVectorElement normalGravity(imuParams.gravityDirection());
+
+  double Delta_t = 0;  // integrated time up to Si since S0 frame
+  bool hasStarted = false;
+  int i = 0;
+
+  Eigen::MatrixXd F_delta = Eigen::MatrixXd::Identity(covRows, covRows);
+  iem.setInitialStateAndCov(T_WS, v_WS, g_W, P_delta);
+
+  for (okvis::ImuMeasurementDeque::const_iterator it = imuMeasurements.begin();
+       it != imuMeasurements.end(); ++it) {
+    Eigen::Vector3d omega_S_0 = it->measurement.gyroscopes;
+    Eigen::Vector3d acc_S_0 = it->measurement.accelerometers;
+    // access out of range element won't happen becsuse the loop breaks once
+    // nexttime==t_end
+    Eigen::Vector3d omega_S_1 = (it + 1)->measurement.gyroscopes;
+    Eigen::Vector3d acc_S_1 = (it + 1)->measurement.accelerometers;
+
+    // time delta
+    okvis::Time nexttime;
+    if ((it + 1) == imuMeasurements.end()) {
+      nexttime = t_end;
+    } else
+      nexttime = (it + 1)->timeStamp;
+    double dt = (nexttime - time).toSec();
+
+    if (t_end < nexttime) {
+      double interval = (nexttime - it->timeStamp).toSec();
+      nexttime = t_end;
+      dt = (nexttime - time).toSec();
+      const double r = dt / interval;
+      omega_S_1 = ((1.0 - r) * omega_S_0 + r * omega_S_1).eval();
+      acc_S_1 = ((1.0 - r) * acc_S_0 + r * acc_S_1).eval();
+    }
+
+    if (dt <= 0.0) {
+      continue;
+    }
+    Delta_t += dt;
+
+    if (!hasStarted) {
+      hasStarted = true;
+      const double r = dt / (nexttime - it->timeStamp).toSec();
+      omega_S_0 = (r * omega_S_0 + (1.0 - r) * omega_S_1).eval();
+      acc_S_0 = (r * acc_S_0 + (1.0 - r) * acc_S_1).eval();
+    }
+
+    // ensure integrity
+    double sigma_g_c = imuParams.sigma_g_c;
+    double sigma_a_c = imuParams.sigma_a_c;
+
+    if (fabs(omega_S_0[0]) > imuParams.g_max ||
+        fabs(omega_S_0[1]) > imuParams.g_max ||
+        fabs(omega_S_0[2]) > imuParams.g_max ||
+        fabs(omega_S_1[0]) > imuParams.g_max ||
+        fabs(omega_S_1[1]) > imuParams.g_max ||
+        fabs(omega_S_1[2]) > imuParams.g_max) {
+      sigma_g_c *= 100;
+      LOG(WARNING) << "gyr saturation";
+    }
+
+    if (fabs(acc_S_0[0]) > imuParams.a_max ||
+        fabs(acc_S_0[1]) > imuParams.a_max ||
+        fabs(acc_S_0[2]) > imuParams.a_max ||
+        fabs(acc_S_1[0]) > imuParams.a_max ||
+        fabs(acc_S_1[1]) > imuParams.a_max ||
+        fabs(acc_S_1[2]) > imuParams.a_max) {
+      sigma_a_c *= 100;
+      LOG(WARNING) << "acc saturation";
+    }
+
+    iem.computeDeltaState(dt, omega_S_0, acc_S_0, omega_S_1, acc_S_1);
+
+    iem.computeFdelta(Delta_t, dt, normalGravity, imuParams.g, imuParams.estimateGravityDirection);
+
+    iem.updatePdelta(dt, sigma_g_c, sigma_a_c, imuParams.sigma_gw_c, imuParams.sigma_aw_c);
+
+    iem.shiftVariables();
+
+    time = nexttime;
+    ++i;
+    if (nexttime == t_end) break;
+  }
+
+  // actual propagation output:
+  iem.getFinalState(Delta_t, &T_WS, &v_WS);
+
+  iem.getFinalJacobian(jacobian, Delta_t, posVelLinPointAtStart, normalGravity,
+                       imuParams.g, imuParams.estimateGravityDirection);
+
+  iem.getFinalCovariance(covariance, T);
+
+  return i;
+}
+
 /**
  * @brief GQGt
  * @warning \Delta t is not multiplied.

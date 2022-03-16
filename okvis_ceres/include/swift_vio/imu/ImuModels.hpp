@@ -16,6 +16,7 @@
 #include <okvis/Time.hpp>
 
 #include <swift_vio/matrixUtilities.h>
+#include <swift_vio/ParallaxAnglePoint.hpp>
 
 #define IMU_MODEL_SHARED_MEMBERS                                               \
 public:                                                                        \
@@ -695,11 +696,69 @@ public:
    *information = 0.5 * (*information + information->transpose().eval());
  }
 
+ /**
+  * @brief one step preintegration of IMU measurements.
+  * @param dt
+  * @param omega_S_0
+  * @param acc_S_0
+  * @param omega_S_1
+  * @param acc_S_1
+  * @param sigma_g_c
+  * @param sigma_a_c
+  * @param sigma_gw_c
+  * @param sigma_aw_c
+  */
  void propagate(double dt, const Eigen::Vector3d &omega_S_0,
                 const Eigen::Vector3d &acc_S_0,
                 const Eigen::Vector3d &omega_S_1,
                 const Eigen::Vector3d &acc_S_1, double sigma_g_c,
                 double sigma_a_c, double sigma_gw_c, double sigma_aw_c);
+
+ /// @name methods for propagation starting from a known state and covariance.
+ /// @{
+ void setInitialStateAndCov(const okvis::kinematics::Transformation &T_WS0,
+                            const Eigen::Vector3d &v_WS0, const Eigen::Vector3d &g_W,
+                            const Eigen::MatrixXd &cov) {
+   T_WS0_ = T_WS0;
+   v_WS0_ = v_WS0;
+   g_W_ = g_W;
+   P_ = cov;
+ }
+
+ void setPosVelLinPoint(const Eigen::Matrix<double, 6, 1> &posVelLinPoint) {
+   posVelLinPoint_ = posVelLinPoint;
+ }
+
+ /**
+  * @brief computeDeltaState
+  * @param dt
+  * @param omega_S_0
+  * @param acc_S_0
+  * @param omega_S_1
+  * @param acc_S_1
+  */
+ void computeDeltaState(double dt, const Eigen::Vector3d &omega_S_0,
+                        const Eigen::Vector3d &acc_S_0,
+                        const Eigen::Vector3d &omega_S_1,
+                        const Eigen::Vector3d &acc_S_1);
+
+ void computeFdelta(double Delta_t, double dt,
+                    const NormalVectorElement &normalGravity, double gravityNorm,
+                    bool estimateGravityDirection);
+
+ void updatePdelta(double dt, double sigma_g_c, double sigma_a_c, double sigma_gw_c, double sigma_aw_c);
+
+ void shiftVariables();
+
+ void getFinalState(double Delta_t, okvis::kinematics::Transformation *T_WS, Eigen::Vector3d *v_WS);
+
+ void getFinalJacobian(Eigen::MatrixXd *jacobian, double Delta_t, const Eigen::Matrix<double, 6, 1> &posVelLinPoint,
+                       const NormalVectorElement &normalGravity, double gravityNorm,
+                       bool estimateGravityDirection);
+
+ void getFinalCovariance(Eigen::MatrixXd *covariance, const Eigen::MatrixXd &T);
+
+ /// @}
 
  void resetPreintegration();
 
@@ -710,7 +769,7 @@ public:
  template <size_t XBlockId>
  Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDp_dx() const {
    if constexpr (XBlockId == 0)
-     return -dp_dM_g_;
+     return dp_dM_g_;
    if constexpr (XBlockId == 1)
      return dp_dT_s_;
    if constexpr (XBlockId == 2)
@@ -722,15 +781,15 @@ public:
    if constexpr (XBlockId == 0)
      return dalpha_dM_g_;
    if constexpr (XBlockId == 1)
-     return -dalpha_dT_s_;
+     return dalpha_dT_s_;
    if constexpr (XBlockId == 2)
-     return -dalpha_dM_a_;
+     return dalpha_dM_a_;
  }
 
  template <size_t XBlockId>
  Eigen::Matrix<double, 3, kXBlockDims[XBlockId]> dDv_dx() const {
    if constexpr (XBlockId == 0)
-     return -dv_dM_g_;
+     return dv_dM_g_;
    if constexpr (XBlockId == 1)
      return dv_dT_s_;
    if constexpr (XBlockId == 2)
@@ -791,10 +850,7 @@ private:
                                // expressed in S0 frame
  // sub-Jacobians
  // $R_{S_0}^W \frac{d^{S_0}\alpha_{l+1}}{d b_g_{l}} = \frac{d^W\alpha_{l+1}}{d
- // b_g_{l}} $ for ease of implementation, we compute all the Jacobians with
- // positive increment, thus there can be a sign difference between, for
- // instance, dalpha_db_g and \frac{d^{S_0}\alpha_{l+1}}{d b_g_{(l)}}. This
- // difference is adjusted when putting all Jacobians together
+ // b_g_{l}} $
 //  Eigen::Matrix3d dalpha_db_g_ = Eigen::Matrix3d::Zero();
 //  Eigen::Matrix3d dalpha_db_a_ = Eigen::Matrix3d::Zero();
  Eigen::Matrix<double, 3, 9> dalpha_dM_g_ = Eigen::Matrix<double, 3, 9>::Zero();
@@ -812,10 +868,46 @@ private:
  Eigen::Matrix<double, 3, 9> dp_dM_g_ = Eigen::Matrix<double, 3, 9>::Zero();
  Eigen::Matrix<double, 3, 9> dp_dT_s_ = Eigen::Matrix<double, 3, 9>::Zero();
  Eigen::Matrix<double, 3, 6> dp_dM_a_ = Eigen::Matrix<double, 3, 6>::Zero();
-
- Eigen::Matrix<double, 15, 15> F_delta_;
  // the Jacobian of the increment (w/o biases)
  Eigen::Matrix<double, 15, 15> P_delta_ = Eigen::Matrix<double, 15, 15>::Zero();
+
+ /// @name members for IMU propagation from a known state and covariance.
+ /// @{
+ Eigen::Matrix<double, 6, 1> posVelLinPoint_;
+ Eigen::Matrix<double, 6, 1> posVelLinPoint_1_;
+ okvis::kinematics::Transformation T_WS0_;
+ Eigen::Vector3d v_WS0_;
+ Eigen::Vector3d g_W_;
+ Eigen::Vector3d acc_integral_1_;
+ Eigen::Matrix3d C_;   // DCM from Si to S0
+ Eigen::Matrix3d C_1_;  // DCM from S_{i+1} to S0
+ Eigen::Quaterniond Delta_q_1_;
+ Eigen::Matrix3d C_integral_1_;
+
+ Eigen::Vector3d acc_est_1_;
+ Eigen::Vector3d acc_est_;
+ Eigen::Vector3d omega_est_1_;
+ Eigen::Vector3d omega_est_;
+
+ Eigen::Vector3d acc_nobias_0_;
+ Eigen::Vector3d acc_nobias_1_;
+ Eigen::Vector3d omega_nobias_0_;
+ Eigen::Vector3d omega_nobias_1_;
+
+ Eigen::Matrix<double, 3, 9> dalpha_dM_g_1_;
+ Eigen::Matrix<double, 3, 9> dalpha_dT_s_1_;
+
+ Eigen::Matrix3d dv_db_g_1_;
+ Eigen::Matrix<double, 3, 9> dv_dM_g_1_;
+ Eigen::Matrix<double, 3, 9> dv_dT_s_1_;
+ Eigen::Matrix<double, 3, 6> dv_dM_a_1_;
+
+ Eigen::MatrixXd F_delta_; // \f$ \frac{\partial (p_{S0S_{i+1}}, q_{S0S_{i+1}}, v_{S0S_{i+1}}, b_g, b_a, M_g, T_s, M_a)}{\partial
+ // (p_{S0S_{i}}, q_{S0S_{i}}, v_{S0S_{i}}, b_g, b_a, M_g, T_s, M_a)} \f$
+ Eigen::MatrixXd P_; // \f$ cov(p_{S0S_{i+1}}, q_{S0S_{i+1}}, v_{S0S_{i+1}}, b_g, b_a, M_g, T_s, M_a) \f$
+ bool computeJacobian = true;
+ const bool use_first_estimate = true;
+ /// @}
 };
 
 
