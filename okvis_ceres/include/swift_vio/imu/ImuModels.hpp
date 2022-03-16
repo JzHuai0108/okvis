@@ -199,7 +199,7 @@ class Imu_BG_BA {
     ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
   }
 
-  void updateParameters(const double * bgba, double const * /*xparams*/) {
+  void updateParameters(const double * bgba, double const * /*xparams*/ = nullptr) {
     bg_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba);
     ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
   }
@@ -467,6 +467,11 @@ class Imu_BG_BA_TG_TS_TA {
   Eigen::Matrix<double, 3, 3> dDv_dba() const {
     return -(C_integral_ * invTa_ + dv_db_g_ * Ts_ * invTa_);
   }
+
+  const Eigen::Matrix3d &Ts() const { return Ts_; }
+  const Eigen::Matrix3d &invTg() const { return invTg_; }
+  const Eigen::Matrix3d &invTa() const { return invTa_; }
+  const Eigen::Matrix3d &invTgsa() const { return invTgsa_; }
 
 private:
 
@@ -756,7 +761,7 @@ public:
                        const NormalVectorElement &normalGravity, double gravityNorm,
                        bool estimateGravityDirection);
 
- void getFinalCovariance(Eigen::MatrixXd *covariance, const Eigen::MatrixXd &T);
+ void getFinalCovariance(Eigen::MatrixXd *covariance, const Eigen::Matrix3d &C_WS0);
 
  /// @}
 

@@ -89,6 +89,7 @@ if(BUILD_TESTS)
     test/TestImuErrorWithGravity.cpp
     test/TestMap.cpp
     test/TestMarginalization.cpp
+    test/TestMatrixUtilities.cpp
     test/TestPseudoInverse.cpp
     test/TestParallaxAnglePoint.cpp
     test/TestPointSharedData.cpp

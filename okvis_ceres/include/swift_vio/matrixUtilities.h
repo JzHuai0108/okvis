@@ -114,6 +114,22 @@ Eigen::Matrix<typename Eigen::internal::traits<Derived_T>::Scalar, 3, 6> dltm3_d
   return m;
 }
 
+template <typename Derived_T>
+void scaleBlockRows(const Eigen::Matrix<typename Eigen::internal::traits<Derived_T>::Scalar, 3, 3> &rotation,
+                    int numBlockRows, Eigen::MatrixBase<Derived_T> *rhs) {
+  for (int i = 0; i < numBlockRows; ++i) {
+    rhs->template middleRows<3>(i * 3) = (rotation * rhs->template middleRows<3>(i * 3)).eval();
+  }
+}
+
+template <typename Derived_T>
+void scaleBlockCols(const Eigen::Matrix<typename Eigen::internal::traits<Derived_T>::Scalar, 3, 3> &rotation,
+                    int numBlockCols, Eigen::MatrixBase<Derived_T> *rhs) {
+  for (int i = 0; i < numBlockCols; ++i) {
+    rhs->template middleCols<3>(i * 3) = (rhs->template middleCols<3>(i * 3) * rotation).eval();
+  }
+}
+
 }  // namespace swift_vio
 
 #endif // MATRIXUTILITIES_H

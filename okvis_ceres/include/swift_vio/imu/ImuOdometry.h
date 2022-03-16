@@ -53,7 +53,7 @@ class ImuOdometry {
       const okvis::ImuMeasurementDeque& imuMeasurements,
       const okvis::ImuParameters& imuParams,
       okvis::kinematics::Transformation& T_WS, Eigen::Vector3d& v_WS,
-      const ImuErrorModel<double>& iem, const okvis::Time& t_start,
+      const Imu_BG_BA_TG_TS_TA& iem, const okvis::Time& t_start,
       const okvis::Time& t_end,
       Eigen::MatrixXd* covariance = nullptr,
       Eigen::MatrixXd* jacobian = nullptr,
@@ -103,17 +103,18 @@ class ImuOdometry {
       const okvis::ImuMeasurementDeque& imuMeasurements,
       const okvis::ImuParameters& imuParams,
       okvis::kinematics::Transformation& T_WS, Eigen::Vector3d& v_WS,
-      const ImuErrorModel<double>& iem, const okvis::Time& t_start,
+      const Imu_BG_BA& iem, const okvis::Time& t_start,
       const okvis::Time& t_end,
       Eigen::Matrix<double, 15, 15>* covariance = nullptr,
       Eigen::Matrix<double, 15, 15>* jacobian = nullptr);
 
   // t_start is greater than t_end
+  template<typename ImuModelT>
   static int propagationBackward(
       const okvis::ImuMeasurementDeque& imuMeasurements,
       const okvis::ImuParameters& imuParams,
       okvis::kinematics::Transformation& T_WS, Eigen::Vector3d& v_WS,
-      const ImuErrorModel<double>& iem, const okvis::Time& t_start,
+      const ImuModelT& iem, const okvis::Time& t_start,
       const okvis::Time& t_end);
 
   template <typename ImuModelT>

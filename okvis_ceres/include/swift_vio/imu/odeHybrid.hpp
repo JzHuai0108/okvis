@@ -40,7 +40,6 @@
 #ifndef INCLUDE_SWIFT_VIO_ODE_HYBRID_HPP_
 #define INCLUDE_SWIFT_VIO_ODE_HYBRID_HPP_
 
-#include <swift_vio/imu/ImuErrorModel.h>
 #include <swift_vio/imu/ImuRig.hpp>
 
 #include <Eigen/Core>

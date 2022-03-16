@@ -1,5 +1,4 @@
 #include <swift_vio/imu/ImuModels.hpp>
-#include <swift_vio/imu/ImuErrorModel.h>
 #include <Eigen/Core>
 
 #include <okvis/kinematics/Transformation.hpp>
@@ -439,7 +438,8 @@ void Imu_BG_BA_MG_TS_MA::propagate(double dt,
   F_delta.block<3, 3>(0, 12) = 0.5 * dt * F_delta.block<3, 3>(6, 12);
 
   P_delta_ = F_delta * P_delta_ * F_delta.transpose();
-  // add noise. note the scaling effect of T_g and T_a
+#if 0
+  // add noise. note the scaling effect of M_g and M_a
   Eigen::Matrix<double, 15, 15> GQG = Eigen::Matrix<double, 15, 15>::Zero();
   Eigen::Matrix<double, 15, 15> GQG_1 = Eigen::Matrix<double, 15, 15>::Zero();
   Eigen::Matrix3d CMg = C * Mg_;
@@ -472,6 +472,37 @@ void Imu_BG_BA_MG_TS_MA::propagate(double dt,
       Eigen::Matrix3d::Identity() * sigma_aw_c * sigma_aw_c;
 
   P_delta_ += 0.5 * dt * (F_delta * GQG * F_delta.transpose() + GQG_1);
+#else
+  const double sigma2_dalpha = dt * sigma_g_c * sigma_g_c;
+  P_delta_(3, 3) += sigma2_dalpha;
+  P_delta_(4, 4) += sigma2_dalpha;
+  P_delta_(5, 5) += sigma2_dalpha;
+  const double sigma2_v = dt * sigma_a_c * sigma_a_c;
+  P_delta_(6, 6) += sigma2_v;
+  P_delta_(7, 7) += sigma2_v;
+  P_delta_(8, 8) += sigma2_v;
+  const double sigma2_p = 0.5 * dt * dt * sigma2_v;
+  P_delta_(0, 0) += sigma2_p;
+  P_delta_(1, 1) += sigma2_p;
+  P_delta_(2, 2) += sigma2_p;
+
+  const double sigma2_pv = 0.5 * dt * sigma2_v;
+  P_delta_(0, 6) += sigma2_pv;
+  P_delta_(1, 7) += sigma2_pv;
+  P_delta_(2, 8) += sigma2_pv;
+  P_delta_(6, 0) += sigma2_pv;
+  P_delta_(7, 1) += sigma2_pv;
+  P_delta_(8, 2) += sigma2_pv;
+
+  const double sigma2_b_g = dt * sigma_gw_c * sigma_gw_c;
+  P_delta_(9, 9) += sigma2_b_g;
+  P_delta_(10, 10) += sigma2_b_g;
+  P_delta_(11, 11) += sigma2_b_g;
+  const double sigma2_b_a = dt * sigma_aw_c * sigma_aw_c;
+  P_delta_(12, 12) += sigma2_b_a;
+  P_delta_(13, 13) += sigma2_b_a;
+  P_delta_(14, 14) += sigma2_b_a;
+#endif
 
   // memory shift
   Delta_q_ = Delta_q_1;
@@ -650,6 +681,7 @@ void Imu_BG_BA_MG_TS_MA::updatePdelta(double dt, double sigma_g_c,
                                       double sigma_a_c, double sigma_gw_c,
                                       double sigma_aw_c) {
   P_ = F_delta_ * P_ * F_delta_.transpose();
+#if 0
   // add noise. note the scaling effect of M_g and M_a
   Eigen::Matrix<double, 15, 15> GQG = Eigen::Matrix<double, 15, 15>::Zero();
   Eigen::Matrix<double, 15, 15> GQG_1 = Eigen::Matrix<double, 15, 15>::Zero();
@@ -679,12 +711,73 @@ void Imu_BG_BA_MG_TS_MA::updatePdelta(double dt, double sigma_g_c,
       Eigen::Matrix3d::Identity() * sigma_gw_c * sigma_gw_c;
   GQG_1.block<3, 3>(12, 12) =
       Eigen::Matrix3d::Identity() * sigma_aw_c * sigma_aw_c;
-
-  P_.topLeftCorner<15, 15>() +=
-      0.5 * dt *
+  Eigen::Matrix<double, 15, 15> noiseCov =  0.5 * dt *
       (F_delta_.topLeftCorner<15, 15>() * GQG *
            F_delta_.topLeftCorner<15, 15>().transpose() +
        GQG_1);
+  P_.topLeftCorner<15, 15>() += noiseCov;
+  std::cout << "rigorous noise cov\n" << noiseCov << "\n";
+#else
+  const double sigma2_dalpha = dt * sigma_g_c * sigma_g_c;
+  P_(3, 3) += sigma2_dalpha;
+  P_(4, 4) += sigma2_dalpha;
+  P_(5, 5) += sigma2_dalpha;
+
+  const double sigma2_v = dt * sigma_a_c * sigma_a_c;
+  P_(6, 6) += sigma2_v;
+  P_(7, 7) += sigma2_v;
+  P_(8, 8) += sigma2_v;
+  const double sigma2_p = 0.5 * dt * dt * sigma2_v;
+  P_(0, 0) += sigma2_p;
+  P_(1, 1) += sigma2_p;
+  P_(2, 2) += sigma2_p;
+
+  const double sigma2_pv = 0.5 * dt * sigma2_v;
+  P_(0, 6) += sigma2_pv;
+  P_(1, 7) += sigma2_pv;
+  P_(2, 8) += sigma2_pv;
+  P_(6, 0) += sigma2_pv;
+  P_(7, 1) += sigma2_pv;
+  P_(8, 2) += sigma2_pv;
+
+  const double sigma2_b_g = dt * sigma_gw_c * sigma_gw_c;
+  P_(9, 9) += sigma2_b_g;
+  P_(10, 10) += sigma2_b_g;
+  P_(11, 11) += sigma2_b_g;
+  const double sigma2_b_a = dt * sigma_aw_c * sigma_aw_c;
+  P_(12, 12) += sigma2_b_a;
+  P_(13, 13) += sigma2_b_a;
+  P_(14, 14) += sigma2_b_a;
+
+//  Eigen::Matrix<double, 15, 15> approxNoiseCov;
+//  approxNoiseCov.setZero();
+//  approxNoiseCov(3, 3) += sigma2_dalpha;
+//  approxNoiseCov(4, 4) += sigma2_dalpha;
+//  approxNoiseCov(5, 5) += sigma2_dalpha;
+
+//  approxNoiseCov(6, 6) += sigma2_v;
+//  approxNoiseCov(7, 7) += sigma2_v;
+//  approxNoiseCov(8, 8) += sigma2_v;
+//  approxNoiseCov(0, 0) += sigma2_p;
+//  approxNoiseCov(1, 1) += sigma2_p;
+//  approxNoiseCov(2, 2) += sigma2_p;
+
+//  approxNoiseCov(0, 6) += sigma2_pv;
+//  approxNoiseCov(1, 7) += sigma2_pv;
+//  approxNoiseCov(2, 8) += sigma2_pv;
+//  approxNoiseCov(6, 0) += sigma2_pv;
+//  approxNoiseCov(7, 1) += sigma2_pv;
+//  approxNoiseCov(8, 2) += sigma2_pv;
+
+//  approxNoiseCov(9, 9) += sigma2_b_g;
+//  approxNoiseCov(10, 10) += sigma2_b_g;
+//  approxNoiseCov(11, 11) += sigma2_b_g;
+//  approxNoiseCov(12, 12) += sigma2_b_a;
+//  approxNoiseCov(13, 13) += sigma2_b_a;
+//  approxNoiseCov(14, 14) += sigma2_b_a;
+//  std::cout << "approximate noise cov\n" << approxNoiseCov << "\n";
+//  std::cout << "diff\n" << noiseCov - approxNoiseCov << "\n";
+#endif
 }
 
 void Imu_BG_BA_MG_TS_MA::shiftVariables() {
@@ -774,9 +867,11 @@ void Imu_BG_BA_MG_TS_MA::getFinalJacobian(
 }
 
 void Imu_BG_BA_MG_TS_MA::getFinalCovariance(Eigen::MatrixXd *covariance,
-                                            const Eigen::MatrixXd &T) {
+                                            const Eigen::Matrix3d &C_WS0) {
   // transform from local increments to actual states
-  *covariance = T.transpose() * P_ * T;
+  *covariance = P_;
+  scaleBlockRows(C_WS0, 3, covariance);
+  scaleBlockCols(C_WS0.transpose(), 3, covariance);
 }
 
 void Imu_BG_BA_MG_TS_MA::resetPreintegration() {

@@ -30,7 +30,8 @@ void PointSharedData::computePoseAndVelocityAtObservation() {
               item.speedAndBiasPtr)
               ->estimate();
       item.v_WBtij = sbj.head<3>();
-      ImuErrorModel<double> iem(sbj.tail<6>(), imuAugmentedParams, true);
+      Imu_BG_BA_TG_TS_TA iem;
+      iem.updateParameters(sbj.data() + 3, imuAugmentedParams.data());
       okvis::ImuMeasurement interpolatedInertialData;
       ImuOdometry::interpolateInertialData(*item.imuMeasurementPtr, iem,
                                            item.stateEpoch,

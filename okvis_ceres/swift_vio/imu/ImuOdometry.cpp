@@ -1,7 +1,6 @@
 #include <glog/logging.h>
 
 #include <swift_vio/imu/ImuOdometry.h>
-#include <swift_vio/imu/ImuErrorModel.h>
 #include <swift_vio/imu/ImuModels.hpp>
 #include <swift_vio/ParallaxAnglePoint.hpp>
 
@@ -28,7 +27,7 @@ int ImuOdometry::propagation(
     const okvis::ImuMeasurementDeque& imuMeasurements,
     const okvis::ImuParameters& imuParams,
     okvis::kinematics::Transformation& T_WS, Eigen::Vector3d& v_WS,
-    const ImuErrorModel<double>& iem, const okvis::Time& t_start,
+    const Imu_BG_BA_TG_TS_TA& iem, const okvis::Time& t_start,
     const okvis::Time& t_end,
     Eigen::MatrixXd* covariance,
     Eigen::MatrixXd* jacobian,
@@ -122,13 +121,10 @@ int ImuOdometry::propagation(
   int covRows = 0;
   if (covariance || jacobian) {
     covRows = covariance ?  covariance->rows() : jacobian->rows();
-    T = Eigen::MatrixXd::Identity(covRows, covRows);
-    T.topLeftCorner<3, 3>() = C_WS_0.transpose();
-    T.block<3, 3>(3, 3) = C_WS_0.transpose();
-    T.block<3, 3>(6, 6) = C_WS_0.transpose();
-    // transform from actual states to local S0 frame
-    P_delta = T * (*covariance) * T.transpose();
-    jacobian->setIdentity();
+
+    P_delta = *covariance;
+    scaleBlockRows(C_WS_0.transpose(), 3, &P_delta);
+    scaleBlockCols(C_WS_0, 3, &P_delta);
   }
   int gravityErrorStartIndex = covRows - 2;
   NormalVectorElement normalGravity(imuParams.gravityDirection());
@@ -136,7 +132,7 @@ int ImuOdometry::propagation(
   double Delta_t = 0;  // integrated time up to Si since S0 frame
   bool hasStarted = false;
   int i = 0;
-  Eigen::Matrix3d invTgsa = iem.invT_g * iem.T_s * iem.invT_a;
+  Eigen::Matrix3d invTgsa = iem.invTgsa();
 
   for (okvis::ImuMeasurementDeque::const_iterator it = imuMeasurements.begin();
        it != imuMeasurements.end(); ++it) {
@@ -236,13 +232,13 @@ int ImuOdometry::propagation(
       dalpha_dT_g_1 =
           dalpha_dT_g +
           0.5 * dt *
-              (C * iem.invT_g * dmatrix3_dvector9_multiply(omega_est) +
-               C_1 * iem.invT_g * dmatrix3_dvector9_multiply(omega_est_1));
+              (C * iem.invTg() * dmatrix3_dvector9_multiply(omega_est) +
+               C_1 * iem.invTg() * dmatrix3_dvector9_multiply(omega_est_1));
       dalpha_dT_s_1 =
           dalpha_dT_s +
           0.5 * dt *
-              (C * iem.invT_g * dmatrix3_dvector9_multiply(acc_est) +
-               C_1 * iem.invT_g * dmatrix3_dvector9_multiply(acc_est_1));
+              (C * iem.invTg() * dmatrix3_dvector9_multiply(acc_est) +
+               C_1 * iem.invTg() * dmatrix3_dvector9_multiply(acc_est_1));
       dalpha_dT_a_1 =
           dalpha_dT_a +
           0.5 * dt *
@@ -254,7 +250,7 @@ int ImuOdometry::propagation(
           0.5 * dt *
               (okvis::kinematics::crossMx(C * acc_est) * C_integral +
                okvis::kinematics::crossMx(C_1 * acc_est_1) * C_integral_1) *
-              iem.invT_g;
+              iem.invTg();
 
       dv_dT_g_1 =
           dv_dT_g +
@@ -271,8 +267,8 @@ int ImuOdometry::propagation(
       dv_dT_a_1 =
           dv_dT_a +
           0.5 * dt *
-              (C * iem.invT_a * dmatrix3_dvector9_multiply(acc_est) +
-               C_1 * iem.invT_a * dmatrix3_dvector9_multiply(acc_est_1)) +
+              (C * iem.invTa() * dmatrix3_dvector9_multiply(acc_est) +
+               C_1 * iem.invTa() * dmatrix3_dvector9_multiply(acc_est_1)) +
           0.5 * dt *
               (okvis::kinematics::crossMx(C * acc_est) * dalpha_dT_a +
                okvis::kinematics::crossMx(C_1 * acc_est_1) * dalpha_dT_a_1);
@@ -293,14 +289,14 @@ int ImuOdometry::propagation(
       Eigen::MatrixXd
           F_delta = Eigen::MatrixXd::Identity(covRows, covRows);
 
-      F_delta.block<3, 3>(3, 9) = -0.5 * dt * (C_1 + C) * iem.invT_g;
+      F_delta.block<3, 3>(3, 9) = -0.5 * dt * (C_1 + C) * iem.invTg();
       F_delta.block<3, 3>(3, 12) = 0.5 * dt * (C_1 + C) * invTgsa;
 
       F_delta.block<3, 3>(6, 9) = 0.25 * dt * dt *
                                   okvis::kinematics::crossMx(C_1 * acc_est_1) *
-                                  (C + C_1) * iem.invT_g;
+                                  (C + C_1) * iem.invTg();
       F_delta.block<3, 3>(6, 12) =
-          -0.5 * dt * (C + C_1) * iem.invT_a -
+          -0.5 * dt * (C + C_1) * iem.invTa() -
           0.25 * pow(dt, 2) * okvis::kinematics::crossMx(C_1 * acc_est_1) *
               (C + C_1) * invTgsa;
 
@@ -325,12 +321,12 @@ int ImuOdometry::propagation(
       if (covRows >= (int)(Imu_BG_BA_TG_TS_TA::getMinimalDim() + kNavErrorStateDim)) {
         F_delta.block<3, 9>(3, 15) =
             -0.5 * dt *
-            (C * iem.invT_g * dmatrix3_dvector9_multiply(omega_est) +
-             C_1 * iem.invT_g * dmatrix3_dvector9_multiply(omega_est_1));
+            (C * iem.invTg() * dmatrix3_dvector9_multiply(omega_est) +
+             C_1 * iem.invTg() * dmatrix3_dvector9_multiply(omega_est_1));
         F_delta.block<3, 9>(3, 24) =
             -0.5 * dt *
-            (C * iem.invT_g * dmatrix3_dvector9_multiply(acc_est) +
-             C_1 * iem.invT_g * dmatrix3_dvector9_multiply(acc_est_1));
+            (C * iem.invTg() * dmatrix3_dvector9_multiply(acc_est) +
+             C_1 * iem.invTg() * dmatrix3_dvector9_multiply(acc_est_1));
         F_delta.block<3, 9>(3, 33) =
             0.5 * dt *
             (C * invTgsa * dmatrix3_dvector9_multiply(acc_est) +
@@ -346,8 +342,8 @@ int ImuOdometry::propagation(
             -0.5 * dt * okvis::kinematics::crossMx(C_1 * acc_est_1) *
                 F_delta.block<3, 9>(3, 33) -
             0.5 * dt *
-                (C * iem.invT_a * dmatrix3_dvector9_multiply(acc_est) +
-                 C_1 * iem.invT_a * dmatrix3_dvector9_multiply(acc_est_1));
+                (C * iem.invTa() * dmatrix3_dvector9_multiply(acc_est) +
+                 C_1 * iem.invTa() * dmatrix3_dvector9_multiply(acc_est_1));
 
         F_delta.block<3, 9>(0, 15) = 0.5 * dt * F_delta.block<3, 9>(6, 15);
         F_delta.block<3, 9>(0, 24) = 0.5 * dt * F_delta.block<3, 9>(6, 24);
@@ -365,10 +361,10 @@ int ImuOdometry::propagation(
       Eigen::Matrix<double, 15, 15> GQG = Eigen::Matrix<double, 15, 15>::Zero();
       Eigen::Matrix<double, 15, 15> GQG_1 =
           Eigen::Matrix<double, 15, 15>::Zero();
-      Eigen::Matrix3d CinvTg = C * iem.invT_g;
-      Eigen::Matrix3d CinvTg_1 = C_1 * iem.invT_g;
-      Eigen::Matrix3d CinvTa = C * iem.invT_a;
-      Eigen::Matrix3d CinvTa_1 = C_1 * iem.invT_a;
+      Eigen::Matrix3d CinvTg = C * iem.invTg();
+      Eigen::Matrix3d CinvTg_1 = C_1 * iem.invTg();
+      Eigen::Matrix3d CinvTa = C * iem.invTa();
+      Eigen::Matrix3d CinvTa_1 = C_1 * iem.invTa();
       Eigen::Matrix3d CinvTgsa = C * invTgsa;
       Eigen::Matrix3d CinvTgsa_1 = C_1 * invTgsa;
       GQG.block<3, 3>(3, 3) = CinvTg * imuParams.sigma_g_c *
@@ -444,10 +440,10 @@ int ImuOdometry::propagation(
 
     F.block<3, 3>(0, 6) = Eigen::Matrix3d::Identity() * Delta_t;
     F.block<3, 3>(0, 9) = C_WS_0 * dp_db_g;
-    dp_db_a = C_doubleintegral * iem.invT_a + dp_db_g * iem.T_s * iem.invT_a;
+    dp_db_a = C_doubleintegral * iem.invTa() + dp_db_g * iem.Ts() * iem.invTa();
     F.block<3, 3>(0, 12) = -C_WS_0 * dp_db_a;
 
-    dalpha_db_g = C_integral * iem.invT_g;
+    dalpha_db_g = C_integral * iem.invTg();
     F.block<3, 3>(3, 9) = -C_WS_0 * dalpha_db_g;
     dalpha_db_a = C_integral * invTgsa;
     F.block<3, 3>(3, 12) = C_WS_0 * dalpha_db_a;
@@ -465,7 +461,7 @@ int ImuOdometry::propagation(
       F.block<3, 3>(6, 3) = -okvis::kinematics::crossMx(C_WS_0 * acc_integral);
     }
     F.block<3, 3>(6, 9) = C_WS_0 * dv_db_g;
-    dv_db_a = C_integral * iem.invT_a + dv_db_g * iem.T_s * iem.invT_a;
+    dv_db_a = C_integral * iem.invTa() + dv_db_g * iem.Ts() * iem.invTa();
     F.block<3, 3>(6, 12) = -C_WS_0 * dv_db_a;
 
     if (covRows >=
@@ -489,9 +485,10 @@ int ImuOdometry::propagation(
   }
   // overall covariance, if requested
   if (covariance) {
-    Eigen::MatrixXd& P = *covariance;
     // transform from local increments to actual states
-    P = T.transpose() * P_delta * T;
+    *covariance = P_delta;
+    scaleBlockRows(C_WS_0, 3, covariance);
+    scaleBlockCols(C_WS_0.transpose(), 3, covariance);
   }
   return i;
 }
@@ -587,17 +584,10 @@ int ImuOdometry::propagation(
   iem.setPosVelLinPoint(posVelLinPointAtStart);
 
   Eigen::MatrixXd P_delta;
-  Eigen::MatrixXd T;
-  int covRows = 0;
   if (covariance || jacobian) {
-    covRows = covariance ?  covariance->rows() : jacobian->rows();
-    T = Eigen::MatrixXd::Identity(covRows, covRows);
-    T.topLeftCorner<3, 3>() = C_WS_0.transpose();
-    T.block<3, 3>(3, 3) = C_WS_0.transpose();
-    T.block<3, 3>(6, 6) = C_WS_0.transpose();
-    // transform from actual states to local S0 frame
-    P_delta = T * (*covariance) * T.transpose();
-    jacobian->setIdentity();
+    P_delta = *covariance;
+    scaleBlockRows(C_WS_0.transpose(), 3, &P_delta);
+    scaleBlockCols(C_WS_0, 3, &P_delta);
   }
 
   NormalVectorElement normalGravity(imuParams.gravityDirection());
@@ -606,7 +596,6 @@ int ImuOdometry::propagation(
   bool hasStarted = false;
   int i = 0;
 
-  Eigen::MatrixXd F_delta = Eigen::MatrixXd::Identity(covRows, covRows);
   iem.setInitialStateAndCov(T_WS, v_WS, g_W, P_delta);
 
   for (okvis::ImuMeasurementDeque::const_iterator it = imuMeasurements.begin();
@@ -690,7 +679,7 @@ int ImuOdometry::propagation(
   iem.getFinalJacobian(jacobian, Delta_t, posVelLinPointAtStart, normalGravity,
                        imuParams.g, imuParams.estimateGravityDirection);
 
-  iem.getFinalCovariance(covariance, T);
+  iem.getFinalCovariance(covariance, C_WS_0);
 
   return i;
 }
@@ -722,7 +711,7 @@ int ImuOdometry::propagationRightInvariantError(
     const okvis::ImuMeasurementDeque& imuMeasurements,
     const okvis::ImuParameters& imuParams,
     okvis::kinematics::Transformation& T_WS, Eigen::Vector3d& v_WS,
-    const ImuErrorModel<double>& iem, const okvis::Time& t_start,
+    const Imu_BG_BA& iem, const okvis::Time& t_start,
     const okvis::Time& t_end, Eigen::Matrix<double, 15, 15>* covariance,
     Eigen::Matrix<double, 15, 15>* jacobian) {
   okvis::Time time = t_start;
@@ -940,12 +929,12 @@ int ImuOdometry::propagationRightInvariantError(
   return i;
 }
 
-// Propagates pose, speeds and biases with given IMU measurements.
+template<typename ImuModelT>
 int ImuOdometry::propagationBackward(
     const okvis::ImuMeasurementDeque& imuMeasurements,
     const okvis::ImuParameters& imuParams,
     okvis::kinematics::Transformation& T_WS, Eigen::Vector3d& v_WS,
-    const ImuErrorModel<double>& iem, const okvis::Time& t_start,
+    const ImuModelT& iem, const okvis::Time& t_start,
     const okvis::Time& t_end) {
   okvis::Time time = t_start;
 
@@ -1111,10 +1100,9 @@ void poseAndVelocityAtObservation(
     bool use_RK4) {
   const double wedge = 5e-8;
   double relFeatureTime = featureTime.toSec();
-
+  Imu_BG_BA_TG_TS_TA iem;
+  iem.updateParameters(sb->data() + 3, imuAugmentedParams.data());
   if (use_RK4) {
-    Imu_BG_BA_TG_TS_TA iem;
-    iem.updateParameters(sb->data() + 3, imuAugmentedParams.data());
     if (relFeatureTime >= wedge) {
       ImuOdometry::propagation_RungeKutta(imuMeas, imuParameters, *T_WB, *sb,
                                           iem, stateEpoch,
@@ -1127,7 +1115,6 @@ void poseAndVelocityAtObservation(
     ImuOdometry::interpolateInertialData(imuMeas, iem, stateEpoch + featureTime,
                                          *interpolatedInertialData);
   } else {
-    ImuErrorModel<double> iem(sb->tail<6>(), imuAugmentedParams, true);
     Eigen::Vector3d tempV_WS = sb->head<3>();
     if (relFeatureTime >= wedge) {
       ImuOdometry::propagation(imuMeas, imuParameters, *T_WB, tempV_WS, iem,
@@ -1149,7 +1136,8 @@ void poseAndLinearVelocityAtObservation(
     const okvis::ImuParameters& imuParameters, const okvis::Time& stateEpoch,
     const okvis::Duration& featureTime, okvis::kinematics::Transformation* T_WB,
     okvis::SpeedAndBiases* sb) {
-  ImuErrorModel<double> iem(sb->tail<6>(), imuAugmentedParams, true);
+  Imu_BG_BA_TG_TS_TA iem;
+  iem.updateParameters(sb->data() + 3, imuAugmentedParams.data());
 
   Eigen::Vector3d tempV_WS = sb->head<3>();
   if (featureTime >= okvis::Duration()) {
