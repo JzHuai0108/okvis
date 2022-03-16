@@ -529,62 +529,12 @@ int ImuOdometry::propagation(
     posVelLinPointAtStart << T_WS.r(), v_WS;
   }
 
-  // increments (initialise with identity)
-  // denote t_start by $t_0$
-//  Eigen::Quaterniond Delta_q(1, 0, 0, 0);  // quaternion of DCM from Si to S0
-//  //$\int_{t_0}^{t_i} R_S^{S_0} dt$
-//  Eigen::Matrix3d C_integral =
-//      Eigen::Matrix3d::Zero();  // integrated DCM up to Si expressed in S0 frame
-//  // $\int_{t_0}^{t_i} \int_{t_0}^{s} R_S^{S_0} dt ds$
-//  Eigen::Matrix3d C_doubleintegral =
-//      Eigen::Matrix3d::Zero();  // double integrated DCM up to Si expressed in
-//                                // S0 frame
-//  // $\int_{t_0}^{t_i} R_S^{S_0} a^S dt$
-//  Eigen::Vector3d acc_integral =
-//      Eigen::Vector3d::Zero();  // integrated acceleration up to Si expressed in
-//                                // S0 frame
-//  // $\int_{t_0}^{t_i} \int_{t_0}^{s} R_S^{S_0} a^S dt ds$
-//  Eigen::Vector3d acc_doubleintegral =
-//      Eigen::Vector3d::Zero();  // double integrated acceleration up to Si
-//                                // expressed in S0 frame
-//  // sub-Jacobians
-//  // $R_{S_0}^W \frac{d^{S_0}\alpha_{l+1}}{d b_g_{l}} = \frac{d^W\alpha_{l+1}}{d
-//  // b_g_{l}} $ for ease of implementation, we compute all the Jacobians with
-//  // positive increment, thus there can be a sign difference between, for
-//  // instance, dalpha_db_g and \frac{d^{S_0}\alpha_{l+1}}{d b_g_{(l)}}. This
-//  // difference is adjusted when putting all Jacobians together
-//  Eigen::Matrix3d dalpha_db_g = Eigen::Matrix3d::Zero();
-//  Eigen::Matrix3d dalpha_db_a = Eigen::Matrix3d::Zero();
-//  Eigen::Matrix<double, 3, 9> dalpha_dT_g = Eigen::Matrix<double, 3, 9>::Zero();
-//  Eigen::Matrix<double, 3, 9> dalpha_dT_s = Eigen::Matrix<double, 3, 9>::Zero();
-//  Eigen::Matrix<double, 3, 9> dalpha_dT_a = Eigen::Matrix<double, 3, 9>::Zero();
-
-//  Eigen::Matrix3d dv_db_g = Eigen::Matrix3d::Zero();
-//  Eigen::Matrix3d dv_db_a = Eigen::Matrix3d::Zero();
-//  Eigen::Matrix<double, 3, 9> dv_dT_g = Eigen::Matrix<double, 3, 9>::Zero();
-//  Eigen::Matrix<double, 3, 9> dv_dT_s = Eigen::Matrix<double, 3, 9>::Zero();
-//  Eigen::Matrix<double, 3, 9> dv_dT_a = Eigen::Matrix<double, 3, 9>::Zero();
-
-//  Eigen::Matrix3d dp_db_g = Eigen::Matrix3d::Zero();
-//  Eigen::Matrix3d dp_db_a = Eigen::Matrix3d::Zero();
-//  Eigen::Matrix<double, 3, 9> dp_dT_g = Eigen::Matrix<double, 3, 9>::Zero();
-//  Eigen::Matrix<double, 3, 9> dp_dT_s = Eigen::Matrix<double, 3, 9>::Zero();
-//  Eigen::Matrix<double, 3, 9> dp_dT_a = Eigen::Matrix<double, 3, 9>::Zero();
-
-//  // intermediate variables, must assign values to them before using.
-//  Eigen::Matrix<double, 3, 9> dalpha_dT_g_1;
-//  Eigen::Matrix<double, 3, 9> dalpha_dT_s_1;
-//  Eigen::Matrix<double, 3, 9> dalpha_dT_a_1;
-//  Eigen::Matrix3d dv_db_g_1;
-//  Eigen::Matrix<double, 3, 9> dv_dT_g_1;
-//  Eigen::Matrix<double, 3, 9> dv_dT_s_1;
-//  Eigen::Matrix<double, 3, 9> dv_dT_a_1;
-
   iem.resetPreintegration();
   iem.setPosVelLinPoint(posVelLinPointAtStart);
 
   Eigen::MatrixXd P_delta;
-  if (covariance || jacobian) {
+  bool computeCovariance = covariance || jacobian;
+  if (computeCovariance) {
     P_delta = *covariance;
     scaleBlockRows(C_WS_0.transpose(), 3, &P_delta);
     scaleBlockCols(C_WS_0, 3, &P_delta);
@@ -662,9 +612,13 @@ int ImuOdometry::propagation(
 
     iem.computeDeltaState(dt, omega_S_0, acc_S_0, omega_S_1, acc_S_1);
 
-    iem.computeFdelta(Delta_t, dt, normalGravity, imuParams.g, imuParams.estimateGravityDirection);
+    if (computeCovariance) {
+      iem.computeFdelta(Delta_t, dt, normalGravity, imuParams.g,
+                        imuParams.estimateGravityDirection);
 
-    iem.updatePdelta(dt, sigma_g_c, sigma_a_c, imuParams.sigma_gw_c, imuParams.sigma_aw_c);
+      iem.updatePdelta(dt, sigma_g_c, sigma_a_c, imuParams.sigma_gw_c,
+                       imuParams.sigma_aw_c);
+    }
 
     iem.shiftVariables();
 
@@ -675,11 +629,13 @@ int ImuOdometry::propagation(
 
   // actual propagation output:
   iem.getFinalState(Delta_t, &T_WS, &v_WS);
+  if (computeCovariance) {
+    iem.getFinalJacobian(jacobian, Delta_t, posVelLinPointAtStart,
+                         normalGravity, imuParams.g,
+                         imuParams.estimateGravityDirection);
 
-  iem.getFinalJacobian(jacobian, Delta_t, posVelLinPointAtStart, normalGravity,
-                       imuParams.g, imuParams.estimateGravityDirection);
-
-  iem.getFinalCovariance(covariance, C_WS_0);
+    iem.getFinalCovariance(covariance, C_WS_0);
+  }
 
   return i;
 }
