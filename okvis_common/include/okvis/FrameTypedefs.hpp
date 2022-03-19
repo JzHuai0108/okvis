@@ -137,6 +137,8 @@ struct IsObservedInFrame {
   size_t cameraIndex;
 };
 
+typedef IsObservedInFrame CameraIdentifier;
+
 /// \brief Type to store the result of matching.
 struct Match
 {
@@ -239,6 +241,30 @@ struct MapPoint
     status.measurementFate = measurementFate;
   }
 
+  void setInState(bool in) {
+    status.inState = in;
+  }
+
+  void setInitialized(bool inited) {
+    initialized = inited;
+  }
+
+  bool inState() const {
+    return status.inState;
+  }
+
+  swift_vio::FeatureTrackStatus::MeasurementType measurementType() const {
+    return status.measurementType;
+  }
+
+  swift_vio::FeatureTrackStatus::MeasurementFate measurementFate() const {
+    return status.measurementFate;
+  }
+
+  bool isInitialized() const {
+    return initialized;
+  }
+
   bool hasObservationInImage(uint64_t frameId, size_t cameraId) const {
     auto iter = observations.lower_bound(okvis::KeypointIdentifier(frameId, cameraId, 0u));
     if (iter != observations.end() && iter->first.frameId == frameId && iter->first.cameraIndex == cameraId) {
@@ -257,6 +283,7 @@ struct MapPoint
   uint64_t anchorStateId;
   size_t anchorCameraId;
 
+private:
   swift_vio::FeatureTrackStatus status;
   bool initialized; // is this landmark initialized in position?
 };

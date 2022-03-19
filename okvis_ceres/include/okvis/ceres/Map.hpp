@@ -50,6 +50,8 @@
 #include <okvis/assert_macros.hpp>
 #include <unordered_map>
 #include <okvis/ceres/ErrorInterface.hpp>
+#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ParallaxAnglePoint.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -100,7 +102,9 @@ class Map {
   /// @brief The Parameterisation enum
   enum Parameterization {
     HomogeneousPoint,     ///< Use okvis::ceres::HomogeneousPointLocalParameterization.
+    UnitVector,
     Pose6d,               ///< Use okvis::ceres::PoseLocalParameterization.
+    Pose6dSimple,         ///< Use PoseLocalParameterizationSimplified
     Pose3d,               ///< Use okvis::ceres::PoseLocalParameterization3d (orientation varying).
     Pose4d,               ///< Use okvis::ceres::PoseLocalParameterization4d (position and yaw varying).
     Pose2d,               ///< Use okvis::ceres::PoseLocalParameterization2d (roll/pitch varying).
@@ -476,6 +480,8 @@ class Map {
   /// \brief Store parameterisation locally.
   okvis::ceres::PoseLocalParameterization poseLocalParameterization_;
 
+  swift_vio::PoseLocalParameterizationSimplified poseLocalParameterizationSimple_;
+
   /// \brief Store parameterisation locally.
   okvis::ceres::PoseLocalParameterization2d poseLocalParameterization2d_;
 
@@ -484,6 +490,8 @@ class Map {
 
   /// \brief Store parameterisation locally.
   okvis::ceres::PoseLocalParameterization4d poseLocalParameterization4d_;
+
+  swift_vio::NormalVectorParameterization normalVectorParameterization_;
 
 };
 

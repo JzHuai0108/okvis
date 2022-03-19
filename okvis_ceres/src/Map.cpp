@@ -319,11 +319,26 @@ bool Map::addParameterBlock(
           &homogeneousPointLocalParameterization_);
       break;
     }
+    case Parameterization::UnitVector: {
+      problem_->AddParameterBlock(parameterBlock->parameters(),
+                                  parameterBlock->dimension(),
+                                  &normalVectorParameterization_);
+      parameterBlock->setLocalParameterizationPtr(
+          &normalVectorParameterization_);
+      break;
+    }
     case Parameterization::Pose6d: {
       problem_->AddParameterBlock(parameterBlock->parameters(),
                                   parameterBlock->dimension(),
                                   &poseLocalParameterization_);
       parameterBlock->setLocalParameterizationPtr(&poseLocalParameterization_);
+      break;
+    }
+    case Parameterization::Pose6dSimple: {
+      problem_->AddParameterBlock(parameterBlock->parameters(),
+                                  parameterBlock->dimension(),
+                                  &poseLocalParameterizationSimple_);
+      parameterBlock->setLocalParameterizationPtr(&poseLocalParameterizationSimple_);
       break;
     }
     case Parameterization::Pose3d: {

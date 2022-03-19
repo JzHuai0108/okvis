@@ -39,7 +39,9 @@ add_library(${PROJECT_NAME}
   swift_vio/PointLandmarkModels.cpp
   swift_vio/PointLandmarkSimulation.cpp
   swift_vio/PointSharedData.cpp
+  swift_vio/PoseError.cpp
   swift_vio/PoseParameterBlock.cpp
+  swift_vio/RelativePoseError.cpp
   swift_vio/SimulatedMotionForParallaxAngleTest.cpp
   swift_vio/checkSensorRig.cpp
   swift_vio/imu/BoundedImuDeque.cpp

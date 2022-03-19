@@ -694,6 +694,15 @@ public:
    updateParameters(bgba, xparamPtrs.data());
  }
 
+ void updateParameters(const double * bgba) {
+   bg_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba);
+   ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
+   Mg_.setIdentity();
+   Ts_.setZero();
+   Ma_.setIdentity();
+   MgTs_.setZero();
+ }
+
  void getWeight(Eigen::Matrix<double, 15, 15> *information) {
    P_delta_ = 0.5 * (P_delta_ + P_delta_.transpose().eval());
    information->setIdentity();

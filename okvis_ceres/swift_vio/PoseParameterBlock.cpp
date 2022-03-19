@@ -46,7 +46,7 @@ void PoseParameterBlock::setEstimate(
   }
 }
 
-void PoseParameterBlock::setLinPoint(const okvis::kinematics::Transformation& T_WS) {
+void PoseParameterBlock::fixLinPoint(const okvis::kinematics::Transformation& T_WS) {
   pLinPoint_ = T_WS.r();
   qLinPoint_ = T_WS.q();
   linPointFixed_ = true;

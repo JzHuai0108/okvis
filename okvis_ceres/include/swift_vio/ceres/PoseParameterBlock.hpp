@@ -9,7 +9,6 @@
 
 #include <Eigen/Core>
 #include <okvis/ceres/ParameterBlockSized.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/Time.hpp>
 
@@ -46,7 +45,7 @@ public:
   /// @param[in] T_WS The estimate to set this to.
   virtual void setEstimate(const okvis::kinematics::Transformation& T_WS);
 
-  void setLinPoint(const okvis::kinematics::Transformation &T_WS);
+  void fixLinPoint(const okvis::kinematics::Transformation &T_WS);
 
   // getters
   /// @brief Get estimate.

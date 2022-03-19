@@ -100,6 +100,10 @@ public:
   double sigma_observation;             ///< camera observation noise std. dev. [px]
 };
 
+typedef std::vector<CameraNoiseParameters,
+                    Eigen::aligned_allocator<CameraNoiseParameters>>
+    CameraNoiseParametersVec;
+
 /*!
  * \brief IMU parameters.
  *
@@ -144,6 +148,8 @@ struct ImuParameters{
 private:
   Eigen::Vector3d normalGravity;
 };
+
+typedef ImuParameters ImuNoiseParameters;
 
 /*!
  * \brief Magnetometer parameters.

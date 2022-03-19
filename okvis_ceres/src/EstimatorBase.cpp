@@ -265,7 +265,7 @@ bool EstimatorBase::isLandmarkInitialized(uint64_t landmarkId) const {
                      "landmark not added");
 //  return std::static_pointer_cast<okvis::ceres::HomogeneousPointParameterBlock>(
 //      mapPtr_->parameterBlockPtr(landmarkId))->initialized();
-  return landmarksMap_.at(landmarkId).initialized;
+  return landmarksMap_.at(landmarkId).isInitialized();
 }
 
 size_t EstimatorBase::getLandmarks(PointMap & landmarks) const
@@ -412,7 +412,7 @@ bool EstimatorBase::setSpeedAndBias(uint64_t poseId, size_t imuIdx, const okvis:
 bool EstimatorBase::setLandmark(
     uint64_t landmarkId, const Eigen::Vector4d & landmark)
 {
-  if (landmarksMap_.at(landmarkId).status.inState) {
+  if (landmarksMap_.at(landmarkId).inState()) {
   std::shared_ptr<ceres::ParameterBlock> parameterBlockPtr = mapPtr_
       ->parameterBlockPtr(landmarkId);
 #ifndef NDEBUG
@@ -440,7 +440,7 @@ void EstimatorBase::setLandmarkInitialized(uint64_t landmarkId,
                      "landmark not added");
 //  std::static_pointer_cast<okvis::ceres::HomogeneousPointParameterBlock>(
 //      mapPtr_->parameterBlockPtr(landmarkId))->setInitialized(initialized);
-  landmarksMap_.at(landmarkId).initialized = initialized;
+  landmarksMap_.at(landmarkId).setInitialized(initialized);
 }
 
 // private stuff
