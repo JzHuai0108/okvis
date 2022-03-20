@@ -45,7 +45,9 @@ public:
   /// @param[in] T_WS The estimate to set this to.
   virtual void setEstimate(const okvis::kinematics::Transformation& T_WS);
 
-  void fixLinPoint(const okvis::kinematics::Transformation &T_WS);
+  void fixPositionLinPoint(const okvis::kinematics::Transformation &T_WS);
+
+  void fixPositionLinPoint();
 
   // getters
   /// @brief Get estimate.
@@ -59,7 +61,8 @@ public:
   }
 
   Eigen::Quaterniond orientationLinPoint() const {
-    return qLinPoint_;
+    return Eigen::Quaterniond(parameters_[6], parameters_[3], parameters_[4],
+                              parameters_[5]);
   }
 
   /// @brief Return parameter block type as string
@@ -67,8 +70,7 @@ public:
 
 private:
   Eigen::Vector3d pLinPoint_;
-  Eigen::Quaterniond qLinPoint_;
-  bool linPointFixed_;
+  bool plinPointFixed_;
 };
 
 } // namespace swift_vio

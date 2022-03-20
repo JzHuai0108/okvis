@@ -52,6 +52,7 @@
 #include <okvis/ceres/ErrorInterface.hpp>
 #include <swift_vio/ExtrinsicModels.hpp>
 #include <swift_vio/ParallaxAnglePoint.hpp>
+#include <swift_vio/PointLandmarkModels.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -102,6 +103,7 @@ class Map {
   /// @brief The Parameterisation enum
   enum Parameterization {
     HomogeneousPoint,     ///< Use okvis::ceres::HomogeneousPointLocalParameterization.
+    InverseDepthPoint,
     UnitVector,
     Pose6d,               ///< Use okvis::ceres::PoseLocalParameterization.
     Pose6dSimple,         ///< Use PoseLocalParameterizationSimplified
@@ -476,6 +478,8 @@ class Map {
 
   /// \brief Store parameterisation locally.
   okvis::ceres::HomogeneousPointLocalParameterization homogeneousPointLocalParameterization_;
+
+  swift_vio::InverseDepthParameterization inverseDepthPointLocalParameterization_;
 
   /// \brief Store parameterisation locally.
   okvis::ceres::PoseLocalParameterization poseLocalParameterization_;

@@ -28,52 +28,13 @@ void getImuAugmentedStatesEstimate(
     std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>
         imuAugmentedParameterPtrs,
     Eigen::Matrix<double, Eigen::Dynamic, 1>* extraParams, int imuModelId) {
-  switch (imuModelId) {
-    case Imu_BG_BA::kModelId:
-      break;
-    case Imu_BG_BA_MG_TS_MA::kModelId: {
-      extraParams->resize(24, 1);
-      std::shared_ptr<const okvis::ceres::ShapeMatrixParamBlock> MgParamBlockPtr =
-          std::static_pointer_cast<const okvis::ceres::ShapeMatrixParamBlock>(
-              imuAugmentedParameterPtrs[0]);
-      Eigen::Matrix<double, 9, 1> sm = MgParamBlockPtr->estimate();
-      extraParams->head<9>() = sm;
-
-      std::shared_ptr<const okvis::ceres::ShapeMatrixParamBlock> TsParamBlockPtr =
-          std::static_pointer_cast<const okvis::ceres::ShapeMatrixParamBlock>(
-              imuAugmentedParameterPtrs[1]);
-      sm = TsParamBlockPtr->estimate();
-      extraParams->segment<9>(9) = sm;
-
-      std::shared_ptr<const okvis::ceres::EuclideanParamBlockSized<6>> MaParamBlockPtr =
-          std::static_pointer_cast<const okvis::ceres::EuclideanParamBlockSized<6>>(
-              imuAugmentedParameterPtrs[2]);
-      extraParams->segment<6>(18) = MaParamBlockPtr->estimate();
-    } break;
-    case Imu_BG_BA_TG_TS_TA::kModelId: {
-      extraParams->resize(27, 1);
-      std::shared_ptr<const okvis::ceres::ShapeMatrixParamBlock> tgParamBlockPtr =
-          std::static_pointer_cast<const okvis::ceres::ShapeMatrixParamBlock>(
-              imuAugmentedParameterPtrs[0]);
-      Eigen::Matrix<double, 9, 1> sm = tgParamBlockPtr->estimate();
-      extraParams->head<9>() = sm;
-
-      std::shared_ptr<const okvis::ceres::ShapeMatrixParamBlock> tsParamBlockPtr =
-          std::static_pointer_cast<const okvis::ceres::ShapeMatrixParamBlock>(
-              imuAugmentedParameterPtrs[1]);
-      sm = tsParamBlockPtr->estimate();
-      extraParams->segment<9>(9) = sm;
-
-      std::shared_ptr<const okvis::ceres::ShapeMatrixParamBlock> taParamBlockPtr =
-          std::static_pointer_cast<const okvis::ceres::ShapeMatrixParamBlock>(
-              imuAugmentedParameterPtrs[2]);
-      sm = taParamBlockPtr->estimate();
-      extraParams->segment<9>(18) = sm;
-    } break;
-    case ScaledMisalignedImu::kModelId:
-      LOG(WARNING) << "get state estimate not implemented for imu model "
-                   << imuModelId;
-      break;
+  const int augmentedDim = ImuModelGetAugmentedDim(imuModelId);
+  extraParams->resize(augmentedDim);
+  size_t offset = 0u;
+  for (const auto paramPtr : imuAugmentedParameterPtrs) {
+    memcpy(extraParams->data() + offset, paramPtr->parameters(),
+           sizeof(double) * paramPtr->dimension());
+    offset += paramPtr->dimension();
   }
 }
 }  // namespace swift_vio

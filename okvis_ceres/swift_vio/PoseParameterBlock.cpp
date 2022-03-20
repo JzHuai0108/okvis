@@ -9,7 +9,7 @@ namespace swift_vio {
 
 // Default constructor (assumes not fixed).
 PoseParameterBlock::PoseParameterBlock()
-    : base_t::ParameterBlockSized(), linPointFixed_(false) {
+    : base_t::ParameterBlockSized(), plinPointFixed_(false) {
   setFixed(false);
 }
 
@@ -20,7 +20,7 @@ PoseParameterBlock::~PoseParameterBlock() {
 // Constructor with estimate and time.
 PoseParameterBlock::PoseParameterBlock(
     const okvis::kinematics::Transformation& T_WS, uint64_t id,
-    const okvis::Time& timestamp) : linPointFixed_(false) {
+    const okvis::Time& timestamp) : plinPointFixed_(false) {
   setEstimate(T_WS);
   setId(id);
   setFixed(false);
@@ -40,16 +40,18 @@ void PoseParameterBlock::setEstimate(
   parameters_[5] = q[2];
   parameters_[6] = q[3];
 
-  if (!linPointFixed_) {
+  if (!plinPointFixed_) {
     pLinPoint_ = r;
-    qLinPoint_ = T_WS.q();
   }
 }
 
-void PoseParameterBlock::fixLinPoint(const okvis::kinematics::Transformation& T_WS) {
+void PoseParameterBlock::fixPositionLinPoint(const okvis::kinematics::Transformation& T_WS) {
   pLinPoint_ = T_WS.r();
-  qLinPoint_ = T_WS.q();
-  linPointFixed_ = true;
+  plinPointFixed_ = true;
+}
+
+void PoseParameterBlock::fixPositionLinPoint() {
+  plinPointFixed_ = true;
 }
 
 // getters
@@ -62,7 +64,9 @@ okvis::kinematics::Transformation PoseParameterBlock::estimate() const {
 }
 
 okvis::kinematics::Transformation PoseParameterBlock::linPoint() const {
-  return okvis::kinematics::Transformation(pLinPoint_, qLinPoint_);
+  return okvis::kinematics::Transformation(
+      pLinPoint_, Eigen::Quaterniond(parameters_[6], parameters_[3],
+                                     parameters_[4], parameters_[5]));
 }
 
 }  // namespace swift_vio

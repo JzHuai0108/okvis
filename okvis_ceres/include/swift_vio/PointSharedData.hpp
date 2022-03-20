@@ -10,7 +10,9 @@
 
 #include <okvis/Measurements.hpp>
 #include <okvis/Parameters.hpp>
-#include <okvis/ceres/PoseParameterBlock.hpp>
+#include <swift_vio/ceres/PoseParameterBlock.hpp>
+#include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
+#include <swift_vio/ceres/EuclideanParamBlockSizedLin.hpp>
 
 namespace swift_vio {
 // The state info for one keypoint relevant to computing the pose (T_WB) and
@@ -20,9 +22,10 @@ struct StateInfoForOneKeypoint {
     StateInfoForOneKeypoint() {
 
     }
+
     StateInfoForOneKeypoint(
         uint64_t _frameId, size_t _camIdx,
-        std::shared_ptr<const okvis::ceres::ParameterBlock> T_WB_ptr,
+        std::shared_ptr<const PoseParameterBlock> T_WB_ptr,
         double _normalizedRow, okvis::Time imageStamp)
         : frameId(_frameId),
           cameraId(_camIdx),
@@ -32,15 +35,15 @@ struct StateInfoForOneKeypoint {
 
     uint64_t frameId;
     size_t cameraId;
-    std::shared_ptr<const okvis::ceres::ParameterBlock> T_WBj_ptr;
-    std::shared_ptr<const okvis::ceres::ParameterBlock> speedAndBiasPtr;
+    std::shared_ptr<const PoseParameterBlock> T_WBj_ptr;
+    std::shared_ptr<const okvis::ceres::SpeedParameterBlock> v_WBj_ptr;
+    std::shared_ptr<const okvis::ceres::BiasParameterBlock> biasPtr;
     // IMU measurements covering the state epoch.
     std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasurementPtr;
     okvis::Time stateEpoch;
     double normalizedRow; // v / imageHeight - 0.5.
     okvis::Time imageTimestamp; // raw image frame timestamp may be different for cameras in NFrame.
-    // linearization points at the state.
-    std::shared_ptr<const Eigen::Matrix<double, 6, 1>> positionVelocityLinPtr;
+
     // Pose of the body frame in the world frame at the feature observation epoch.
     // It should be computed with IMU propagation for RS cameras.
     okvis::kinematics::Transformation T_WBtij;
@@ -72,7 +75,7 @@ class PointSharedData {
 
   void addKeypointObservation(
       const okvis::KeypointIdentifier& kpi,
-      std::shared_ptr<const okvis::ceres::ParameterBlock> T_WBj_ptr,
+      std::shared_ptr<const PoseParameterBlock> T_WBj_ptr,
       double normalizedRow, okvis::Time imageTimestamp) {
     stateInfoForObservations_.emplace_back(kpi.frameId, kpi.cameraIndex,
                                            T_WBj_ptr, normalizedRow, imageTimestamp);
@@ -80,19 +83,25 @@ class PointSharedData {
 
   /// @name Setters for data for IMU propagation.
   /// @{
-  void setVelocityParameterBlockPtr(
+  void setVelocityAndBiasParameterBlockPtr(
+      int /*index*/,
+      std::shared_ptr<const okvis::ceres::ParameterBlock> /*speedAndBiasPtr*/) {
+    OKVIS_ASSERT_TRUE(std::runtime_error, false, "This function is broken!");
+  }
+
+  void setVelocityAndBiasParameterBlockPtr(
       int index,
-      std::shared_ptr<const okvis::ceres::ParameterBlock> speedAndBiasPtr) {
-    stateInfoForObservations_[index].speedAndBiasPtr = speedAndBiasPtr;
+      std::shared_ptr<const okvis::ceres::SpeedParameterBlock> speedPtr,
+      std::shared_ptr<const okvis::ceres::BiasParameterBlock> biasPtr) {
+    stateInfoForObservations_[index].v_WBj_ptr = speedPtr;
+    stateInfoForObservations_[index].biasPtr = biasPtr;
   }
 
   void setImuInfo(
       int index, const okvis::Time stateEpoch,
-      std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasurements,
-      std::shared_ptr<const Eigen::Matrix<double, 6, 1>> positionVelocityLinPtr) {
+      std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasurements) {
     stateInfoForObservations_[index].stateEpoch = stateEpoch;
     stateInfoForObservations_[index].imuMeasurementPtr = imuMeasurements;
-    stateInfoForObservations_[index].positionVelocityLinPtr = positionVelocityLinPtr;
   }
 
   void setImuAugmentedParameterPtrs(
@@ -165,20 +174,13 @@ class PointSharedData {
   okvis::kinematics::Transformation T_WB_mainAnchorStateEpoch() const {
     const StateInfoForOneKeypoint& mainAnchorItem =
         stateInfoForObservations_.at(anchorIds_[0].observationIndex_);
-    return std::static_pointer_cast<const okvis::ceres::PoseParameterBlock>(
-            mainAnchorItem.T_WBj_ptr)
-            ->estimate();
+    return mainAnchorItem.T_WBj_ptr->estimate();
   }
 
   okvis::kinematics::Transformation T_WB_mainAnchorStateEpochForJacobian() const {
     const StateInfoForOneKeypoint& mainAnchorItem =
         stateInfoForObservations_.at(anchorIds_[0].observationIndex_);
-    okvis::kinematics::Transformation T_WB_lin =
-        std::static_pointer_cast<const okvis::ceres::PoseParameterBlock>(
-            mainAnchorItem.T_WBj_ptr)
-            ->estimate();
-    T_WB_lin.setTranslation(mainAnchorItem.positionVelocityLinPtr->head<3>());
-    return T_WB_lin;
+   return mainAnchorItem.T_WBj_ptr->linPoint();
   }
   /// @}
 
@@ -195,6 +197,8 @@ class PointSharedData {
   void removeBadObservations(const std::vector<bool>& projectStatus) {
       removeUnsetMatrices<StateInfoForOneKeypoint>(&stateInfoForObservations_, projectStatus);
   }
+
+  void removeExtraObservations(const std::vector<uint64_t>& orderedSelectedFrameIds);
 
   /**
    * @brief removeExtraObservations
@@ -272,6 +276,19 @@ class PointSharedData {
     return T_WBtij_list;
   }
 
+  std::vector<okvis::kinematics::Transformation,
+              Eigen::aligned_allocator<okvis::kinematics::Transformation>>
+  poseAtFrameList() const {
+    std::vector<okvis::kinematics::Transformation,
+                Eigen::aligned_allocator<okvis::kinematics::Transformation>>
+        T_WBj_list;
+    T_WBj_list.reserve(stateInfoForObservations_.size());
+    for (auto item : stateInfoForObservations_) {
+      T_WBj_list.push_back(item.T_WBj_ptr->estimate());
+    }
+    return T_WBj_list;
+  }
+
   std::vector<size_t> cameraIndexList() const {
     std::vector<size_t> camIndices;
     camIndices.reserve(stateInfoForObservations_.size());
@@ -307,8 +324,8 @@ class PointSharedData {
     double relFeatureTime = normalizedFeatureTime(item);
     Eigen::Vector3d gW = imuParameters_->gravity();
     Eigen::Vector3d dr =
-        -(item.T_WBtij_lin.r() - item.positionVelocityLinPtr->head<3>() -
-          item.positionVelocityLinPtr->tail<3>() * relFeatureTime -
+        -(item.T_WBtij_lin.r() - item.T_WBj_ptr->positionLinPoint() -
+          item.v_WBj_ptr->linPoint() * relFeatureTime -
           0.5 * gW * relFeatureTime * relFeatureTime);
     return okvis::kinematics::crossMx(dr);
   }
@@ -328,12 +345,18 @@ class PointSharedData {
 
   /// @name Getters for parameter blocks
   /// @{
-  std::shared_ptr<const okvis::ceres::PoseParameterBlock> poseParameterBlockPtr(
+  std::shared_ptr<const PoseParameterBlock> poseParameterBlockPtr(
       int observationIndex) const;
 
   std::shared_ptr<const okvis::ceres::ParameterBlock>
   speedAndBiasParameterBlockPtr(int observationIndex) const {
-    return stateInfoForObservations_.at(observationIndex).speedAndBiasPtr;
+    OKVIS_ASSERT_TRUE(std::runtime_error, false, "This function is broken!");
+    return stateInfoForObservations_.at(observationIndex).v_WBj_ptr;
+  }
+
+  std::shared_ptr<const okvis::ceres::ParameterBlock>
+  speedParameterBlockPtr(int observationIndex) const {
+    return stateInfoForObservations_.at(observationIndex).v_WBj_ptr;
   }
 
   std::shared_ptr<const okvis::ceres::ParameterBlock>

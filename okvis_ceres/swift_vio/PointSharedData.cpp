@@ -22,16 +22,20 @@ void PointSharedData::computePoseAndVelocityAtObservation() {
     for (auto& item : stateInfoForObservations_) {
       std::shared_ptr<const okvis::ceres::ParameterBlock> b = item.T_WBj_ptr;
       item.T_WBtij =
-          std::static_pointer_cast<const okvis::ceres::PoseParameterBlock>(b)
+          std::static_pointer_cast<const PoseParameterBlock>(b)
               ->estimate();
-      okvis::SpeedAndBiases sbj =
+      item.v_WBtij =
           std::static_pointer_cast<
-              const okvis::ceres::SpeedAndBiasParameterBlock>(
-              item.speedAndBiasPtr)
+              const okvis::ceres::SpeedParameterBlock>(
+              item.v_WBj_ptr)
               ->estimate();
-      item.v_WBtij = sbj.head<3>();
+      Eigen::Matrix<double, 6, 1> bj =
+          std::static_pointer_cast<
+              const okvis::ceres::BiasParameterBlock>(
+              item.biasPtr)
+              ->estimate();
       Imu_BG_BA_TG_TS_TA iem;
-      iem.updateParameters(sbj.data() + 3, imuAugmentedParams.data());
+      iem.updateParameters(bj.data(), imuAugmentedParams.data());
       okvis::ImuMeasurement interpolatedInertialData;
       ImuOdometry::interpolateInertialData(*item.imuMeasurementPtr, iem,
                                            item.stateEpoch,
@@ -42,23 +46,26 @@ void PointSharedData::computePoseAndVelocityAtObservation() {
     return;
   }
   for (auto& item : stateInfoForObservations_) {
-    okvis::kinematics::Transformation T_WB =
-        std::static_pointer_cast<const okvis::ceres::PoseParameterBlock>(
-            item.T_WBj_ptr)
-            ->estimate();
-    okvis::SpeedAndBiases sb =
+    okvis::kinematics::Transformation T_WB = item.T_WBj_ptr->estimate();
+
+    Eigen::Vector3d sj =
         std::static_pointer_cast<
-            const okvis::ceres::SpeedAndBiasParameterBlock>(
-            item.speedAndBiasPtr)
+            const okvis::ceres::SpeedParameterBlock>(
+            item.v_WBj_ptr)
             ->estimate();
+    Eigen::Matrix<double, 6, 1> bj =
+        std::static_pointer_cast<
+            const okvis::ceres::BiasParameterBlock>(
+            item.biasPtr)->estimate();
+
     okvis::Duration featureTime(normalizedFeatureTime(item));
     okvis::ImuMeasurement interpolatedInertialData;
     poseAndVelocityAtObservation(*item.imuMeasurementPtr, imuAugmentedParams,
                                         *imuParameters_, item.stateEpoch,
-                                        featureTime, &T_WB, &sb,
+                                        featureTime, &T_WB, &sj, &bj,
                                         &interpolatedInertialData, false);
     item.T_WBtij = T_WB;
-    item.v_WBtij = sb.head<3>();
+    item.v_WBtij = sj;
     item.omega_Btij = interpolatedInertialData.measurement.gyroscopes;
   }
   status_ = PointSharedDataState::NavStateReady;
@@ -71,25 +78,13 @@ void PointSharedData::computePoseAndVelocityForJacobians() {
       imuAugmentedParamBlockPtrs_, &imuAugmentedParams,
       ImuModelNameToId(imuParameters_->model_type));
   for (auto& item : stateInfoForObservations_) {
-    okvis::kinematics::Transformation T_WB_lin =
-        std::static_pointer_cast<const okvis::ceres::PoseParameterBlock>(
-            item.T_WBj_ptr)
-            ->estimate();
-    okvis::SpeedAndBiases speedAndBiasesLin =
-        std::static_pointer_cast<
-            const okvis::ceres::SpeedAndBiasParameterBlock>(
-            item.speedAndBiasPtr)
-            ->estimate();
-    std::shared_ptr<const Eigen::Matrix<double, 6, 1>>
-        posVelLinPtr = item.positionVelocityLinPtr;
-    T_WB_lin = okvis::kinematics::Transformation(
-        posVelLinPtr->head<3>(), T_WB_lin.q());
-    speedAndBiasesLin.head<3>() = posVelLinPtr->tail<3>();
+    okvis::kinematics::Transformation T_WB_lin = item.T_WBj_ptr->linPoint();
+    Eigen::Vector3d speedLinPoint = item.v_WBj_ptr->linPoint();
     okvis::Duration featureTime(normalizedFeatureTime(item));
     poseAndLinearVelocityAtObservation(
         *item.imuMeasurementPtr, imuAugmentedParams, *imuParameters_,
-        item.stateEpoch, featureTime, &T_WB_lin, &speedAndBiasesLin);
-    item.v_WBtij_lin = speedAndBiasesLin.head<3>();
+        item.stateEpoch, featureTime, &T_WB_lin, &speedLinPoint, item.biasPtr->estimate());
+    item.v_WBtij_lin = speedLinPoint;
     item.T_WBtij_lin = T_WB_lin;
   }
 
@@ -98,6 +93,47 @@ void PointSharedData::computePoseAndVelocityForJacobians() {
 
 void PointSharedData::computeSharedJacobians(int /*cameraObservationModelId*/) {
   CHECK(status_ == PointSharedDataState::NavStateForJacReady);
+}
+
+void PointSharedData::removeExtraObservations(
+    const std::vector<uint64_t>& orderedSelectedFrameIds) {
+  auto stateIter = stateInfoForObservations_.begin();
+  auto keepStateIter = stateInfoForObservations_.begin();
+  auto selectedFrameIter = orderedSelectedFrameIds.begin();
+
+  for (; selectedFrameIter != orderedSelectedFrameIds.end();
+       ++selectedFrameIter) {
+    while (stateIter->frameId != *selectedFrameIter) {
+      ++stateIter;
+    }
+    *keepStateIter = *stateIter;
+    ++stateIter;
+    ++keepStateIter;
+  }
+  size_t keepSize = orderedSelectedFrameIds.size();
+  size_t foundSize =
+      std::distance(stateInfoForObservations_.begin(), keepStateIter);
+  CHECK_EQ(orderedSelectedFrameIds.size(), foundSize);
+  stateInfoForObservations_.resize(keepSize);
+
+  // Also update thAnchorFrameIdentifieror frames.
+  for (std::vector<AnchorFrameIdentifier>::iterator anchorIdIter =
+           anchorIds_.begin();
+       anchorIdIter != anchorIds_.end(); ++anchorIdIter) {
+    bool found = false;
+    int index = (int)stateInfoForObservations_.size() - 1;
+    for (auto riter = stateInfoForObservations_.rbegin();
+         riter != stateInfoForObservations_.rend(); ++riter, --index) {
+      if (riter->frameId == anchorIdIter->frameId_ &&
+          riter->cameraId == anchorIdIter->cameraIndex_) {
+        anchorIdIter->observationIndex_ = index;
+        found = true;
+        break;
+      }
+    }
+    LOG_IF(WARNING, !found)
+        << "Observation for anchor frame is not found in stateInfo list!";
+  }
 }
 
 void PointSharedData::removeExtraObservations(
@@ -193,9 +229,8 @@ std::vector<int> PointSharedData::anchorObservationIds() const {
   return anchorObservationIds;
 }
 
-std::shared_ptr<const okvis::ceres::PoseParameterBlock> PointSharedData::poseParameterBlockPtr(
+std::shared_ptr<const PoseParameterBlock> PointSharedData::poseParameterBlockPtr(
     int observationIndex) const {
-  return std::static_pointer_cast<const okvis::ceres::PoseParameterBlock>(
-      stateInfoForObservations_.at(observationIndex).T_WBj_ptr);
+  return stateInfoForObservations_.at(observationIndex).T_WBj_ptr;
 }
 } // namespace swift_vio

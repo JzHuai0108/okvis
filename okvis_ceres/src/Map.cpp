@@ -319,6 +319,14 @@ bool Map::addParameterBlock(
           &homogeneousPointLocalParameterization_);
       break;
     }
+    case Parameterization::InverseDepthPoint: {
+      problem_->AddParameterBlock(parameterBlock->parameters(),
+                                  parameterBlock->dimension(),
+                                  &inverseDepthPointLocalParameterization_);
+      parameterBlock->setLocalParameterizationPtr(
+          &inverseDepthPointLocalParameterization_);
+      break;
+    }
     case Parameterization::UnitVector: {
       problem_->AddParameterBlock(parameterBlock->parameters(),
                                   parameterBlock->dimension(),
@@ -749,9 +757,10 @@ Map::ParameterBlockCollection Map::parameters(
 ::ceres::LocalParameterization* Map::selectLocalParameterization(
     const ::ceres::LocalParameterization* query) {
   std::vector<::ceres::LocalParameterization*> pool{
-      &homogeneousPointLocalParameterization_, &poseLocalParameterization_,
+      &homogeneousPointLocalParameterization_, &inverseDepthPointLocalParameterization_,
+      &poseLocalParameterization_, &poseLocalParameterizationSimple_,
       &poseLocalParameterization3d_, &poseLocalParameterization4d_,
-      &poseLocalParameterization2d_};
+      &poseLocalParameterization2d_, &normalVectorParameterization_};
   for (::ceres::LocalParameterization* pointer : pool) {
     if (query == pointer) {
       return pointer;
