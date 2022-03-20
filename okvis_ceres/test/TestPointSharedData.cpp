@@ -17,7 +17,7 @@ class PointSharedDataTest : public ::testing::Test {
     for (int i = 0; i < total; ++i) {
       psd.addKeypointObservation(
           okvis::KeypointIdentifier(frameId, 0, 0),
-          std::shared_ptr<const okvis::ceres::ParameterBlock>(),
+          std::shared_ptr<const swift_vio::PoseParameterBlock>(),
           std::rand() % 13 / 13.0, okvis::Time(i+1, 0));
       frameIds.push_back(frameId);
       indices.push_back(i);

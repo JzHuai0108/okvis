@@ -1052,35 +1052,34 @@ void poseAndVelocityAtObservation(
     const Eigen::Matrix<double, Eigen::Dynamic, 1>& imuAugmentedParams,
     const okvis::ImuParameters& imuParameters, const okvis::Time& stateEpoch,
     const okvis::Duration& featureTime, okvis::kinematics::Transformation* T_WB,
-    okvis::SpeedAndBiases* sb, okvis::ImuMeasurement* interpolatedInertialData,
+    Eigen::Vector3d *v_WB, Eigen::Matrix<double, 6, 1> *bias,
+    okvis::ImuMeasurement* interpolatedInertialData,
     bool use_RK4) {
   const double wedge = 5e-8;
   double relFeatureTime = featureTime.toSec();
   Imu_BG_BA_TG_TS_TA iem;
-  iem.updateParameters(sb->data() + 3, imuAugmentedParams.data());
+  iem.updateParameters(bias->data(), imuAugmentedParams.data());
   if (use_RK4) {
     if (relFeatureTime >= wedge) {
-      ImuOdometry::propagation_RungeKutta(imuMeas, imuParameters, *T_WB, *sb,
+      ImuOdometry::propagation_RungeKutta(imuMeas, imuParameters, *T_WB, *v_WB, *bias,
                                           iem, stateEpoch,
                                           stateEpoch + featureTime);
     } else if (relFeatureTime <= -wedge) {
       ImuOdometry::propagationBackward_RungeKutta(imuMeas, imuParameters, *T_WB,
-                                                  *sb, iem, stateEpoch,
+                                                  *v_WB, *bias, iem, stateEpoch,
                                                   stateEpoch + featureTime);
     }
     ImuOdometry::interpolateInertialData(imuMeas, iem, stateEpoch + featureTime,
                                          *interpolatedInertialData);
   } else {
-    Eigen::Vector3d tempV_WS = sb->head<3>();
     if (relFeatureTime >= wedge) {
-      ImuOdometry::propagation(imuMeas, imuParameters, *T_WB, tempV_WS, iem,
+      ImuOdometry::propagation(imuMeas, imuParameters, *T_WB, *v_WB, iem,
                                stateEpoch, stateEpoch + featureTime);
     } else if (relFeatureTime <= -wedge) {
-      ImuOdometry::propagationBackward(imuMeas, imuParameters, *T_WB, tempV_WS,
+      ImuOdometry::propagationBackward(imuMeas, imuParameters, *T_WB, *v_WB,
                                        iem, stateEpoch,
                                        stateEpoch + featureTime);
     }
-    sb->head<3>() = tempV_WS;
     ImuOdometry::interpolateInertialData(imuMeas, iem, stateEpoch + featureTime,
                                          *interpolatedInertialData);
   }
@@ -1091,20 +1090,17 @@ void poseAndLinearVelocityAtObservation(
     const Eigen::Matrix<double, Eigen::Dynamic, 1>& imuAugmentedParams,
     const okvis::ImuParameters& imuParameters, const okvis::Time& stateEpoch,
     const okvis::Duration& featureTime, okvis::kinematics::Transformation* T_WB,
-    okvis::SpeedAndBiases* sb) {
+    Eigen::Vector3d *v_WB, const Eigen::Matrix<double, 6, 1> &bias) {
   Imu_BG_BA_TG_TS_TA iem;
-  iem.updateParameters(sb->data() + 3, imuAugmentedParams.data());
-
-  Eigen::Vector3d tempV_WS = sb->head<3>();
+  iem.updateParameters(bias.data(), imuAugmentedParams.data());
   if (featureTime >= okvis::Duration()) {
     ImuOdometry::propagation(
-        imuMeas, imuParameters, *T_WB, tempV_WS, iem, stateEpoch,
+        imuMeas, imuParameters, *T_WB, *v_WB, iem, stateEpoch,
         stateEpoch + featureTime);
   } else {
     ImuOdometry::propagationBackward(
-        imuMeas, imuParameters, *T_WB, tempV_WS, iem, stateEpoch,
+        imuMeas, imuParameters, *T_WB, *v_WB, iem, stateEpoch,
         stateEpoch + featureTime);
   }
-  sb->head<3>() = tempV_WS;
 }
 }  // namespace swift_vio

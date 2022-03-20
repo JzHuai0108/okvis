@@ -122,7 +122,8 @@ class ImuOdometry {
       const okvis::ImuMeasurementDeque &imuMeasurements,
       const okvis::ImuParameters &imuParams,
       okvis::kinematics::Transformation &T_WS,
-      okvis::SpeedAndBiases &speedAndBias, const ImuModelT &imuModel,
+      Eigen::Vector3d &speed, Eigen::Matrix<double, 6, 1> &bias,
+      const ImuModelT &imuModel,
       const okvis::Time &t_start, const okvis::Time &t_end,
       Eigen::Matrix<double, ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim,
                     ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim> *P_ptr =
@@ -148,7 +149,7 @@ class ImuOdometry {
       const okvis::ImuMeasurementDeque& imuMeasurements,
       const okvis::ImuParameters& imuParams,
       okvis::kinematics::Transformation& T_WS,
-      okvis::SpeedAndBiases& speedAndBias,
+      Eigen::Vector3d &speed, Eigen::Matrix<double, 6, 1> &bias,
       const ImuModelT &iem, const okvis::Time& t_start,
       const okvis::Time& t_end);
 
@@ -178,7 +179,7 @@ OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 template<typename ImuModelT>
 int ImuOdometry::propagation_RungeKutta(
     const okvis::ImuMeasurementDeque& imuMeasurements, const okvis::ImuParameters& imuParams,
-    okvis::kinematics::Transformation& T_WS, okvis::SpeedAndBiases& speedAndBias,
+    okvis::kinematics::Transformation& T_WS, Eigen::Vector3d &speed, Eigen::Matrix<double, 6, 1> &bias,
     const ImuModelT &iem, const okvis::Time& startTime,
     const okvis::Time& finishTime,
     Eigen::Matrix<double, ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim,
@@ -220,7 +221,7 @@ int ImuOdometry::propagation_RungeKutta(
             iterLast->measurement.accelerometers, iter->measurement.gyroscopes,
             iter->measurement.accelerometers, imuParams.g, imuParams.sigma_g_c,
             imuParams.sigma_a_c, imuParams.sigma_gw_c, imuParams.sigma_aw_c,
-            (finishTime - startTime).toSec(), p_WS_W, q_WS, speedAndBias,
+            (finishTime - startTime).toSec(), p_WS_W, q_WS, speed, bias,
             iem, P_ptr, F_tot_ptr);
         ++numUsedImuMeasurements;
         break;
@@ -231,7 +232,7 @@ int ImuOdometry::propagation_RungeKutta(
           iterLast->measurement.accelerometers, iter->measurement.gyroscopes,
           iter->measurement.accelerometers, imuParams.g, imuParams.sigma_g_c,
           imuParams.sigma_a_c, imuParams.sigma_gw_c, imuParams.sigma_aw_c,
-          (iter->timeStamp - startTime).toSec(), p_WS_W, q_WS, speedAndBias,
+          (iter->timeStamp - startTime).toSec(), p_WS_W, q_WS, speed, bias,
           iem, P_ptr, F_tot_ptr);
 
     } else {
@@ -242,7 +243,7 @@ int ImuOdometry::propagation_RungeKutta(
             iter->measurement.accelerometers, imuParams.g, imuParams.sigma_g_c,
             imuParams.sigma_a_c, imuParams.sigma_gw_c, imuParams.sigma_aw_c,
             (finishTime - iterLast->timeStamp).toSec(), p_WS_W, q_WS,
-            speedAndBias, iem, P_ptr, F_tot_ptr);
+            speed, bias, iem, P_ptr, F_tot_ptr);
         ++numUsedImuMeasurements;
         break;
       }
@@ -253,7 +254,7 @@ int ImuOdometry::propagation_RungeKutta(
           iter->measurement.accelerometers, imuParams.g, imuParams.sigma_g_c,
           imuParams.sigma_a_c, imuParams.sigma_gw_c, imuParams.sigma_aw_c,
           (iter->timeStamp - iterLast->timeStamp).toSec(), p_WS_W, q_WS,
-          speedAndBias, iem, P_ptr, F_tot_ptr);
+          speed, bias, iem, P_ptr, F_tot_ptr);
     }
     iterLast = iter;
     ++numUsedImuMeasurements;
@@ -265,7 +266,7 @@ int ImuOdometry::propagation_RungeKutta(
 template <typename ImuModelT>
 int ImuOdometry::propagationBackward_RungeKutta(
     const okvis::ImuMeasurementDeque& imuMeasurements, const okvis::ImuParameters& imuParams,
-    okvis::kinematics::Transformation& T_WS, okvis::SpeedAndBiases& speedAndBias,
+    okvis::kinematics::Transformation& T_WS, Eigen::Vector3d &speed, Eigen::Matrix<double, 6, 1> &bias,
     const ImuModelT &iem, const okvis::Time& startTime,
     const okvis::Time& finishTime) {
   OKVIS_ASSERT_TRUE(
@@ -299,7 +300,7 @@ int ImuOdometry::propagationBackward_RungeKutta(
             iterLast->measurement.accelerometers, imuParams.g,
             imuParams.sigma_g_c, imuParams.sigma_a_c, imuParams.sigma_gw_c,
             imuParams.sigma_aw_c, (startTime - finishTime).toSec(), p_WS_W,
-            q_WS, speedAndBias, iem);
+            q_WS, speed, bias, iem);
         ++numUsedImuMeasurements;
         break;
       }
@@ -310,7 +311,7 @@ int ImuOdometry::propagationBackward_RungeKutta(
           iterLast->measurement.accelerometers, imuParams.g,
           imuParams.sigma_g_c, imuParams.sigma_a_c, imuParams.sigma_gw_c,
           imuParams.sigma_aw_c, (startTime - iter->timeStamp).toSec(), p_WS_W,
-          q_WS, speedAndBias, iem);
+          q_WS, speed, bias, iem);
 
     } else {
       if (iter->timeStamp <= finishTime) {
@@ -320,7 +321,7 @@ int ImuOdometry::propagationBackward_RungeKutta(
             iterLast->measurement.accelerometers, imuParams.g,
             imuParams.sigma_g_c, imuParams.sigma_a_c, imuParams.sigma_gw_c,
             imuParams.sigma_aw_c, (iterLast->timeStamp - finishTime).toSec(),
-            p_WS_W, q_WS, speedAndBias, iem);
+            p_WS_W, q_WS, speed, bias, iem);
         ++numUsedImuMeasurements;
         break;
       }
@@ -331,7 +332,7 @@ int ImuOdometry::propagationBackward_RungeKutta(
           iterLast->measurement.accelerometers, imuParams.g,
           imuParams.sigma_g_c, imuParams.sigma_a_c, imuParams.sigma_gw_c,
           imuParams.sigma_aw_c, (iterLast->timeStamp - iter->timeStamp).toSec(),
-          p_WS_W, q_WS, speedAndBias, iem);
+          p_WS_W, q_WS, speed, bias, iem);
     }
     iterLast = iter;
     ++numUsedImuMeasurements;
@@ -402,7 +403,8 @@ void poseAndVelocityAtObservation(
     const Eigen::Matrix<double, Eigen::Dynamic, 1>& imuAugmentedParams,
     const okvis::ImuParameters& imuParameters, const okvis::Time& stateEpoch,
     const okvis::Duration& featureTime, okvis::kinematics::Transformation* T_WB,
-    okvis::SpeedAndBiases* sb, okvis::ImuMeasurement* interpolatedInertialData,
+    Eigen::Vector3d* speed, Eigen::Matrix<double, 6, 1>* bias,
+    okvis::ImuMeasurement* interpolatedInertialData,
     bool use_RK4);
 
 /**
@@ -422,7 +424,7 @@ void poseAndLinearVelocityAtObservation(
     const Eigen::Matrix<double, Eigen::Dynamic, 1>& imuAugmentedParams,
     const okvis::ImuParameters& imuParameters, const okvis::Time& stateEpoch,
     const okvis::Duration& featureTime, okvis::kinematics::Transformation* T_WB,
-    okvis::SpeedAndBiases* sb);
+    Eigen::Vector3d *v_WB, const Eigen::Matrix<double, 6, 1> &bias);
 
 }  // namespace swift_vio
 #endif // INCLUDE_SWIFT_VIO_IMU_ODOMETRY_H_
