@@ -118,7 +118,7 @@ class CameraRig {
     return cameraGeometries_[camera_id];
   }
 
-  inline int getIntrinsicDimen(int camera_id) const {
+  inline int getIntrinsicDim(int camera_id) const {
     return cameraGeometries_[camera_id]->noIntrinsicsParameters();
   }
 
@@ -142,7 +142,7 @@ class CameraRig {
     return fixCameraExtrinsicParams_[camId];
   }
 
-  inline int getDistortionDimen(int camera_id) const {
+  inline int getDistortionDim(int camera_id) const {
     return cameraGeometries_[camera_id]->noDistortionParameters();
   }
 
@@ -151,19 +151,19 @@ class CameraRig {
     return distortionTypes_[camera_id];
   }
 
-  inline int getMinimalExtrinsicDimen(int camera_id) const {
+  inline int getMinimalExtrinsicDim(int camera_id) const {
     return ExtrinsicModelGetMinimalDim(extrinsic_opt_rep_[camera_id]);
   }
 
-  inline int getMinimalProjectionDimen(int camera_id) const {
+  inline int getMinimalProjectionDim(int camera_id) const {
     return ProjectionOptGetMinimalDim(proj_opt_rep_[camera_id]);
   }
 
   inline int getCameraParamsMinimalDim(int camera_id) const {
     std::shared_ptr<okvis::cameras::CameraBase> camera =
         cameraGeometries_[camera_id];
-    return (fixCameraExtrinsicParams_[camera_id] ? 0 : getMinimalExtrinsicDimen(camera_id)) +
-           (fixCameraIntrinsicParams_[camera_id] ? 0 : getIntrinsicDimen(camera_id)) + 2;  // 2 for td and tr
+    return (fixCameraExtrinsicParams_[camera_id] ? 0 : getMinimalExtrinsicDim(camera_id)) +
+           (fixCameraIntrinsicParams_[camera_id] ? 0 : getIntrinsicDim(camera_id)) + 2;  // 2 for td and tr
   }
 
   inline void setImageDelay(int camera_id, double td) {

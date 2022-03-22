@@ -539,7 +539,7 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     double kpN = ypixel / height - 0.5;
 
     assignJacobians(
-        parameters, jacobians,
+        jacobians,
         jacobiansMinimal,
         Jh_weighted,
         Jpi_weighted,
@@ -576,7 +576,7 @@ void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
 template <class GEOMETRY_TYPE>
 void RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     assignJacobians(
-        double const *const *parameters, double **jacobians,
+        double **jacobians,
         double **jacobiansMinimal,
         const Eigen::Matrix<double, 2, 4> &Jh_weighted,
         const Eigen::Matrix<double, 2, Eigen::Dynamic> &Jpi_weighted,

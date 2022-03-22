@@ -449,10 +449,10 @@ class EstimatorBase : public VioBackendInterface
    * @param camIdx cameraIndex.
    * @return minimal dim
    */
-  size_t cameraParamsMinimalDimen(size_t camIdx = 0) const {
-    return (fixCameraExtrinsicParams_[camIdx] ? 0 : cameraRig_.getMinimalExtrinsicDimen(camIdx)) +
-           (fixCameraIntrinsicParams_[camIdx] ? 0 : cameraRig_.getMinimalProjectionDimen(camIdx) +
-           cameraRig_.getDistortionDimen(camIdx)) + 2u;  // 2 for td and tr
+  size_t cameraParamsMinimalDim(size_t camIdx = 0) const {
+    return (fixCameraExtrinsicParams_[camIdx] ? 0 : cameraRig_.getMinimalExtrinsicDim(camIdx)) +
+           (fixCameraIntrinsicParams_[camIdx] ? 0 : cameraRig_.getMinimalProjectionDim(camIdx) +
+           cameraRig_.getDistortionDim(camIdx)) + 2u;  // 2 for td and tr
   }
 
   /**
