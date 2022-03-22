@@ -162,9 +162,8 @@ class CameraRig {
   inline int getCameraParamsMinimalDim(int camera_id) const {
     std::shared_ptr<okvis::cameras::CameraBase> camera =
         cameraGeometries_[camera_id];
-    return getMinimalExtrinsicDimen(camera_id) +
-           getMinimalProjectionDimen(camera_id) +
-           camera->noDistortionParameters() + 2;  // 2 for td and tr
+    return (fixCameraExtrinsicParams_[camera_id] ? 0 : getMinimalExtrinsicDimen(camera_id)) +
+           (fixCameraIntrinsicParams_[camera_id] ? 0 : getIntrinsicDimen(camera_id)) + 2;  // 2 for td and tr
   }
 
   inline void setImageDelay(int camera_id, double td) {

@@ -183,7 +183,6 @@ void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams) {
     optParams->algorithm = swift_vio::EstimatorAlgorithm::SlidingWindowSmoother;
   }
 
-  optParams->useEpipolarConstraint = optParams->useEpipolarConstraint;
   parseBoolean(optNode["useEpipolarConstraint"], optParams->useEpipolarConstraint);
 
   if (optNode["cameraObservationModelId"].isInt()) {
@@ -775,6 +774,9 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
     Eigen::Vector3d direction;
     direction << gravityDirection[0], gravityDirection[1], gravityDirection[2];
     imuParams->setGravityDirection(direction.normalized());
+  }
+  if (node["sigmaGravityDirection"].isReal()) {
+    node["sigmaGravityDirection"] >> imuParams->sigmaGravityDirection;
   }
   parseBoolean(node["estimateGravityDirection"], imuParams->estimateGravityDirection);
 

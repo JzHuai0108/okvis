@@ -334,6 +334,13 @@ class PointSharedData {
     return stateInfoForObservations_[index].v_WBtij_lin;
   }
 
+  Eigen::Matrix<double, 6, 1> posVelLinPoint(int index) const {
+    Eigen::Matrix<double, 6, 1> linPoint;
+    linPoint << stateInfoForObservations_[index].T_WBj_ptr->positionLinPoint(),
+        stateInfoForObservations_[index].v_WBj_ptr->linPoint();
+    return linPoint;
+  }
+
   PointSharedDataState status() const {
     return status_;
   }

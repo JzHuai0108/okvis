@@ -809,9 +809,9 @@ bool EstimatorBase::getCameraSensorExtrinsics(
 void EstimatorBase::getVariableCameraExtrinsics(
     size_t camIdx,
     Eigen::Matrix<double, Eigen::Dynamic, 1> *extrinsicParams) const {
-  const States &stateInQuestion = statesMap_.rbegin()->second;
+  const States &currentState = statesMap_.rbegin()->second;
   if (!fixCameraExtrinsicParams_[camIdx]) {
-    uint64_t extrinsicId = stateInQuestion.sensors.at(SensorStates::Camera)
+    uint64_t extrinsicId = currentState.sensors.at(SensorStates::Camera)
                                .at(camIdx)
                                .at(okvis::EstimatorBase::CameraSensorStates::T_XCi)
                                .id;

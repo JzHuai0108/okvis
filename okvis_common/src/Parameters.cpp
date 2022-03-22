@@ -90,13 +90,14 @@ EstimatorOptions::EstimatorOptions(int _max_iterations, int _min_iterations,
 
 std::string EstimatorOptions::toString(std::string lead) const {
   std::stringstream ss(lead);
-  ss << "Algorithm " << algorithm << " numKeyframes " << numKeyframes
-     << " numImuFrames " << numImuFrames << "\nUse epipolar constraint? "
-     << useEpipolarConstraint << " Camera observation model Id "
-     << cameraObservationModelId << " compute OKVIS NEES? " << computeOkvisNees
-     << "\nMahalanobis gating? " << useMahalanobisGating
-     << " Max projection error " << maxProjectionErrorTol
-     << " (px)\nDelay filter initialization by #frames " << delayFilterInitByFrames;
+  ss << "Algorithm " << algorithm << ", numKeyframes " << numKeyframes
+     << ", numImuFrames " << numImuFrames << ".\nUse epipolar constraint? "
+     << useEpipolarConstraint << ", camera observation model Id "
+     << cameraObservationModelId << ", compute OKVIS NEES? " << computeOkvisNees
+     << ".\nMahalanobis gating? " << useMahalanobisGating
+     << ", max projection error " << maxProjectionErrorTol
+     << " (px).\nDelay filter initialization by #frames: "
+     << delayFilterInitByFrames << ".";
   return ss.str();
 }
 }  // namespace okvis
