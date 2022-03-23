@@ -49,10 +49,6 @@ public:
     return ImuModelComputeAugmentedParamsError(modelId_, extraParams_);
   }
 
-  void assignTo(okvis::ImuParameters *imuParams) {
-    ImuModelAssignTo(modelId_, gyroBias_, accelBias_, extraParams_, imuParams);
-  }
-
   inline void setGyroBias(const Eigen::Vector3d &bias) {
     gyroBias_ = bias;
   }

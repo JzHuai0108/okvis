@@ -712,7 +712,8 @@ okvis::Time EstimatorBase::removeState(uint64_t stateId) {
 
 bool EstimatorBase::computeErrors(
     const okvis::kinematics::Transformation &ref_T_WS,
-    const Eigen::Vector3d &ref_v_WS, const okvis::ImuParameters &refImuParams,
+    const Eigen::Vector3d &ref_v_WS, const Eigen::Matrix<double, 6, 1> &biasRef,
+    const okvis::ImuParameters &/*refImuParams*/,
     std::shared_ptr<const okvis::cameras::NCameraSystem> /*refCameraSystem*/,
     Eigen::VectorXd *errors) const {
   errors->resize(15);
@@ -726,8 +727,8 @@ bool EstimatorBase::computeErrors(
   okvis::SpeedAndBias speedAndBiasEstimate;
   getSpeedAndBias(currFrameId, 0, speedAndBiasEstimate);
   errors->segment<3>(6) = speedAndBiasEstimate.head<3>() - ref_v_WS;
-  errors->segment<3>(9) = speedAndBiasEstimate.segment<3>(3) - refImuParams.g0;
-  errors->segment<3>(12) = speedAndBiasEstimate.tail<3>() - refImuParams.a0;
+  errors->segment<3>(9) = speedAndBiasEstimate.segment<3>(3) - biasRef.head<3>();
+  errors->segment<3>(12) = speedAndBiasEstimate.tail<3>() - biasRef.tail<3>();;
   return true;
 }
 

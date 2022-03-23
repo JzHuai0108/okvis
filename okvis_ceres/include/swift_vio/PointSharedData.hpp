@@ -83,6 +83,10 @@ class PointSharedData {
 
   /// @name Setters for data for IMU propagation.
   /// @{
+  /**
+   * @brief setVelocityAndBiasParameterBlockPtr
+   * @deprecated
+   */
   void setVelocityAndBiasParameterBlockPtr(
       int /*index*/,
       std::shared_ptr<const okvis::ceres::ParameterBlock> /*speedAndBiasPtr*/) {
@@ -147,13 +151,6 @@ class PointSharedData {
   void computePoseAndVelocityForJacobians();
   /// @}
 
-  /**
-   * @brief computeSharedJacobians compute Jacobians common to every
-   * observation of the landmark.
-   * @param cameraObservationModelId
-   */
-  void computeSharedJacobians(int cameraObservationModelId);
-
   /// @name Functions for anchors.
   /// @{
   void setAnchors(const std::vector<AnchorFrameIdentifier>& anchorIds) {
@@ -202,6 +199,7 @@ class PointSharedData {
 
   /**
    * @brief removeExtraObservations
+   * @deprecated
    * @warning orderedSelectedFrameIds must be a subsets of stateInfoForObservations_
    * @param orderedSelectedFrameIds
    * @param imageNoise2dStdList
@@ -375,6 +373,11 @@ class PointSharedData {
   frameReadoutTimeParameterBlockPtr(size_t cameraIndex) const {
     return trParamBlockPtrs_[cameraIndex];
   }
+
+  size_t imuIdx() const {
+    return imuIdx_;
+  }
+
   /// @}
 
  private:
@@ -393,7 +396,7 @@ class PointSharedData {
   std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>
       imuAugmentedParamBlockPtrs_;
   std::shared_ptr<const okvis::ImuParameters> imuParameters_;
-
+  size_t imuIdx_;
   // The structure of sharedJacobians is determined by an external cameraObservationModelId.
   std::vector<
       Eigen::Matrix<double, -1, -1, Eigen::RowMajor>,

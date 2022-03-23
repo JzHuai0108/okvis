@@ -63,11 +63,10 @@ template<typename ImuModelT>
 __inline__ void evaluateContinuousTimeOde(
     const Eigen::Vector3d& gyr, const Eigen::Vector3d& acc, double g,
     const Eigen::Vector3d& p_WS_W, const Eigen::Quaterniond& q_WS,
-    const Eigen::Matrix<double, 3, 1> &speed, const Eigen::Matrix<double, 6, 1> &bias,
+    const Eigen::Matrix<double, 3, 1> &speed,
     const ImuModelT &imuModel,
     Eigen::Vector3d& p_WS_W_dot,
     Eigen::Vector4d& q_WS_dot, Eigen::Matrix<double, 3, 1> &speed_dot,
-    Eigen::Matrix<double, 6, 1> &bias_dot,
     Eigen::MatrixXd* F_c_ptr = 0) {
   Eigen::Vector3d omega_S;
   Eigen::Vector3d acc_S;
@@ -90,7 +89,6 @@ __inline__ void evaluateContinuousTimeOde(
   Eigen::Vector3d G =
       -p_WS_W - Eigen::Vector3d(0, 0, 6371009);  // vector to Earth center
   speed_dot = (C_WS * acc_S + g * G.normalized());
-  bias_dot.setZero();
 
   // linearized system:
   if (F_c_ptr) {
@@ -139,7 +137,7 @@ __inline__ void integrateOneStep_RungeKutta(
     const Eigen::Vector3d& gyr_1, const Eigen::Vector3d& acc_1, double g,
     double sigma_g_c, double sigma_a_c, double sigma_gw_c, double sigma_aw_c,
     double dt, Eigen::Vector3d& p_WS_W, Eigen::Quaterniond& q_WS,
-    Eigen::Vector3d& speed, Eigen::Matrix<double, 6, 1> &bias, const ImuModelT &imuModel,
+    Eigen::Vector3d& speed, const ImuModelT &imuModel,
     Eigen::Matrix<double, ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim,
                   ImuModelT::kAugmentedMinDim + kNavStateBiasMinDim> *P_ptr =
         nullptr,
@@ -150,7 +148,6 @@ __inline__ void integrateOneStep_RungeKutta(
   Eigen::Vector4d k1_q_WS_dot;
 
   Eigen::Vector3d k1_speed_dot;
-  Eigen::Matrix<double, 6, 1> k1_bias_dot;
   int covRows = 0;
   Eigen::MatrixXd k1_F_c;
   Eigen::MatrixXd k2_F_c;
@@ -172,13 +169,12 @@ __inline__ void integrateOneStep_RungeKutta(
       k4_F_c_ptr = &k4_F_c;
   }
 
-  evaluateContinuousTimeOde(gyr_0, acc_0, g, p_WS_W, q_WS, speed, bias, imuModel,
-                            k1_p_WS_W_dot, k1_q_WS_dot, k1_speed_dot, k1_bias_dot, k1_F_c_ptr);
+  evaluateContinuousTimeOde(gyr_0, acc_0, g, p_WS_W, q_WS, speed, imuModel,
+                            k1_p_WS_W_dot, k1_q_WS_dot, k1_speed_dot, k1_F_c_ptr);
 
   Eigen::Vector3d p_WS_W1 = p_WS_W;
   Eigen::Quaterniond q_WS1 = q_WS;
   Eigen::Vector3d speed1 = speed;
-  Eigen::Matrix<double, 6, 1> bias1 = bias;
 
   // state propagation:
   p_WS_W1 += k1_p_WS_W_dot * 0.5 * dt;
@@ -190,22 +186,19 @@ __inline__ void integrateOneStep_RungeKutta(
   dq.w() = cos_theta_half;
   q_WS1 = q_WS * dq;
   speed1 += k1_speed_dot * 0.5 * dt;
-  bias1 += k1_bias_dot * 0.5 * dt;
 
   Eigen::Vector3d k2_p_WS_W_dot;
   Eigen::Vector4d k2_q_WS_dot;
   Eigen::Vector3d k2_speed_dot;
-  Eigen::Matrix<double, 6, 1> k2_bias_dot;
 
   evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1), 0.5 * (acc_0 + acc_1), g,
-                            p_WS_W1, q_WS1, speed1, bias1, imuModel, k2_p_WS_W_dot,
-                            k2_q_WS_dot, k2_speed_dot, k2_bias_dot, k2_F_c_ptr);
+                            p_WS_W1, q_WS1, speed1, imuModel, k2_p_WS_W_dot,
+                            k2_q_WS_dot, k2_speed_dot, k2_F_c_ptr);
 
   Eigen::Vector3d p_WS_W2 = p_WS_W;
   Eigen::Quaterniond q_WS2 = q_WS;
 
   Eigen::Vector3d speed2 = speed;
-  Eigen::Matrix<double, 6, 1> bias2 = bias;
 
   // state propagation:
   p_WS_W2 += k2_p_WS_W_dot * 0.5 * dt;
@@ -217,21 +210,18 @@ __inline__ void integrateOneStep_RungeKutta(
   // std::cout<<dq.transpose()<<std::endl;
   q_WS2 = q_WS2 * dq;
   speed2 += k1_speed_dot * 0.5 * dt;
-  bias2 += k1_bias_dot * 0.5 * dt;
 
   Eigen::Vector3d k3_p_WS_W_dot;
   Eigen::Vector4d k3_q_WS_dot;
   Eigen::Vector3d k3_speed_dot;
-  Eigen::Matrix<double, 6, 1> k3_bias_dot;
   evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1), 0.5 * (acc_0 + acc_1), g,
-                            p_WS_W2, q_WS2, speed2, bias2, imuModel, k3_p_WS_W_dot,
-                            k3_q_WS_dot, k3_speed_dot, k3_bias_dot, k3_F_c_ptr);
+                            p_WS_W2, q_WS2, speed2, imuModel, k3_p_WS_W_dot,
+                            k3_q_WS_dot, k3_speed_dot, k3_F_c_ptr);
 
   Eigen::Vector3d p_WS_W3 = p_WS_W;
   Eigen::Quaterniond q_WS3 = q_WS;
 
   Eigen::Vector3d speed3 = speed;
-  Eigen::Matrix<double, 6, 1> bias3 = bias;
 
   // state propagation:
   p_WS_W3 += k3_p_WS_W_dot * dt;
@@ -243,15 +233,13 @@ __inline__ void integrateOneStep_RungeKutta(
   // std::cout<<dq.transpose()<<std::endl;
   q_WS3 = q_WS3 * dq;
   speed3 += k3_speed_dot * dt;
-  bias3 += k3_bias_dot * dt;
 
   Eigen::Vector3d k4_p_WS_W_dot;
   Eigen::Vector4d k4_q_WS_dot;
 
   Eigen::Vector3d k4_speed_dot;
-  Eigen::Matrix<double, 6, 1> k4_bias_dot;
-  evaluateContinuousTimeOde(gyr_1, acc_1, g, p_WS_W3, q_WS3, speed3, bias3, imuModel,
-                            k4_p_WS_W_dot, k4_q_WS_dot, k4_speed_dot, k4_bias_dot, k4_F_c_ptr);
+  evaluateContinuousTimeOde(gyr_1, acc_1, g, p_WS_W3, q_WS3, speed3, imuModel,
+                            k4_p_WS_W_dot, k4_q_WS_dot, k4_speed_dot, k4_F_c_ptr);
 
   // now assemble
   p_WS_W +=
@@ -269,7 +257,6 @@ __inline__ void integrateOneStep_RungeKutta(
   dq.w() = cos_theta_half;
   q_WS = q_WS * dq;
   speed += (k1_speed_dot + 2 * (k2_speed_dot + k3_speed_dot) + k4_speed_dot) * dt / 6.0;
-  bias += (k1_bias_dot + 2 * (k2_bias_dot + k3_bias_dot) + k4_bias_dot) * dt / 6.0;
 
   q_WS.normalize();  // do not accumulate errors!
 
@@ -344,13 +331,12 @@ __inline__ void integrateOneStepBackward_RungeKutta(
     const Eigen::Vector3d& gyr_1, const Eigen::Vector3d& acc_1, double g,
     double sigma_g_c, double sigma_a_c, double sigma_gw_c, double sigma_aw_c,
     double dt, Eigen::Vector3d& p_WS_W, Eigen::Quaterniond& q_WS,
-    Eigen::Vector3d &speed, Eigen::Matrix<double, 6, 1> &bias, const ImuModelT& imuModel,
+    Eigen::Vector3d &speed, const ImuModelT& imuModel,
     Eigen::MatrixXd* P_ptr = 0,
     Eigen::MatrixXd* F_tot_ptr = 0) {
   Eigen::Vector3d k1_p_WS_W_dot;
   Eigen::Vector4d k1_q_WS_dot;
   Eigen::Vector3d k1_speed_dot;
-  Eigen::Matrix<double, 6, 1> k1_bias_dot;
 
   int covRows = 0;
   Eigen::MatrixXd k1_F_c;
@@ -373,13 +359,12 @@ __inline__ void integrateOneStepBackward_RungeKutta(
       k4_F_c_ptr = &k4_F_c;
   }
 
-  evaluateContinuousTimeOde(gyr_1, acc_1, g, p_WS_W, q_WS, speed, bias, imuModel,
-                            k1_p_WS_W_dot, k1_q_WS_dot, k1_speed_dot, k1_bias_dot, k1_F_c_ptr);
+  evaluateContinuousTimeOde(gyr_1, acc_1, g, p_WS_W, q_WS, speed, imuModel,
+                            k1_p_WS_W_dot, k1_q_WS_dot, k1_speed_dot, k1_F_c_ptr);
 
   Eigen::Vector3d p_WS_W1 = p_WS_W;
   Eigen::Quaterniond q_WS1 = q_WS;
   Eigen::Vector3d speed1 = speed;
-  Eigen::Matrix<double, 6, 1> bias1 = bias;
 
   // state propagation:
   p_WS_W1 -= k1_p_WS_W_dot * 0.5 * dt;
@@ -391,20 +376,17 @@ __inline__ void integrateOneStepBackward_RungeKutta(
   dq.w() = cos_theta_half;
   q_WS1 = q_WS * dq;
   speed1 -= k1_speed_dot * 0.5 * dt;
-  bias1 -= k1_bias_dot * 0.5 * dt;
 
   Eigen::Vector3d k2_p_WS_W_dot;
   Eigen::Vector4d k2_q_WS_dot;
   Eigen::Vector3d k2_speed_dot;
-  Eigen::Matrix<double, 6, 1> k2_bias_dot;
   evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1), 0.5 * (acc_0 + acc_1), g,
-                            p_WS_W1, q_WS1, speed1, bias1, imuModel, k2_p_WS_W_dot,
-                            k2_q_WS_dot, k2_speed_dot, k2_bias_dot, k2_F_c_ptr);
+                            p_WS_W1, q_WS1, speed1, imuModel, k2_p_WS_W_dot,
+                            k2_q_WS_dot, k2_speed_dot, k2_F_c_ptr);
 
   Eigen::Vector3d p_WS_W2 = p_WS_W;
   Eigen::Quaterniond q_WS2 = q_WS;
   Eigen::Vector3d speed2 = speed;
-  Eigen::Matrix<double, 6, 1> bias2 = bias;
   // state propagation:
   p_WS_W2 -= k2_p_WS_W_dot * 0.5 * dt;
   theta_half = -k2_q_WS_dot.head<3>().norm() * 0.5 * dt;
@@ -415,21 +397,17 @@ __inline__ void integrateOneStepBackward_RungeKutta(
   // std::cout<<dq.transpose()<<std::endl;
   q_WS2 = q_WS2 * dq;
   speed2 -= k1_speed_dot * 0.5 * dt;
-  bias2 -= k1_bias_dot * 0.5 * dt;
 
   Eigen::Vector3d k3_p_WS_W_dot;
   Eigen::Vector4d k3_q_WS_dot;
   Eigen::Vector3d k3_speed_dot;
-  Eigen::Matrix<double, 6, 1> k3_bias_dot;
-
   evaluateContinuousTimeOde(0.5 * (gyr_0 + gyr_1), 0.5 * (acc_0 + acc_1), g,
-                            p_WS_W2, q_WS2, speed2, bias2, imuModel, k3_p_WS_W_dot,
-                            k3_q_WS_dot, k3_speed_dot, k3_bias_dot, k3_F_c_ptr);
+                            p_WS_W2, q_WS2, speed2, imuModel, k3_p_WS_W_dot,
+                            k3_q_WS_dot, k3_speed_dot, k3_F_c_ptr);
 
   Eigen::Vector3d p_WS_W3 = p_WS_W;
   Eigen::Quaterniond q_WS3 = q_WS;
   Eigen::Vector3d speed3 = speed;
-  Eigen::Matrix<double, 6, 1> bias3 = bias;
   // state propagation:
   p_WS_W3 -= k3_p_WS_W_dot * dt;
   theta_half = -k3_q_WS_dot.head<3>().norm() * dt;
@@ -440,15 +418,13 @@ __inline__ void integrateOneStepBackward_RungeKutta(
   // std::cout<<dq.transpose()<<std::endl;
   q_WS3 = q_WS3 * dq;
   speed3 -= k3_speed_dot * dt;
-  bias3 -= k3_bias_dot * dt;
 
   Eigen::Vector3d k4_p_WS_W_dot;
   Eigen::Vector4d k4_q_WS_dot;
   Eigen::Vector3d k4_speed_dot;
-  Eigen::Matrix<double, 6, 1> k4_bias_dot;
 
-  evaluateContinuousTimeOde(gyr_0, acc_0, g, p_WS_W3, q_WS3, speed3, bias3, imuModel,
-                            k4_p_WS_W_dot, k4_q_WS_dot, k4_speed_dot, k4_bias_dot, k4_F_c_ptr);
+  evaluateContinuousTimeOde(gyr_0, acc_0, g, p_WS_W3, q_WS3, speed3, imuModel,
+                            k4_p_WS_W_dot, k4_q_WS_dot, k4_speed_dot, k4_F_c_ptr);
 
   // now assemble
   p_WS_W -=
@@ -466,7 +442,6 @@ __inline__ void integrateOneStepBackward_RungeKutta(
   dq.w() = cos_theta_half;
   q_WS = q_WS * dq;
   speed -= (k1_speed_dot + 2 * (k2_speed_dot + k3_speed_dot) + k4_speed_dot) * dt / 6.0;
-  bias -= (k1_bias_dot + 2 * (k2_bias_dot + k3_bias_dot) + k4_bias_dot) * dt / 6.0;
 
   q_WS.normalize();  // do not accumulate errors!
 

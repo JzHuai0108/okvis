@@ -780,17 +780,17 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
   }
   parseBoolean(node["estimateGravityDirection"], imuParams->estimateGravityDirection);
 
-  imuParams->a0 = Eigen::Vector3d((double) (node["a0"][0]),
+  imuParams->setInitialAccelBias(Eigen::Vector3d((double) (node["a0"][0]),
                                           (double) (node["a0"][1]),
-                                          (double) (node["a0"][2]));
+                                          (double) (node["a0"][2])));
 
   cv::FileNode initGyroBias = node["g0"];
   if (initGyroBias.isSeq()) {
     Eigen::Vector3d g0;
     g0 << initGyroBias[0], initGyroBias[1], initGyroBias[2];
-    imuParams->g0 = g0;
+    imuParams->setInitialGyroBias(g0);
   } else {
-    imuParams->g0 = Eigen::Vector3d::Zero();
+    imuParams->setInitialGyroBias(Eigen::Vector3d::Zero());
   }
 
   if (node["model_type"].isString()) {
@@ -832,7 +832,7 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
     Eigen::Matrix<double, 9, 1> Mg;
     Mg << initMg[0], initMg[1], initMg[2], initMg[3], initMg[4], initMg[5],
         initMg[6], initMg[7], initMg[8];
-    imuParams->Mg0 = Mg;
+    imuParams->setGyroCorrectionMatrix(Mg);
   }
 
   cv::FileNode initTs = node["Ts0"];
@@ -840,14 +840,14 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
     Eigen::Matrix<double, 9, 1> Ts;
     Ts << initTs[0], initTs[1], initTs[2], initTs[3], initTs[4], initTs[5],
         initTs[6], initTs[7], initTs[8];
-    imuParams->Ts0 = Ts;
+    imuParams->setGyroGSensitivity(Ts);
   }
 
   cv::FileNode initMa = node["Ma0"];
   if (initMa.isSeq()) {
     Eigen::Matrix<double, 6, 1> Ma;
     Ma << initMa[0], initMa[1], initMa[2], initMa[3], initMa[4], initMa[5];
-    imuParams->Ma0 = Ma;
+    imuParams->setAccelCorrectionMatrix(Ma);
   }
 }
 

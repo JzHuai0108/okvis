@@ -8,9 +8,9 @@ int ImuRig::addImu(const okvis::ImuParameters& imuParams) {
   switch (modelId) {
     case Imu_BG_BA_MG_TS_MA::kModelId:
       extraParams.resize(Imu_BG_BA_MG_TS_MA::kAugmentedDim, 1);
-      extraParams.head<9>() = imuParams.Mg0;
-      extraParams.segment<9>(9) = imuParams.Ts0;
-      extraParams.segment<6>(18) = imuParams.Ma0;
+      extraParams.head<9>() = imuParams.gyroCorrectionMatrix();
+      extraParams.segment<9>(9) = imuParams.gyroGSensitivity();
+      extraParams.segment<6>(18) = imuParams.accelCorrectionMatrix();
       break;
     case Imu_BG_BA::kModelId:
       extraParams.resize(0);
@@ -20,7 +20,7 @@ int ImuRig::addImu(const okvis::ImuParameters& imuParams) {
       std::runtime_error(ss.str());
       break;
   }
-  imus_.emplace_back(modelId, imuParams.g0, imuParams.a0, extraParams);
+  imus_.emplace_back(modelId, imuParams.initialGyroBias(), imuParams.initialAccelBias(), extraParams);
   return static_cast<int>(imus_.size()) - 1;
 }
 

@@ -64,7 +64,6 @@ TEST(okvisTestSuite, Estimator) {
 
     // set the imu parameters
     okvis::ImuParameters imuParameters;
-    imuParameters.a0.setZero();
     imuParameters.g = 9.81;
     imuParameters.a_max = 1000.0;
     imuParameters.g_max = 1000.0;

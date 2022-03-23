@@ -30,7 +30,6 @@ public:
 
     // Build the problem.
     // set the imu parameters
-    imuParameters.a0.setZero();
     imuParameters.g = 9.81;
     imuParameters.a_max = 1000.0;
     imuParameters.g_max = 1000.0;

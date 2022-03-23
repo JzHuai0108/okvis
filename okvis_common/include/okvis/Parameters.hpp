@@ -123,16 +123,13 @@ struct ImuParameters{
   double sigma_aw_c; ///< Accelerometer drift noise density.
   double tau;  ///< Reversion time constant of accerometer bias. [s]
   double g;  ///< Earth acceleration.
-  Eigen::Vector3d g0;      ///< Mean of the prior gyroscope bias.
-  Eigen::Vector3d a0;  ///< Mean of the prior accelerometer bias.
   int rate;  ///< IMU rate in Hz.
 
   double sigma_Mg_element;  /// std for every element in matrix M_g
   double sigma_Ts_element;
   double sigma_Ma_element;
-  Eigen::Matrix<double, 9, 1> Mg0;  // initial Tg estimate
-  Eigen::Matrix<double, 9, 1> Ts0;
-  Eigen::Matrix<double, 6, 1> Ma0;
+
+  size_t imuIdx;
   std::string model_type;
   bool estimateGravityDirection;
   double sigmaGravityDirection; // The uncertainty in both roll and pitch of the gravity direction.
@@ -143,9 +140,41 @@ struct ImuParameters{
 
   Eigen::Vector3d gravity() const;
 
+  const Eigen::Vector3d &initialGyroBias() const { return g0; }
+
+  const Eigen::Vector3d &initialAccelBias() const { return a0; }
+
+  const Eigen::Matrix<double, 9, 1> &gyroCorrectionMatrix() const { return Mg0; }
+
+  const Eigen::Matrix<double, 9, 1> &gyroGSensitivity() const { return Ts0; }
+
+  const Eigen::Matrix<double, 6, 1> &accelCorrectionMatrix() const { return Ma0; }
+
   void setGravityDirection(const Eigen::Vector3d &gravityDirection);
 
+  void setInitialGyroBias(const Eigen::Vector3d &gb) { g0 = gb; }
+
+  void setInitialAccelBias(const Eigen::Vector3d &ab) { a0 = ab; }
+
+  void setGyroCorrectionMatrix(const Eigen::Matrix<double, 9, 1> &Mg) {
+    Mg0 = Mg;
+  }
+
+  void setGyroGSensitivity(const Eigen::Matrix<double, 9, 1> &Ts) {
+    Ts0 = Ts;
+  }
+
+  void setAccelCorrectionMatrix(const Eigen::Matrix<double, 6, 1> &Ma) {
+    Ma0 = Ma;
+  }
 private:
+  /// prior knowledge of IMU intrinsic parameters.
+  Eigen::Vector3d g0;  ///< Mean of the prior gyroscope bias.
+  Eigen::Vector3d a0;  ///< Mean of the prior accelerometer bias.
+  Eigen::Matrix<double, 9, 1> Mg0;
+  Eigen::Matrix<double, 9, 1> Ts0;
+  Eigen::Matrix<double, 6, 1> Ma0;
+
   Eigen::Vector3d normalGravity;
 };
 

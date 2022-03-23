@@ -35,15 +35,16 @@ ImuParameters::ImuParameters()
       sigma_aw_c(4e-5),
       tau(3600.0),
       g(9.80665),
-      g0(0, 0, 0),
-      a0(0, 0, 0),
       rate(100),
       sigma_Mg_element(5e-3),
       sigma_Ts_element(1e-3),
       sigma_Ma_element(5e-3),
+      imuIdx(0u),
       model_type("BG_BA_MG_TS_MA"),
       estimateGravityDirection(false),
       sigmaGravityDirection(0.05),
+      g0(0, 0, 0),
+      a0(0, 0, 0),
       normalGravity(0, 0, -1) {
   Eigen::Matrix<double, 9, 1> eye;
   eye << 1, 0, 0, 0, 1, 0, 0, 0, 1;

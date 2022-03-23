@@ -14,27 +14,17 @@ void PointSharedData::computePoseAndVelocityAtObservation() {
   CHECK(status_ >= PointSharedDataState::ImuInfoReady)
       << "Set IMU data, params, camera time params before calling this method.";
   int imuModelId = ImuModelNameToId(imuParameters_->model_type);
+  CHECK(imuModelId != Imu_BG_BA_TG_TS_TA::kModelId) << "Imu_BG_BA_TG_TS_TA deprecated!";
   Eigen::Matrix<double, -1, 1> imuAugmentedParams;
   getImuAugmentedStatesEstimate(imuAugmentedParamBlockPtrs_,
                                 &imuAugmentedParams, imuModelId);
   if (0) {
     // naive approach, ignoring the rolling shutter effect and the time offset.
     for (auto& item : stateInfoForObservations_) {
-      std::shared_ptr<const okvis::ceres::ParameterBlock> b = item.T_WBj_ptr;
-      item.T_WBtij =
-          std::static_pointer_cast<const PoseParameterBlock>(b)
-              ->estimate();
-      item.v_WBtij =
-          std::static_pointer_cast<
-              const okvis::ceres::SpeedParameterBlock>(
-              item.v_WBj_ptr)
-              ->estimate();
-      Eigen::Matrix<double, 6, 1> bj =
-          std::static_pointer_cast<
-              const okvis::ceres::BiasParameterBlock>(
-              item.biasPtr)
-              ->estimate();
-      Imu_BG_BA_TG_TS_TA iem;
+      item.T_WBtij = item.T_WBj_ptr->estimate();
+      item.v_WBtij = item.v_WBj_ptr->estimate();
+      Eigen::Matrix<double, 6, 1> bj = item.biasPtr->estimate();
+      Imu_BG_BA_MG_TS_MA iem;
       iem.updateParameters(bj.data(), imuAugmentedParams.data());
       okvis::ImuMeasurement interpolatedInertialData;
       ImuOdometry::interpolateInertialData(*item.imuMeasurementPtr, iem,
@@ -47,23 +37,14 @@ void PointSharedData::computePoseAndVelocityAtObservation() {
   }
   for (auto& item : stateInfoForObservations_) {
     okvis::kinematics::Transformation T_WB = item.T_WBj_ptr->estimate();
-
-    Eigen::Vector3d sj =
-        std::static_pointer_cast<
-            const okvis::ceres::SpeedParameterBlock>(
-            item.v_WBj_ptr)
-            ->estimate();
-    Eigen::Matrix<double, 6, 1> bj =
-        std::static_pointer_cast<
-            const okvis::ceres::BiasParameterBlock>(
-            item.biasPtr)->estimate();
-
+    Eigen::Vector3d sj = item.v_WBj_ptr->estimate();
     okvis::Duration featureTime(normalizedFeatureTime(item));
     okvis::ImuMeasurement interpolatedInertialData;
-    poseAndVelocityAtObservation(*item.imuMeasurementPtr, imuAugmentedParams,
-                                        *imuParameters_, item.stateEpoch,
-                                        featureTime, &T_WB, &sj, &bj,
-                                        &interpolatedInertialData, false);
+    Imu_BG_BA_MG_TS_MA iem;
+    iem.updateParameters(item.biasPtr->parameters(), imuAugmentedParams.data());
+    poseAndVelocityAtObservation(*item.imuMeasurementPtr, iem, *imuParameters_,
+                                 item.stateEpoch, featureTime, &T_WB, &sj,
+                                 &interpolatedInertialData, false);
     item.T_WBtij = T_WB;
     item.v_WBtij = sj;
     item.omega_Btij = interpolatedInertialData.measurement.gyroscopes;
@@ -81,18 +62,15 @@ void PointSharedData::computePoseAndVelocityForJacobians() {
     okvis::kinematics::Transformation T_WB_lin = item.T_WBj_ptr->linPoint();
     Eigen::Vector3d speedLinPoint = item.v_WBj_ptr->linPoint();
     okvis::Duration featureTime(normalizedFeatureTime(item));
+    Imu_BG_BA_MG_TS_MA iem;
+    iem.updateParameters(item.biasPtr->parameters(), imuAugmentedParams.data());
     poseAndLinearVelocityAtObservation(
-        *item.imuMeasurementPtr, imuAugmentedParams, *imuParameters_,
-        item.stateEpoch, featureTime, &T_WB_lin, &speedLinPoint, item.biasPtr->estimate());
+        *item.imuMeasurementPtr, iem, *imuParameters_,
+        item.stateEpoch, featureTime, &T_WB_lin, &speedLinPoint);
     item.v_WBtij_lin = speedLinPoint;
     item.T_WBtij_lin = T_WB_lin;
   }
-
   status_ = PointSharedDataState::NavStateForJacReady;
-}
-
-void PointSharedData::computeSharedJacobians(int /*cameraObservationModelId*/) {
-  CHECK(status_ == PointSharedDataState::NavStateForJacReady);
 }
 
 void PointSharedData::removeExtraObservations(
@@ -116,7 +94,7 @@ void PointSharedData::removeExtraObservations(
   CHECK_EQ(orderedSelectedFrameIds.size(), foundSize);
   stateInfoForObservations_.resize(keepSize);
 
-  // Also update thAnchorFrameIdentifieror frames.
+  // Also update anchor camera frame.
   for (std::vector<AnchorFrameIdentifier>::iterator anchorIdIter =
            anchorIds_.begin();
        anchorIdIter != anchorIds_.end(); ++anchorIdIter) {

@@ -373,7 +373,7 @@ class EstimatorBase : public VioBackendInterface
 
   virtual bool computeErrors(
       const okvis::kinematics::Transformation &ref_T_WS,
-      const Eigen::Vector3d &ref_v_WS,
+      const Eigen::Vector3d &ref_v_WS, const Eigen::Matrix<double, 6, 1> &biasRef,
       const okvis::ImuParameters &refImuParams,
       std::shared_ptr<const okvis::cameras::NCameraSystem> refCameraSystem,
       Eigen::VectorXd *errors) const;

@@ -446,8 +446,8 @@ void ThreadedKFVio::frameConsumerLoop(size_t cameraIndex) {
         std::lock_guard<std::mutex> lock(lastState_mutex_);
         lastOptimized_T_WS_ = T_WS;
         lastOptimizedSpeedAndBiases_.head<3>() = parameters_.initialState.v_WS;
-        lastOptimizedSpeedAndBiases_.segment<3>(3) = imu_params_.g0;
-        lastOptimizedSpeedAndBiases_.segment<3>(6) = imu_params_.a0;
+        lastOptimizedSpeedAndBiases_.segment<3>(3) = imu_params_.initialGyroBias();
+        lastOptimizedSpeedAndBiases_.segment<3>(6) = imu_params_.initialAccelBias();
         lastOptimizedStateTimestamp_ =
             multiFrame->timestamp() +
             okvis::Duration(lastOptimizedCameraSystem_

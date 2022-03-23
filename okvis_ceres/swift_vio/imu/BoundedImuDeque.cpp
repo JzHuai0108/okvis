@@ -36,8 +36,17 @@ int BoundedImuDeque::pop_front(const okvis::Time& eraseUntil) {
 }
 
 const okvis::ImuMeasurementDeque BoundedImuDeque::find(
-    const okvis::Time& begin_time, const okvis::Time& end_time) const {
-  return getImuMeasurements(begin_time, end_time, this->imu_meas_, nullptr);
+    const okvis::Time& begin_time, const okvis::Time& end_time, bool pad) const {
+  okvis::ImuMeasurementDeque result = getImuMeasurements(begin_time, end_time, this->imu_meas_, nullptr);
+  if (pad && result.front().timeStamp > begin_time) {
+    result.push_front(result.front());
+    result.front().timeStamp = begin_time;
+  }
+  if (pad && result.back().timeStamp < end_time) {
+    result.push_back(result.back());
+    result.back().timeStamp = end_time;
+  }
+  return result;
 }
 
 const okvis::ImuMeasurementDeque BoundedImuDeque::findWindow(
@@ -47,12 +56,10 @@ const okvis::ImuMeasurementDeque BoundedImuDeque::findWindow(
                             this->imu_meas_, nullptr);
   if (raw_meas.size()) {
     if (raw_meas.front().timeStamp > center_time - half_window) {
-      // Pad at the left. This can happen at the begnning of data streams.
       raw_meas.push_front(raw_meas.front());
       raw_meas.front().timeStamp = center_time - half_window;
     }
     if (raw_meas.back().timeStamp < center_time + half_window) {
-      // Pad at the right. This always happen for the latest NFrame when half_window is big say >0.2 s.
       raw_meas.push_back(raw_meas.back());
       raw_meas.back().timeStamp = center_time + half_window;
     }
@@ -95,34 +102,9 @@ okvis::ImuMeasurementDeque getImuMeasurements(
     ++last_imu_package;
   }
 
-  // get iterator to imu data before previous frame
-  //  okvis::ImuMeasurementDeque::const_iterator first_imu_package =
-  //      imuMeasurements_.begin();
-  //  okvis::ImuMeasurementDeque::const_iterator last_imu_package =
-  //      imuMeasurements_.end();
-  //  // TODO go backwards through queue. Is probably faster.
-  //  for (auto iter = imuMeasurements_.begin(); iter != imuMeasurements_.end();
-  //       ++iter) {
-  //    // move first_imu_package iterator back until iter->timeStamp is higher
-  //    than
-  //    // requested begintime
-  //    if (iter->timeStamp <= imuDataBeginTime) first_imu_package = iter;
-
-  //    // set last_imu_package iterator as soon as we hit first timeStamp
-  //    higher
-  //    // than requested endtime & break
-  //    if (iter->timeStamp >= imuDataEndTime) {
-  //      last_imu_package = iter;
-  //      // since we want to include this last imu measurement in returned
-  //      Deque we
-  //      // increase last_imu_package iterator once.
-  //      ++last_imu_package;
-  //      break;
-  //    }
-  //  }
-
   // create copy of imu buffer
-  return okvis::ImuMeasurementDeque(first_imu_package, last_imu_package);
+  okvis::ImuMeasurementDeque result(first_imu_package, last_imu_package);
+  return result;
 }
 
 // Remove IMU measurements from the internal buffer.

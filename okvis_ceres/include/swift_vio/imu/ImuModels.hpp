@@ -113,15 +113,6 @@ class Imu_BG_BA {
   static constexpr std::array<int, 0> kCumXBlockMinDims{};
   static constexpr double kJacobianTolerance = 1.0e-3;
 
-  template <typename T>
-  static void assignTo(const Eigen::Matrix<T, 3, 1> &bg,
-                       const Eigen::Matrix<T, 3, 1> &ba,
-                       const Eigen::Matrix<T, Eigen::Dynamic, 1> & /*params*/,
-                       okvis::ImuParameters *imuParams) {
-    imuParams->g0 = bg;
-    imuParams->a0 = ba;
-  }
-
   /**
    * @brief getAugmentedDim
    * @return dim of all the augmented params.
@@ -286,16 +277,6 @@ class Imu_BG_BA_TG_TS_TA {
   static constexpr std::array<int, 4> kCumXBlockDims{0, 9, 18, 27};  // Tg, Ts, Ta
   static constexpr std::array<int, 4> kCumXBlockMinDims{0, 9, 18, 27};
   static constexpr double kJacobianTolerance = 5.0e-3;
-
-  template <typename T>
-  static void assignTo(const Eigen::Matrix<T, 3, 1> &bg,
-                       const Eigen::Matrix<T, 3, 1> &ba,
-                       const Eigen::Matrix<T, Eigen::Dynamic, 1> & /*params*/,
-                       okvis::ImuParameters *imuParams) {
-    imuParams->g0 = bg;
-    imuParams->a0 = ba;
-    throw std::runtime_error("assignTo not implemented for Imu_BG_BA_TG_TS_TA!");
-  }
 
   static inline int getAugmentedDim() { return kAugmentedDim; }
   static inline int getMinimalDim() { return kGlobalDim; }
@@ -607,18 +588,6 @@ public:
  static constexpr std::array<int, 4> kCumXBlockDims{0, 9, 18, 24};
  static constexpr std::array<int, 4> kCumXBlockMinDims{0, 9, 18, 24};
  static constexpr double kJacobianTolerance = 7.0e-3;
-
- template <typename T>
- static void assignTo(const Eigen::Matrix<T, 3, 1> &bg,
-                      const Eigen::Matrix<T, 3, 1> &ba,
-                      const Eigen::Matrix<T, Eigen::Dynamic, 1> &params,
-                      okvis::ImuParameters *imuParams) {
-   imuParams->g0 = bg;
-   imuParams->a0 = ba;
-   imuParams->Mg0 = params.template head<9>();
-   imuParams->Ts0 = params.template segment<9>(9);
-   imuParams->Ma0 = params.template tail<6>();
- }
 
  static inline int getAugmentedDim() { return kAugmentedDim; }
  static inline int getMinimalDim() { return kGlobalDim; }
@@ -948,14 +917,6 @@ class ScaledMisalignedImu {
   static constexpr std::array<int, 5> kCumXBlockDims{0, kSMDim, kSMDim + kSensitivityDim, kSMDim + kSensitivityDim + kSMDim, kSMDim + kSensitivityDim + kSMDim + 4};
   static constexpr std::array<int, 5> kCumXBlockMinDims{0, kSMDim, kSMDim + kSensitivityDim, kSMDim + kSensitivityDim + kSMDim, kSMDim + kSensitivityDim + kSMDim + 3};
   static constexpr double kJacobianTolerance = 5.0e-3;
-
-  template <typename T>
-  static void assignTo(const Eigen::Matrix<T, 3, 1> &/*bg*/,
-                       const Eigen::Matrix<T, 3, 1> &/*ba*/,
-                       const Eigen::Matrix<T, Eigen::Dynamic, 1> &/*params*/,
-                       okvis::ImuParameters */*imuParams*/) {
-    throw std::runtime_error("assignTo not implemented for ScaledMisalignImu!");
-  }
 
   static inline int getAugmentedDim() { return kAugmentedDim; }
   static inline int getMinimalDim() { return kGlobalDim - 1; }
@@ -1379,22 +1340,6 @@ inline int ImuModelNameToId(std::string imu_error_model_descrip) {
   } else {
     return Imu_BG_BA_MG_TS_MA::kModelId;
   }
-}
-
-inline void ImuModelAssignTo(int model_id, const Eigen::Vector3d& bg, const Eigen::Vector3d& ba,
-                            const Eigen::Matrix<double, Eigen::Dynamic, 1>& params,
-                            okvis::ImuParameters* imuParams) {
-  switch (model_id) {
-#define MODEL_CASES IMU_ERROR_MODEL_CASES
-#define IMU_ERROR_MODEL_CASE(ImuModel) \
-    case ImuModel::kModelId:             \
-  return ImuModel::assignTo<double>(bg, ba, params, imuParams);
-
-    MODEL_SWITCH_CASES
-
-    #undef IMU_ERROR_MODEL_CASE
-    #undef MODEL_CASES
-    }
 }
 
 inline Eigen::Matrix<double, Eigen::Dynamic, 1> ImuModelNominalAugmentedParams(int model_id) {

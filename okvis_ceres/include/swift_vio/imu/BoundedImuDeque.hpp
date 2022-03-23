@@ -17,7 +17,7 @@ class BoundedImuDeque {
   int push_back(const okvis::ImuMeasurementDeque& imu_segment);
   int pop_front(const okvis::Time& eraseUtil);
   const okvis::ImuMeasurementDeque find(const okvis::Time& begin_time,
-                                        const okvis::Time& end_time) const;
+                                        const okvis::Time& end_time, bool pad) const;
 
   const okvis::ImuMeasurementDeque findWindow(
       const okvis::Time& center_time, const okvis::Duration& half_window) const;

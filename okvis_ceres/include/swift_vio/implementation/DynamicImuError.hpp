@@ -47,9 +47,13 @@ int DynamicImuError<ImuModelT>::redoPreintegration(const Eigen::Matrix<double, 6
   okvis::Time end = t1_;
 
   // sanity check:
-  assert(imuMeasurements_.front().timeStamp<=time);
-  if (!(imuMeasurements_.back().timeStamp >= end))
-    return -1;  // nothing to do...
+  if (imuMeasurements_.front().timeStamp > time || imuMeasurements_.back().timeStamp < end) {
+    LOG(WARNING) << "IMU measurements time interval ["
+              << imuMeasurements_.front().timeStamp << ", "
+              << imuMeasurements_.back().timeStamp
+              << "] does not cover integration interval [" << t0_ << ", " << t1_
+              << "].";
+  }
 
   imuModel_.resetPreintegration();
 
