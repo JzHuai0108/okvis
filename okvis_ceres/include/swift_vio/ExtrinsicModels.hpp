@@ -22,6 +22,8 @@ public:
   static const size_t kGlobalDim = 7;
   static inline int getMinimalDim() { return kNumParams; }
 
+  virtual ~PoseLocalParameterizationInvTranslation() {}
+
   template <typename Scalar>
   static void
   oplus(const Scalar *const delta,
@@ -107,7 +109,7 @@ public:
 class Extrinsic_p_CB final : public PoseLocalParameterizationInvTranslation {
 public:
   static const int kModelId = 1;
-
+  virtual ~Extrinsic_p_CB() {}
   static inline Eigen::MatrixXd initCov(double sigma_translation,
                                         double /*sigma_orientation*/) {
     return Eigen::MatrixXd::Identity(3, 3) *
@@ -183,6 +185,7 @@ class PoseLocalParameterizationSimplified
 public:
   static const size_t kNumParams = 6;
   static const size_t kGlobalDim = 7;
+  virtual ~PoseLocalParameterizationSimplified() {}
 
   static inline int getMinimalDim() { return kNumParams; }
 
@@ -308,6 +311,7 @@ public:
 class Extrinsic_p_BC_q_BC final : public PoseLocalParameterizationSimplified {
 public:
   static const int kModelId = 2;
+  virtual ~Extrinsic_p_BC_q_BC() {}
 
   static void toDimensionLabels(std::vector<std::string> *extrinsicLabels) {
     *extrinsicLabels = {"p_SC_S_x[m]", "p_SC_S_y", "p_SC_S_z", "q_SC_x",
@@ -404,6 +408,8 @@ public:
 class Extrinsic_p_C0C_q_C0C final : public PoseLocalParameterizationSimplified {
 public:
   static const int kModelId = 3;
+
+  virtual ~Extrinsic_p_C0C_q_C0C() {}
 
   static void toDimensionLabels(std::vector<std::string> *extrinsicLabels) {
     *extrinsicLabels = {"p_C0C_C0_x[m]", "p_C0C_C0_y", "p_C0C_C0_z", "q_C0C_x",
