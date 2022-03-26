@@ -918,7 +918,7 @@ bool Estimator::computeCovariance(Eigen::MatrixXd* cov) const {
                                 .at(0)
                                 .at(ImuSensorStates::SpeedAndBias)
                                 .id;
-  return mapPtr_->computeNavStateCovariance(poseId, speedAndBiasId,
+  return mapPtr_->computeNavStateCovariance(poseId, {speedAndBiasId},
                                             marginalizationResidualId_, cov);
 }
 

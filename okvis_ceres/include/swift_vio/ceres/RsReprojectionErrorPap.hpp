@@ -111,7 +111,7 @@ class RsReprojectionErrorPap
       const Eigen::Vector2d& imageObservation,
       const Eigen::Matrix2d& observationCovariance,
       int observationIndex,
-      std::shared_ptr<const swift_vio::PointSharedData> pointDataPtr);
+      const swift_vio::PointSharedData *pointDataPtr);
 
   /// \brief Trivial destructor.
   virtual ~RsReprojectionErrorPap()
@@ -192,7 +192,7 @@ class RsReprojectionErrorPap
   Eigen::Matrix2d covariance_;
 
   int observationIndex_; ///< Index of the observation in the map point shared data.
-  std::shared_ptr<const swift_vio::PointSharedData> pointDataPtr_;
+  const swift_vio::PointSharedData *pointDataPtr_;
 };
 
 }  // namespace ceres

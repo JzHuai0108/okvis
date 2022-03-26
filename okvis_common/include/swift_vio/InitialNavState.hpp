@@ -29,6 +29,10 @@ struct InitialNavState {
   void updatePose(const okvis::kinematics::Transformation& T_WS,
                   const okvis::Time state_time);
 
+  okvis::kinematics::Transformation pose() const {
+    return okvis::kinematics::Transformation(p_WS, q_WS);
+  }
+
   void toInformation(Eigen::Matrix<double, 6, 6>* information) const;
 
   void toCovariance(Eigen::Matrix<double, 6, 6>* covariance) const;

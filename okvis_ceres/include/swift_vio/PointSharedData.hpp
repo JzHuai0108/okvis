@@ -339,6 +339,14 @@ class PointSharedData {
     return linPoint;
   }
 
+  okvis::kinematics::Transformation poseLinPoint(int index) const {
+    return stateInfoForObservations_[index].T_WBj_ptr->linPoint();
+  }
+
+  Eigen::Vector3d velLinPoint(int index) const {
+    return stateInfoForObservations_[index].v_WBj_ptr->linPoint();
+  }
+
   PointSharedDataState status() const {
     return status_;
   }
@@ -362,6 +370,11 @@ class PointSharedData {
   std::shared_ptr<const okvis::ceres::ParameterBlock>
   speedParameterBlockPtr(int observationIndex) const {
     return stateInfoForObservations_.at(observationIndex).v_WBj_ptr;
+  }
+
+  std::shared_ptr<const okvis::ceres::ParameterBlock>
+  biasParameterBlockPtr(int observationIndex) const {
+    return stateInfoForObservations_.at(observationIndex).biasPtr;
   }
 
   std::shared_ptr<const okvis::ceres::ParameterBlock>

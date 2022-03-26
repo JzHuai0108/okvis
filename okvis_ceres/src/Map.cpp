@@ -1028,7 +1028,7 @@ bool Map::getParameterBlockMinimalCovariance(
   return true;
 }
 
-bool Map::computeNavStateCovariance(uint64_t poseId, uint64_t speedAndBiasId,
+bool Map::computeNavStateCovariance(uint64_t poseId, const std::vector<uint64_t> &speedAndBiasIdList,
                                     ::ceres::ResidualBlockId marginalResidualId,
                                     Eigen::MatrixXd* cov) {
   ceres::MarginalizationError marginalizer(*this);
@@ -1059,16 +1059,19 @@ bool Map::computeNavStateCovariance(uint64_t poseId, uint64_t speedAndBiasId,
       paramBlockIdSet.insert(parameterBlockIdToPointer.first);
   }
   size_t foundPose = paramBlockIdSet.erase(poseId);
-  size_t foundSpeedAndBias = paramBlockIdSet.erase(speedAndBiasId);
-  OKVIS_ASSERT_EQ(Exception, foundPose + foundSpeedAndBias, 2u,
-                  "Pose or SpeedAndBias not found in parameter block list!");
+  size_t foundSpeedAndBias = 0;
+  for (auto id : speedAndBiasIdList) {
+    foundSpeedAndBias += paramBlockIdSet.erase(id);
+  }
+  OKVIS_ASSERT_EQ(Exception, foundPose + foundSpeedAndBias, 1 + speedAndBiasIdList.size(),
+                  "Pose, speed or bias not found in parameter block list!");
 
   std::vector<uint64_t> allParamBlockIds(paramBlockIdSet.begin(),
                                          paramBlockIdSet.end());
   std::vector<bool> keepBlocks(allParamBlockIds.size(), true);
   marginalizer.marginalizeOut(allParamBlockIds, keepBlocks);
   OKVIS_ASSERT_EQ(Exception, marginalizer.H().rows(), 15,
-                  "The only block left in H should has 15 rows!");
+                  "The only block left in H should have 15 rows!");
   MatrixPseudoInverse::pseudoInverseSymm(marginalizer.H(), *cov);
   return true;
 }

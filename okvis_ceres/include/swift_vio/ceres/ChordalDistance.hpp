@@ -112,7 +112,7 @@ class ChordalDistance
       const Eigen::Vector2d& imageObservation,
       const Eigen::Matrix2d& observationCovariance,
       int observationIndex,
-      std::shared_ptr<const swift_vio::PointSharedData> pointDataPtr,
+      const swift_vio::PointSharedData *pointDataPtr,
       bool R_WCnmf = false);
 
   /// \brief Trivial destructor.
@@ -218,7 +218,7 @@ class ChordalDistance
   mutable Eigen::Matrix3d covariance_;
 
   int observationIndex_; ///< Index of the observation in the map point shared data.
-  std::shared_ptr<const swift_vio::PointSharedData> pointDataPtr_;
+  const swift_vio::PointSharedData *pointDataPtr_;
   ///< use R_WC * (n_i - f_{mi}) or (n_i - f_{mi}) as error term when the
   /// main anchor is the observing frame.
   const bool R_WCnmf_;

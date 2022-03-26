@@ -34,7 +34,7 @@ ChordalDistance<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
         const Eigen::Vector2d& imageObservation,
         const Eigen::Matrix2d& observationCovariance,
         int observationIndex,
-        std::shared_ptr<const swift_vio::PointSharedData> pointDataPtr,
+        const swift_vio::PointSharedData *pointDataPtr,
         bool R_WCnmf) :
     observationIndex_(observationIndex),
     pointDataPtr_(pointDataPtr),

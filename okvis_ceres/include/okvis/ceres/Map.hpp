@@ -403,7 +403,7 @@ class Map {
    * @brief computeNavStateCovariance compute covariance of the navigation state.
    * @return True if successful.
    */
-  bool computeNavStateCovariance(uint64_t poseId, uint64_t speedAndBiasId,
+  bool computeNavStateCovariance(uint64_t poseId, const std::vector<uint64_t> &speedAndBiasIdList,
                                  ::ceres::ResidualBlockId marginalResidualId,
                                  Eigen::MatrixXd* cov);
 
