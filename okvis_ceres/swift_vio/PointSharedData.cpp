@@ -25,7 +25,11 @@ void PointSharedData::computePoseAndVelocityAtObservation() {
       item.v_WBtij = item.v_WBj_ptr->estimate();
       Eigen::Matrix<double, 6, 1> bj = item.biasPtr->estimate();
       Imu_BG_BA_MG_TS_MA iem;
-      iem.updateParameters(bj.data(), imuAugmentedParams.data());
+      if (imuModelId == Imu_BG_BA::kModelId) {
+        iem.updateParameters(bj.data());
+      } else {
+        iem.updateParameters(bj.data(), imuAugmentedParams.data());
+      }
       okvis::ImuMeasurement interpolatedInertialData;
       ImuOdometry::interpolateInertialData(*item.imuMeasurementPtr, iem,
                                            item.stateEpoch,
@@ -41,7 +45,11 @@ void PointSharedData::computePoseAndVelocityAtObservation() {
     okvis::Duration featureTime(normalizedFeatureTime(item));
     okvis::ImuMeasurement interpolatedInertialData;
     Imu_BG_BA_MG_TS_MA iem;
-    iem.updateParameters(item.biasPtr->parameters(), imuAugmentedParams.data());
+    if (imuModelId == Imu_BG_BA::kModelId) {
+      iem.updateParameters(item.biasPtr->parameters());
+    } else {
+      iem.updateParameters(item.biasPtr->parameters(), imuAugmentedParams.data());
+    }
     poseAndVelocityAtObservation(*item.imuMeasurementPtr, iem, *imuParameters_,
                                  item.stateEpoch, featureTime, &T_WB, &sj,
                                  &interpolatedInertialData, false);
@@ -55,15 +63,20 @@ void PointSharedData::computePoseAndVelocityAtObservation() {
 void PointSharedData::computePoseAndVelocityForJacobians() {
   CHECK(status_ == PointSharedDataState::NavStateReady);
   Eigen::Matrix<double, -1, 1> imuAugmentedParams;
+  int imuModelId = ImuModelNameToId(imuParameters_->model_type);
   getImuAugmentedStatesEstimate(
       imuAugmentedParamBlockPtrs_, &imuAugmentedParams,
-      ImuModelNameToId(imuParameters_->model_type));
+      imuModelId);
   for (auto& item : stateInfoForObservations_) {
     okvis::kinematics::Transformation T_WB_lin = item.T_WBj_ptr->linPoint();
     Eigen::Vector3d speedLinPoint = item.v_WBj_ptr->linPoint();
     okvis::Duration featureTime(normalizedFeatureTime(item));
     Imu_BG_BA_MG_TS_MA iem;
-    iem.updateParameters(item.biasPtr->parameters(), imuAugmentedParams.data());
+    if (imuModelId == Imu_BG_BA::kModelId) {
+      iem.updateParameters(item.biasPtr->parameters());
+    } else {
+      iem.updateParameters(item.biasPtr->parameters(), imuAugmentedParams.data());
+    }
     poseAndLinearVelocityAtObservation(
         *item.imuMeasurementPtr, iem, *imuParameters_,
         item.stateEpoch, featureTime, &T_WB_lin, &speedLinPoint);

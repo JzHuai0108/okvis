@@ -42,7 +42,7 @@ ImuParameters::ImuParameters()
       imuIdx(0u),
       model_type("BG_BA_MG_TS_MA"),
       estimateGravityDirection(false),
-      sigmaGravityDirection(0.05),
+      sigmaGravityDirection(0.0),
       g0(0, 0, 0),
       a0(0, 0, 0),
       normalGravity(0, 0, -1) {

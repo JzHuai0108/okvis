@@ -135,11 +135,19 @@ class CameraRig {
   }
 
   inline bool fixCameraIntrinsics(int camId) const {
-    return fixCameraExtrinsicParams_[camId];
+    return fixCameraIntrinsicParams_[camId];
+  }
+
+  inline void setCameraIntrinsicsFixed(int camId, bool fixed) {
+    fixCameraIntrinsicParams_[camId] = fixed;
   }
 
   inline bool fixCameraExtrinsics(int camId) const {
     return fixCameraExtrinsicParams_[camId];
+  }
+
+  inline void setCameraExtrinsicsFixed(int camId, bool fixed) {
+    fixCameraExtrinsicParams_[camId] = fixed;
   }
 
   inline int getDistortionDim(int camera_id) const {

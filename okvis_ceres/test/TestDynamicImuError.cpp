@@ -6,6 +6,7 @@
 #include <swift_vio/ceres/DynamicImuError.hpp>
 #include <swift_vio/ceres/NormalVectorParameterBlock.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
+#include <swift_vio/ceres/EuclideanParamBlockSizedLin.hpp>
 #include <swift_vio/ceres/EuclideanParamError.hpp>
 #include <swift_vio/ExtrinsicModels.hpp>
 #include <swift_vio/ParallaxAnglePoint.hpp>
@@ -149,16 +150,16 @@ public:
     // problem.SetParameterBlockConstant(poseParameterBlock_0.parameters());
 
     // create the speed and bias
-    speedParameterBlock_0 = okvis::ceres::EuclideanParamBlockSized<3>(speedAndBias_0.head<3>(), 11);
-    biasParameterBlock_0 = okvis::ceres::EuclideanParamBlockSized<6>(speedAndBias_0.tail<6>(), 12);
+    speedParameterBlock_0 = okvis::ceres::SpeedParameterBlock(speedAndBias_0.head<3>(), 11);
+    biasParameterBlock_0 = okvis::ceres::BiasParameterBlock(speedAndBias_0.tail<6>(), 12);
 
     problem.AddParameterBlock(
         speedParameterBlock_0.parameters(), 3);
     problem.AddParameterBlock(
         biasParameterBlock_0.parameters(), 6);
 
-    speedParameterBlock_1 = okvis::ceres::EuclideanParamBlockSized<3>(speedAndBias_1.head<3>(), 13);
-    biasParameterBlock_1 = okvis::ceres::EuclideanParamBlockSized<6>(speedAndBias_1.tail<6>(), 14);
+    speedParameterBlock_1 = okvis::ceres::SpeedParameterBlock(speedAndBias_1.head<3>(), 13);
+    biasParameterBlock_1 = okvis::ceres::BiasParameterBlock(speedAndBias_1.tail<6>(), 14);
 
     problem.AddParameterBlock(
         speedParameterBlock_1.parameters(), 3);
@@ -188,11 +189,11 @@ public:
 
     Eigen::Matrix<double, 9, 1> eye;
     eye << 1, 0, 0, 0, 1, 0, 0, 0, 1;
-    Tg = okvis::ceres::EuclideanParamBlockSized<9>(eye, 5);
-    Ts = okvis::ceres::EuclideanParamBlockSized<9>(Eigen::Matrix<double, 9, 1>::Zero(), 6);
-    Ta = okvis::ceres::EuclideanParamBlockSized<9>(eye, 7);
+    Tg = okvis::ceres::ShapeMatrixParamBlock(eye, 5);
+    Ts = okvis::ceres::ShapeMatrixParamBlock(Eigen::Matrix<double, 9, 1>::Zero(), 6);
+    Ta = okvis::ceres::ShapeMatrixParamBlock(eye, 7);
 
-    Mg = okvis::ceres::EuclideanParamBlockSized<9>(eye, 8);
+    Mg = okvis::ceres::ShapeMatrixParamBlock(eye, 8);
     Eigen::Matrix<double, 6, 1> lowerTriangularMat;
     Eigen::Matrix3d identity = Eigen::Matrix3d::Identity();
     swift_vio::lowerTriangularMatrixToVector(identity, lowerTriangularMat.data(), 0);
@@ -382,16 +383,16 @@ private:
   okvis::ceres::PoseParameterBlock poseParameterBlock_0;
   okvis::ceres::PoseParameterBlock poseParameterBlock_1;
 
-  okvis::ceres::EuclideanParamBlockSized<3> speedParameterBlock_0;
-  okvis::ceres::EuclideanParamBlockSized<6> biasParameterBlock_0;
-  okvis::ceres::EuclideanParamBlockSized<3> speedParameterBlock_1;
-  okvis::ceres::EuclideanParamBlockSized<6> biasParameterBlock_1;
+  okvis::ceres::SpeedParameterBlock speedParameterBlock_0;
+  okvis::ceres::BiasParameterBlock biasParameterBlock_0;
+  okvis::ceres::SpeedParameterBlock speedParameterBlock_1;
+  okvis::ceres::BiasParameterBlock biasParameterBlock_1;
 
   okvis::ceres::NormalVectorParameterBlock gravityDirectionBlock;
-  okvis::ceres::EuclideanParamBlockSized<9> Tg;
-  okvis::ceres::EuclideanParamBlockSized<9> Ts;
-  okvis::ceres::EuclideanParamBlockSized<9> Ta;
-  okvis::ceres::EuclideanParamBlockSized<9> Mg;
+  okvis::ceres::ShapeMatrixParamBlock Tg;
+  okvis::ceres::ShapeMatrixParamBlock Ts;
+  okvis::ceres::ShapeMatrixParamBlock Ta;
+  okvis::ceres::ShapeMatrixParamBlock Mg;
   okvis::ceres::EuclideanParamBlockSized<6> Ma;
 };
 
