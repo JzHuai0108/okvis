@@ -368,6 +368,16 @@ class Imu_BG_BA_TG_TS_TA {
     invTgsa_ = invTg_ * Ts_ * invTa_;
   }
 
+  void updateParameters(const double * bgba) {
+    bg_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba);
+    ba_ = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(bgba + 3);
+
+    Ts_.setZero();
+    invTg_.setIdentity();
+    invTa_.setIdentity();
+    invTgsa_.setZero();
+  }
+
   void updateParameters(const double * bgba, double const * xparams) {
     std::vector<const double *> xparamPtrs{xparams, xparams + 9, xparams + 18};
     updateParameters(bgba, xparamPtrs.data());
