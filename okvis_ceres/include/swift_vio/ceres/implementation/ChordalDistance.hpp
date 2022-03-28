@@ -67,11 +67,11 @@ bool ChordalDistance<
   Eigen::Vector3d unit_fj = unit_fj_jacobian.normalized();
   Eigen::Vector3d error = pap.n_.getVec() - unit_fj;
   // weight
-  int projOptModelId = PROJ_INTRINSIC_MODEL::kModelId;
+  int projIntrinsicRepId = PROJ_INTRINSIC_MODEL::kModelId;
   Eigen::Matrix<double, 3, Eigen::Dynamic> dfj_dXcam;
   Eigen::Matrix3d cov_fj;
   bool projectOk =
-      swift_vio::obsDirectionJacobian(xy1, cameraGeometryBase_, projOptModelId,
+      swift_vio::obsDirectionJacobian(xy1, cameraGeometryBase_, projIntrinsicRepId,
                            observationCovariance_, &dfj_dXcam, &cov_fj);
   Eigen::Matrix3d dunit_fj_dfj;
   unit_fj_jacobian.dxi_dvec(&dunit_fj_dfj);
@@ -168,11 +168,11 @@ bool ChordalDistance<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
   Eigen::Matrix3d R_WCtij = pair_T_WCtij.second.toRotationMatrix();
   Eigen::Vector3d error = R_WCtij * (pap.n_.getVec() - unit_fj);
   // weight
-  int projOptModelId = PROJ_INTRINSIC_MODEL::kModelId;
+  int projIntrinsicRepId = PROJ_INTRINSIC_MODEL::kModelId;
   Eigen::Matrix<double, 3, Eigen::Dynamic> dfj_dXcam;
   Eigen::Matrix3d cov_fj;
   bool projectOk =
-      swift_vio::obsDirectionJacobian(xy1, cameraGeometryBase_, projOptModelId,
+      swift_vio::obsDirectionJacobian(xy1, cameraGeometryBase_, projIntrinsicRepId,
                            observationCovariance_, &dfj_dXcam, &cov_fj);
   Eigen::Matrix3d dunit_fj_dfj;
   unit_fj_jacobian.dxi_dvec(&dunit_fj_dfj);
@@ -422,9 +422,9 @@ bool ChordalDistance<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
   // weight and assign: compute Jacobians and covariance for the obs direction.
   Eigen::Matrix<double, 3, Eigen::Dynamic> dfj_dXcam;
   Eigen::Matrix3d cov_fj;
-  int projOptModelId = PROJ_INTRINSIC_MODEL::kModelId;
+  int projIntrinsicRepId = PROJ_INTRINSIC_MODEL::kModelId;
   bool projectOk =
-      swift_vio::obsDirectionJacobian(xy1, cameraGeometryBase_, projOptModelId,
+      swift_vio::obsDirectionJacobian(xy1, cameraGeometryBase_, projIntrinsicRepId,
                            observationCovariance_, &dfj_dXcam, &cov_fj);
   Eigen::Matrix3d dunit_fj_dfj;
   unit_fj_jacobian.dxi_dvec(&dunit_fj_dfj);

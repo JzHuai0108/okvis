@@ -164,8 +164,8 @@ public:
   }
 
   static void toParamValues(const okvis::kinematics::Transformation &T_BC,
-                            Eigen::VectorXd *extrinsic_opt_coeffs) {
-    *extrinsic_opt_coeffs = T_BC.q().conjugate() * (-T_BC.r());
+                            Eigen::VectorXd *extrinsicParams) {
+    *extrinsicParams = T_BC.q().conjugate() * (-T_BC.r());
   }
 
   //  template <class Scalar>
@@ -246,11 +246,11 @@ public:
   /**
    * @brief toParamValues
    * @param T
-   * @param extrinsic_opt_coeffs
+   * @param extrinsicParams
    */
   static void toParamValues(const okvis::kinematics::Transformation &T,
-                            Eigen::VectorXd *extrinsic_opt_coeffs) {
-    *extrinsic_opt_coeffs = T.coeffs();
+                            Eigen::VectorXd *extrinsicParams) {
+    *extrinsicParams = T.coeffs();
   }
 
   /// \brief Computes the Jacobian from minimal space to naively
@@ -472,60 +472,60 @@ public:
   //  }
 };
 
-#ifndef EXTRINSIC_MODEL_CASES
-#define EXTRINSIC_MODEL_CASES                                                  \
-  EXTRINSIC_MODEL_CASE(Extrinsic_p_CB)                                         \
-  EXTRINSIC_MODEL_CASE(Extrinsic_p_BC_q_BC)                                    \
-  EXTRINSIC_MODEL_CASE(Extrinsic_p_C0C_q_C0C)
+#ifndef EXTRINSIC_REP_CASES
+#define EXTRINSIC_REP_CASES                                                  \
+  EXTRINSIC_REP_CASE(Extrinsic_p_CB)                                         \
+  EXTRINSIC_REP_CASE(Extrinsic_p_BC_q_BC)                                    \
+  EXTRINSIC_REP_CASE(Extrinsic_p_C0C_q_C0C)
 #endif
 
-inline int ExtrinsicModelGetMinimalDim(int model_id) {
+inline int ExtrinsicRepGetMinimalDim(int model_id) {
   switch (model_id) {
-#define MODEL_CASES EXTRINSIC_MODEL_CASES
-#define EXTRINSIC_MODEL_CASE(ExtrinsicModel)                                   \
-  case ExtrinsicModel::kModelId:                                               \
-    return ExtrinsicModel::getMinimalDim();
+#define MODEL_CASES EXTRINSIC_REP_CASES
+#define EXTRINSIC_REP_CASE(ExtrinsicRep)                                   \
+  case ExtrinsicRep::kModelId:                                               \
+    return ExtrinsicRep::getMinimalDim();
 
     MODEL_SWITCH_CASES
 
-#undef EXTRINSIC_MODEL_CASE
+#undef EXTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
   return 0;
 }
 
-inline Eigen::MatrixXd ExtrinsicModelInitCov(int model_id,
+inline Eigen::MatrixXd ExtrinsicRepInitCov(int model_id,
                                              double sigma_translation,
                                              double sigma_orientation) {
   switch (model_id) {
-#define MODEL_CASES EXTRINSIC_MODEL_CASES
-#define EXTRINSIC_MODEL_CASE(ExtrinsicModel)                                   \
-  case ExtrinsicModel::kModelId:                                               \
-    return ExtrinsicModel::initCov(sigma_translation, sigma_orientation);
+#define MODEL_CASES EXTRINSIC_REP_CASES
+#define EXTRINSIC_REP_CASE(ExtrinsicRep)                                   \
+  case ExtrinsicRep::kModelId:                                               \
+    return ExtrinsicRep::initCov(sigma_translation, sigma_orientation);
 
     MODEL_SWITCH_CASES
 
-#undef EXTRINSIC_MODEL_CASE
+#undef EXTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }
 
-inline int ExtrinsicModelNameToId(std::string extrinsic_opt_rep,
+inline int ExtrinsicRepNameToId(std::string extrinsicRepName,
                                   bool *isFixed = nullptr) {
-  std::transform(extrinsic_opt_rep.begin(), extrinsic_opt_rep.end(),
-                 extrinsic_opt_rep.begin(),
+  std::transform(extrinsicRepName.begin(), extrinsicRepName.end(),
+                 extrinsicRepName.begin(),
                  [](unsigned char c) { return std::toupper(c); });
-  if (extrinsic_opt_rep.compare("P_BC_Q_BC") == 0) {
+  if (extrinsicRepName.compare("P_BC_Q_BC") == 0) {
     if (isFixed) {
       *isFixed = false;
     }
     return Extrinsic_p_BC_q_BC::kModelId;
-  } else if (extrinsic_opt_rep.compare("P_C0C_Q_C0C") == 0) {
+  } else if (extrinsicRepName.compare("P_C0C_Q_C0C") == 0) {
     if (isFixed) {
       *isFixed = false;
     }
     return Extrinsic_p_C0C_q_C0C::kModelId;
-  } else if (extrinsic_opt_rep.compare("P_CB") == 0) {
+  } else if (extrinsicRepName.compare("P_CB") == 0) {
     if (isFixed) {
       *isFixed = false;
     }
@@ -538,115 +538,115 @@ inline int ExtrinsicModelNameToId(std::string extrinsic_opt_rep,
   }
 }
 
-inline std::string ExtrinsicModelIdToName(int model_id) {
+inline std::string ExtrinsicRepIdToName(int model_id) {
   switch (model_id) {
-#define MODEL_CASES EXTRINSIC_MODEL_CASES
-#define EXTRINSIC_MODEL_CASE(ExtrinsicModel)                                   \
-  case ExtrinsicModel::kModelId:                                               \
-    return ExtrinsicModel::kName;
+#define MODEL_CASES EXTRINSIC_REP_CASES
+#define EXTRINSIC_REP_CASE(ExtrinsicRep)                                   \
+  case ExtrinsicRep::kModelId:                                               \
+    return ExtrinsicRep::kName;
 
     MODEL_SWITCH_CASES
 
-#undef EXTRINSIC_MODEL_CASE
+#undef EXTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
   return "";
 }
 
-inline void ExtrinsicModelOplus(int model_id, const double *const deltaT_XC,
+inline void ExtrinsicRepOplus(int model_id, const double *const deltaT_XC,
                                 okvis::kinematics::Transformation *T_XC) {
   std::pair<Eigen::Matrix<double, 3, 1>, Eigen::Quaternion<double>> pair_T_XC =
       std::make_pair(T_XC->r(), T_XC->q());
   switch (model_id) {
-#define MODEL_CASES EXTRINSIC_MODEL_CASES
-#define EXTRINSIC_MODEL_CASE(ExtrinsicModel)                                   \
-  case ExtrinsicModel::kModelId:                                               \
-    ExtrinsicModel::oplus(deltaT_XC, &pair_T_XC);                              \
+#define MODEL_CASES EXTRINSIC_REP_CASES
+#define EXTRINSIC_REP_CASE(ExtrinsicRep)                                   \
+  case ExtrinsicRep::kModelId:                                               \
+    ExtrinsicRep::oplus(deltaT_XC, &pair_T_XC);                              \
     T_XC->set(pair_T_XC.first, pair_T_XC.second);                              \
     break;
 
     MODEL_SWITCH_CASES
 
-#undef EXTRINSIC_MODEL_CASE
+#undef EXTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }
 
-inline void ExtrinsicModelOminus(int model_id, const double *rq,
+inline void ExtrinsicRepOminus(int model_id, const double *rq,
                                  const double *rq_delta, double *delta) {
   switch (model_id) {
-#define MODEL_CASES EXTRINSIC_MODEL_CASES
-#define EXTRINSIC_MODEL_CASE(ExtrinsicModel)                                   \
-  case ExtrinsicModel::kModelId:                                               \
-    return ExtrinsicModel::ominus(rq, rq_delta, delta);
+#define MODEL_CASES EXTRINSIC_REP_CASES
+#define EXTRINSIC_REP_CASE(ExtrinsicRep)                                   \
+  case ExtrinsicRep::kModelId:                                               \
+    return ExtrinsicRep::ominus(rq, rq_delta, delta);
 
     MODEL_SWITCH_CASES
 
-#undef EXTRINSIC_MODEL_CASE
+#undef EXTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }
 
 inline void
-ExtrinsicModelToDimensionLabels(int model_id,
+ExtrinsicRepToDimensionLabels(int model_id,
                                 std::vector<std::string> *dimensionLabels) {
   switch (model_id) {
-#define MODEL_CASES EXTRINSIC_MODEL_CASES
-#define EXTRINSIC_MODEL_CASE(ExtrinsicModel)                                   \
-  case ExtrinsicModel::kModelId:                                               \
-    return ExtrinsicModel::toDimensionLabels(dimensionLabels);
+#define MODEL_CASES EXTRINSIC_REP_CASES
+#define EXTRINSIC_REP_CASE(ExtrinsicRep)                                   \
+  case ExtrinsicRep::kModelId:                                               \
+    return ExtrinsicRep::toDimensionLabels(dimensionLabels);
 
     MODEL_SWITCH_CASES
 
-#undef EXTRINSIC_MODEL_CASE
+#undef EXTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }
 
 inline void
-ExtrinsicModelToMinDimensionLabels(int model_id,
+ExtrinsicRepToMinDimensionLabels(int model_id,
                                    std::vector<std::string> *dimensionLabels) {
   switch (model_id) {
-#define MODEL_CASES EXTRINSIC_MODEL_CASES
-#define EXTRINSIC_MODEL_CASE(ExtrinsicModel)                                   \
-  case ExtrinsicModel::kModelId:                                               \
-    return ExtrinsicModel::toMinDimensionLabels(dimensionLabels);
+#define MODEL_CASES EXTRINSIC_REP_CASES
+#define EXTRINSIC_REP_CASE(ExtrinsicRep)                                   \
+  case ExtrinsicRep::kModelId:                                               \
+    return ExtrinsicRep::toMinDimensionLabels(dimensionLabels);
 
     MODEL_SWITCH_CASES
 
-#undef EXTRINSIC_MODEL_CASE
+#undef EXTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }
 
 inline void
-ExtrinsicModelToParamValues(int model_id,
+ExtrinsicRepToParamValues(int model_id,
                             const okvis::kinematics::Transformation &T_XC,
-                            Eigen::VectorXd *extrinsic_opt_coeffs) {
+                            Eigen::VectorXd *extrinsicParams) {
   switch (model_id) {
-#define MODEL_CASES EXTRINSIC_MODEL_CASES
-#define EXTRINSIC_MODEL_CASE(ExtrinsicModel)                                   \
-  case ExtrinsicModel::kModelId:                                               \
-    return ExtrinsicModel::toParamValues(T_XC, extrinsic_opt_coeffs);
+#define MODEL_CASES EXTRINSIC_REP_CASES
+#define EXTRINSIC_REP_CASE(ExtrinsicRep)                                   \
+  case ExtrinsicRep::kModelId:                                               \
+    return ExtrinsicRep::toParamValues(T_XC, extrinsicParams);
 
     MODEL_SWITCH_CASES
 
-#undef EXTRINSIC_MODEL_CASE
+#undef EXTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }
 
-inline void ExtrinsicModelToDesiredStdevs(int model_id,
+inline void ExtrinsicRepToDesiredStdevs(int model_id,
                                           Eigen::VectorXd *desiredStdevs) {
   switch (model_id) {
-#define MODEL_CASES EXTRINSIC_MODEL_CASES
-#define EXTRINSIC_MODEL_CASE(ExtrinsicModel)                                   \
-  case ExtrinsicModel::kModelId:                                               \
-    return ExtrinsicModel::toDesiredStdevs(desiredStdevs);
+#define MODEL_CASES EXTRINSIC_REP_CASES
+#define EXTRINSIC_REP_CASE(ExtrinsicRep)                                   \
+  case ExtrinsicRep::kModelId:                                               \
+    return ExtrinsicRep::toDesiredStdevs(desiredStdevs);
 
     MODEL_SWITCH_CASES
 
-#undef EXTRINSIC_MODEL_CASE
+#undef EXTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }

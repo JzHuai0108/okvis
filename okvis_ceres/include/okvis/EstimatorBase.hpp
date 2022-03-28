@@ -451,7 +451,7 @@ class EstimatorBase : public VioBackendInterface
    */
   size_t cameraParamsMinimalDim(size_t camIdx = 0) const {
     return (fixCameraExtrinsicParams_[camIdx] ? 0 : cameraRig_.getMinimalExtrinsicDim(camIdx)) +
-           (fixCameraIntrinsicParams_[camIdx] ? 0 : cameraRig_.getMinimalProjectionDim(camIdx) +
+           (fixCameraIntrinsicParams_[camIdx] ? 0 : cameraRig_.getMinimalProjectionIntrinsicDim(camIdx) +
            cameraRig_.getDistortionDim(camIdx)) + 2u;  // 2 for td and tr
   }
 

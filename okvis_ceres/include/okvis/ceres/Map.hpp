@@ -50,7 +50,7 @@
 #include <okvis/assert_macros.hpp>
 #include <unordered_map>
 #include <okvis/ceres/ErrorInterface.hpp>
-#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/ParallaxAnglePoint.hpp>
 #include <swift_vio/PointLandmarkModels.hpp>
 

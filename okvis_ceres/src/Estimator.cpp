@@ -53,7 +53,7 @@
 #include <swift_vio/ceres/CameraTimeParamBlock.hpp>
 #include <swift_vio/ceres/EuclideanParamBlock.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
-#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/IoUtil.hpp>
 #include <swift_vio/VectorOperations.hpp>
 
@@ -754,8 +754,8 @@ std::vector<std::string> Estimator::variableLabels() const {
   for (size_t j = 0u; j < numCameras; ++j) {
     if (!fixCameraExtrinsicParams_[j]) {
       std::vector<std::string> camExtrinsicLabels;
-      swift_vio::ExtrinsicModelToDimensionLabels(
-          cameraRig_.getExtrinsicOptMode(j), &camExtrinsicLabels);
+      swift_vio::ExtrinsicRepToDimensionLabels(
+          cameraRig_.getExtrinsicRepId(j), &camExtrinsicLabels);
       varList.insert(varList.end(), camExtrinsicLabels.begin(),
                      camExtrinsicLabels.end());
     }

@@ -21,7 +21,7 @@
 #include <okvis/Parameters.hpp>
 
 #include <swift_vio/imu/ImuModels.hpp>
-#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/PointLandmarkModels.hpp>
 
 // Frame notation:

@@ -1,12 +1,12 @@
-#ifndef INCLUDE_SWIFT_VIO_PROJ_PARAM_OPT_MODELS_HPP_
-#define INCLUDE_SWIFT_VIO_PROJ_PARAM_OPT_MODELS_HPP_
+#ifndef INCLUDE_SWIFT_VIO_PROJ_INTRINSIC_REPS_HPP_
+#define INCLUDE_SWIFT_VIO_PROJ_INTRINSIC_REPS_HPP_
 
 #include <vector>
 #include <Eigen/Core>
 #include <okvis/ModelSwitch.hpp>
 
 namespace swift_vio {
-class ProjectionOptFXY_CXY {
+class ProjIntrinsic_FXY_CXY {
  public:
   static const int kModelId = 1;
   static const size_t kNumParams = 4;
@@ -41,7 +41,7 @@ class ProjectionOptFXY_CXY {
   }
 };
 
-class ProjectionOptFX_CXY {
+class ProjIntrinsic_FX_CXY {
  public:
   static const int kModelId = 2;
   static const size_t kNumParams = 3;
@@ -85,7 +85,7 @@ class ProjectionOptFX_CXY {
   }
 };
 
-class ProjectionOptFX {
+class ProjIntrinsic_FX {
  public:
   static const int kModelId = 3;
   static const size_t kNumParams = 1;
@@ -125,158 +125,158 @@ class ProjectionOptFX {
   }
 };
 
-#ifndef PROJ_OPT_MODEL_CASES
-#define PROJ_OPT_MODEL_CASES                \
-  PROJ_OPT_MODEL_CASE(ProjectionOptFXY_CXY) \
-  PROJ_OPT_MODEL_CASE(ProjectionOptFX_CXY)  \
-  PROJ_OPT_MODEL_CASE(ProjectionOptFX)
+#ifndef PROJ_INTRINSIC_REP_CASES
+#define PROJ_INTRINSIC_REP_CASES                \
+  PROJ_INTRINSIC_REP_CASE(ProjIntrinsic_FXY_CXY) \
+  PROJ_INTRINSIC_REP_CASE(ProjIntrinsic_FX_CXY)  \
+  PROJ_INTRINSIC_REP_CASE(ProjIntrinsic_FX)
 #endif
 
-inline int ProjectionOptGetMinimalDim(int model_id) {
+inline int ProjIntrinsicRepGetMinimalDim(int model_id) {
   switch (model_id) {
-#define MODEL_CASES PROJ_OPT_MODEL_CASES
-#define PROJ_OPT_MODEL_CASE(ProjOptModel) \
-  case ProjOptModel::kModelId:            \
-    return ProjOptModel::getMinimalDim();
+#define MODEL_CASES PROJ_INTRINSIC_REP_CASES
+#define PROJ_INTRINSIC_REP_CASE(ProjectionIntrinsicRep) \
+  case ProjectionIntrinsicRep::kModelId:            \
+    return ProjectionIntrinsicRep::getMinimalDim();
 
     MODEL_SWITCH_CASES
 
-#undef PROJ_OPT_MODEL_CASE
+#undef PROJ_INTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
   return 0;
 }
 
-inline int ProjectionOptNameToId(std::string pinhole_opt_rep, bool* isFixed=nullptr) {
-  std::transform(pinhole_opt_rep.begin(), pinhole_opt_rep.end(),
-                 pinhole_opt_rep.begin(),
+inline int ProjIntrinsicRepNameToId(std::string rep_name, bool* isFixed=nullptr) {
+  std::transform(rep_name.begin(), rep_name.end(),
+                 rep_name.begin(),
                  [](unsigned char c) { return std::toupper(c); });
   if (isFixed) {
       *isFixed = false;
   }
-  if (pinhole_opt_rep.compare("FXY_CXY") == 0) {
-    return ProjectionOptFXY_CXY::kModelId;
-  } else if (pinhole_opt_rep.compare("FX_CXY") == 0) {
-    return ProjectionOptFX_CXY::kModelId;
-  } else if (pinhole_opt_rep.compare("FX") == 0) {
-    return ProjectionOptFX::kModelId;
+  if (rep_name.compare("FXY_CXY") == 0) {
+    return ProjIntrinsic_FXY_CXY::kModelId;
+  } else if (rep_name.compare("FX_CXY") == 0) {
+    return ProjIntrinsic_FX_CXY::kModelId;
+  } else if (rep_name.compare("FX") == 0) {
+    return ProjIntrinsic_FX::kModelId;
   } else {
     if (isFixed) {
         *isFixed = true;
     }
-    return ProjectionOptFXY_CXY::kModelId;
+    return ProjIntrinsic_FXY_CXY::kModelId;
   }
 }
 
-inline std::string ProjectionModelIdToName(int model_id) {
+inline std::string ProjectionIntrinsicRepIdToName(int model_id) {
   switch (model_id) {
-#define MODEL_CASES PROJ_OPT_MODEL_CASES
-#define PROJ_OPT_MODEL_CASE(ProjOptModel) \
-  case ProjOptModel::kModelId:            \
-    return ProjOptModel::kName;
+#define MODEL_CASES PROJ_INTRINSIC_REP_CASES
+#define PROJ_INTRINSIC_REP_CASE(ProjectionIntrinsicRep) \
+  case ProjectionIntrinsicRep::kModelId:            \
+    return ProjectionIntrinsicRep::kName;
 
     MODEL_SWITCH_CASES
 
-#undef PROJ_OPT_MODEL_CASE
+#undef PROJ_INTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
   return "";
 }
 
-inline void ProjectionOptMinimalIntrinsicJacobian(
+inline void ProjIntrinsicRepMinimalIntrinsicJacobian(
     int model_id, Eigen::Matrix2Xd* intrinsicJac) {
   switch (model_id) {
-#define MODEL_CASES PROJ_OPT_MODEL_CASES
-#define PROJ_OPT_MODEL_CASE(ProjOptModel) \
-  case ProjOptModel::kModelId:            \
-    return ProjOptModel::minimalIntrinsicJacobian(intrinsicJac);
+#define MODEL_CASES PROJ_INTRINSIC_REP_CASES
+#define PROJ_INTRINSIC_REP_CASE(ProjectionIntrinsicRep) \
+  case ProjectionIntrinsicRep::kModelId:            \
+    return ProjectionIntrinsicRep::minimalIntrinsicJacobian(intrinsicJac);
 
     MODEL_SWITCH_CASES
 
-#undef PROJ_OPT_MODEL_CASE
+#undef PROJ_INTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }
 
 // apply estimated projection intrinsic params to the full param vector
 // be careful global_proj_params may contain trailing distortion params
-inline void ProjectionOptLocalToGlobal(int model_id,
+inline void ProjIntrinsicRepLocalToGlobal(int model_id,
                                        const Eigen::VectorXd& local_opt_params,
                                        Eigen::VectorXd* global_proj_params) {
   switch (model_id) {
-#define MODEL_CASES PROJ_OPT_MODEL_CASES
-#define PROJ_OPT_MODEL_CASE(ProjOptModel) \
-  case ProjOptModel::kModelId:            \
-    return ProjOptModel::localToGlobal(local_opt_params, global_proj_params);
+#define MODEL_CASES PROJ_INTRINSIC_REP_CASES
+#define PROJ_INTRINSIC_REP_CASE(ProjectionIntrinsicRep) \
+  case ProjectionIntrinsicRep::kModelId:            \
+    return ProjectionIntrinsicRep::localToGlobal(local_opt_params, global_proj_params);
 
     MODEL_SWITCH_CASES
 
-#undef PROJ_OPT_MODEL_CASE
+#undef PROJ_INTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }
 
-inline void ProjectionOptGlobalToLocal(
+inline void ProjIntrinsicRepGlobalToLocal(
     int model_id, const Eigen::VectorXd& global_proj_params,
     Eigen::VectorXd* local_opt_params) {
   switch (model_id) {
-#define MODEL_CASES PROJ_OPT_MODEL_CASES
-#define PROJ_OPT_MODEL_CASE(ProjOptModel) \
-  case ProjOptModel::kModelId:            \
-    return ProjOptModel::globalToLocal(global_proj_params, local_opt_params);
+#define MODEL_CASES PROJ_INTRINSIC_REP_CASES
+#define PROJ_INTRINSIC_REP_CASE(ProjectionIntrinsicRep) \
+  case ProjectionIntrinsicRep::kModelId:            \
+    return ProjectionIntrinsicRep::globalToLocal(global_proj_params, local_opt_params);
 
     MODEL_SWITCH_CASES
 
-#undef PROJ_OPT_MODEL_CASE
+#undef PROJ_INTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }
 
-inline Eigen::MatrixXd ProjectionModelGetInitCov(int model_id,
+inline Eigen::MatrixXd ProjectionIntrinsicRepGetInitCov(int model_id,
                                                  double sigma_focal_length,
                                                  double sigma_principal_point) {
   switch (model_id) {
-#define MODEL_CASES PROJ_OPT_MODEL_CASES
-#define PROJ_OPT_MODEL_CASE(ProjOptModel) \
-  case ProjOptModel::kModelId:            \
-    return ProjOptModel::getInitCov(sigma_focal_length, sigma_principal_point);
+#define MODEL_CASES PROJ_INTRINSIC_REP_CASES
+#define PROJ_INTRINSIC_REP_CASE(ProjectionIntrinsicRep) \
+  case ProjectionIntrinsicRep::kModelId:            \
+    return ProjectionIntrinsicRep::getInitCov(sigma_focal_length, sigma_principal_point);
 
     MODEL_SWITCH_CASES
 
-#undef PROJ_OPT_MODEL_CASE
+#undef PROJ_INTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
   return Eigen::MatrixXd();
 }
 
-inline void ProjectionOptToDimensionLabels(int model_id, std::vector<std::string>* dimensionLabels) {
+inline void ProjIntrinsicRepToDimensionLabels(int model_id, std::vector<std::string>* dimensionLabels) {
     switch (model_id) {
-  #define MODEL_CASES PROJ_OPT_MODEL_CASES
-  #define PROJ_OPT_MODEL_CASE(ProjOptModel) \
-    case ProjOptModel::kModelId:            \
-      return ProjOptModel::toDimensionLabels(dimensionLabels);
+  #define MODEL_CASES PROJ_INTRINSIC_REP_CASES
+  #define PROJ_INTRINSIC_REP_CASE(ProjectionIntrinsicRep) \
+    case ProjectionIntrinsicRep::kModelId:            \
+      return ProjectionIntrinsicRep::toDimensionLabels(dimensionLabels);
 
       MODEL_SWITCH_CASES
 
-  #undef PROJ_OPT_MODEL_CASE
+  #undef PROJ_INTRINSIC_REP_CASE
   #undef MODEL_CASES
     }
 }
 
-inline void ProjectionOptToDesiredStdevs(int model_id,
+inline void ProjIntrinsicRepToDesiredStdevs(int model_id,
                                          Eigen::VectorXd *desiredStdevs) {
   switch (model_id) {
-#define MODEL_CASES PROJ_OPT_MODEL_CASES
-#define PROJ_OPT_MODEL_CASE(ProjOptModel)                                      \
-  case ProjOptModel::kModelId:                                                 \
-    return ProjOptModel::toDesiredStdevs(desiredStdevs);
+#define MODEL_CASES PROJ_INTRINSIC_REP_CASES
+#define PROJ_INTRINSIC_REP_CASE(ProjectionIntrinsicRep)                                      \
+  case ProjectionIntrinsicRep::kModelId:                                                 \
+    return ProjectionIntrinsicRep::toDesiredStdevs(desiredStdevs);
 
     MODEL_SWITCH_CASES
 
-#undef PROJ_OPT_MODEL_CASE
+#undef PROJ_INTRINSIC_REP_CASE
 #undef MODEL_CASES
   }
 }
 
 }  // namespace swift_vio
-#endif  // INCLUDE_SWIFT_VIO_PROJ_PARAM_OPT_MODELS_HPP_
+#endif  // INCLUDE_SWIFT_VIO_PROJ_INTRINSIC_REPS_HPP_

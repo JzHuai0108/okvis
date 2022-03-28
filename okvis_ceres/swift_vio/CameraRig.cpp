@@ -98,8 +98,8 @@ void CameraRig::clear() {
   T_SC_.clear();
   cameraGeometries_.clear();
   distortionTypes_.clear();
-  extrinsic_opt_rep_.clear();
-  proj_opt_rep_.clear();
+  extrinsicRepIds_.clear();
+  projectionIntrinsicRepIds_.clear();
   fixCameraIntrinsicParams_.clear();
   fixCameraExtrinsicParams_.clear();
   overlaps_.clear();
@@ -113,7 +113,7 @@ void CameraRig::setCameraIntrinsics(int camera_id,
   const int distortionDim =
       cameraGeometries_[camera_id]->noDistortionParameters();
   intrinsicParameters.tail(distortionDim) = distortion_vec;
-  ProjectionOptLocalToGlobal(proj_opt_rep_[camera_id], projection_vec,
+  ProjIntrinsicRepLocalToGlobal(projectionIntrinsicRepIds_[camera_id], projection_vec,
                              &intrinsicParameters);
 
   cameraGeometries_[camera_id]->setIntrinsics(intrinsicParameters);
@@ -121,13 +121,13 @@ void CameraRig::setCameraIntrinsics(int camera_id,
 
 int CameraRig::addCamera(std::shared_ptr<okvis::kinematics::Transformation> T_SC,
           std::shared_ptr<okvis::cameras::CameraBase> cameraGeometry,
-          int proj_opt_rep_id, int extrinsic_opt_rep_id,
+          int projIntrinsicRepId, int extrinsicRepId,
           bool fixIntrinsics, bool fixExtrinsics) {
   T_SC_.emplace_back(T_SC);
   cameraGeometries_.emplace_back(cameraGeometry);
   distortionTypes_.emplace_back(DistortionNameToTypeId(cameraGeometry->distortionType()));
-  proj_opt_rep_.emplace_back(proj_opt_rep_id);
-  extrinsic_opt_rep_.emplace_back(extrinsic_opt_rep_id);
+  projectionIntrinsicRepIds_.emplace_back(projIntrinsicRepId);
+  extrinsicRepIds_.emplace_back(extrinsicRepId);
   fixCameraIntrinsicParams_.push_back(fixIntrinsics);
   fixCameraExtrinsicParams_.push_back(fixExtrinsics);
   return static_cast<int>(T_SC_.size()) - 1;
@@ -135,15 +135,15 @@ int CameraRig::addCamera(std::shared_ptr<okvis::kinematics::Transformation> T_SC
 
 int CameraRig::addCameraDeep(std::shared_ptr<const okvis::kinematics::Transformation> T_SC,
           std::shared_ptr<const okvis::cameras::CameraBase> cameraGeometry,
-          int proj_opt_rep_id, int extrinsic_opt_rep_id,
+          int projIntrinsicRepId, int extrinsicRepId,
           bool fixIntrinsics, bool fixExtrinsics) {
   T_SC_.emplace_back(
       std::make_shared<okvis::kinematics::Transformation>(*T_SC));
   cameraGeometries_.emplace_back(okvis::cameras::cloneCameraGeometry(cameraGeometry));
   distortionTypes_.emplace_back(
       DistortionNameToTypeId(cameraGeometry->distortionType()));
-  proj_opt_rep_.emplace_back(proj_opt_rep_id);
-  extrinsic_opt_rep_.emplace_back(extrinsic_opt_rep_id);
+  projectionIntrinsicRepIds_.emplace_back(projIntrinsicRepId);
+  extrinsicRepIds_.emplace_back(extrinsicRepId);
   fixCameraIntrinsicParams_.push_back(fixIntrinsics);
   fixCameraExtrinsicParams_.push_back(fixExtrinsics);
   return static_cast<int>(T_SC_.size()) - 1;
@@ -152,8 +152,8 @@ int CameraRig::addCameraDeep(std::shared_ptr<const okvis::kinematics::Transforma
 CameraRig CameraRig::deepCopy() const {
   CameraRig rig;
   for (size_t i = 0u; i < T_SC_.size(); ++i) {
-    rig.addCamera(T_SC_[i], cameraGeometries_[i], proj_opt_rep_[i],
-                   extrinsic_opt_rep_[i], fixCameraIntrinsicParams_[i], fixCameraExtrinsicParams_[i]);
+    rig.addCamera(T_SC_[i], cameraGeometries_[i], projectionIntrinsicRepIds_[i],
+                   extrinsicRepIds_[i], fixCameraIntrinsicParams_[i], fixCameraExtrinsicParams_[i]);
   }
   rig.setOverlaps(overlaps_);
   return rig;
@@ -162,8 +162,8 @@ CameraRig CameraRig::deepCopy() const {
 std::shared_ptr<CameraRig> CameraRig::deepCopyPtr() const {
   std::shared_ptr<CameraRig> rig(new CameraRig());
   for (size_t i = 0u; i < T_SC_.size(); ++i) {
-    rig->addCamera(T_SC_[i], cameraGeometries_[i], proj_opt_rep_[i],
-                   extrinsic_opt_rep_[i], fixCameraIntrinsicParams_[i], fixCameraExtrinsicParams_[i]);
+    rig->addCamera(T_SC_[i], cameraGeometries_[i], projectionIntrinsicRepIds_[i],
+                   extrinsicRepIds_[i], fixCameraIntrinsicParams_[i], fixCameraExtrinsicParams_[i]);
   }
   rig->setOverlaps(overlaps_);
   return rig;
@@ -172,8 +172,8 @@ std::shared_ptr<CameraRig> CameraRig::deepCopyPtr() const {
 CameraRig CameraRig::deepCopy(const okvis::cameras::NCameraSystem &ncameraSystem) {
   CameraRig rig;
   for (size_t i = 0u; i < ncameraSystem.numCameras(); ++i) {
-    rig.addCameraDeep(ncameraSystem.T_SC(i), ncameraSystem.cameraGeometry(i), ncameraSystem.projOptRep(i),
-                   ncameraSystem.extrinsicOptRep(i));
+    rig.addCameraDeep(ncameraSystem.T_SC(i), ncameraSystem.cameraGeometry(i), ncameraSystem.projectionIntrinsicRep(i),
+                   ncameraSystem.extrinsicRep(i));
   }
   rig.setOverlaps(ncameraSystem.overlaps());
   return rig;
@@ -182,8 +182,8 @@ CameraRig CameraRig::deepCopy(const okvis::cameras::NCameraSystem &ncameraSystem
 std::shared_ptr<CameraRig> CameraRig::deepCopyPtr(const okvis::cameras::NCameraSystem &ncameraSystem) {
   std::shared_ptr<CameraRig> rig(new CameraRig());
   for (size_t i = 0u; i < ncameraSystem.numCameras(); ++i) {
-    rig->addCameraDeep(ncameraSystem.T_SC(i), ncameraSystem.cameraGeometry(i), ncameraSystem.projOptRep(i),
-                   ncameraSystem.extrinsicOptRep(i));
+    rig->addCameraDeep(ncameraSystem.T_SC(i), ncameraSystem.cameraGeometry(i), ncameraSystem.projectionIntrinsicRep(i),
+                   ncameraSystem.extrinsicRep(i));
   }
   rig->setOverlaps(ncameraSystem.overlaps());
   return rig;
@@ -193,8 +193,8 @@ void CameraRig::initializeTo(okvis::cameras::NCameraSystem *rig) const {
   rig->reset(this->T_SC_, this->cameraGeometries_, this->distortionTypes_, false);
   rig->setOverlaps(this->overlaps_);
   for (size_t i = 0 ; i < cameraGeometries_.size(); ++i) {
-    rig->setExtrinsicOptMode(i, getExtrinsicOptName(i));
-    rig->setProjectionOptMode(i, getProjectionOptName(i));
+    rig->setExtrinsicRepName(i, extrinsicRepName(i));
+    rig->setProjectionIntrinsicRepName(i, getProjIntrinsicRepName(i));
   }
 }
 
@@ -204,8 +204,8 @@ void CameraRig::assignTo(CameraRig *rig) const {
     rig->setCameraIntrinsics(i, cameraGeometries_[i]->getIntrinsics());
     rig->setImageDelay(i, getImageDelay(i));
     rig->setReadoutTime(i, getReadoutTime(i));
-    rig->setExtrinsicOptMode(i, extrinsic_opt_rep_.at(i));
-    rig->setProjectionOptMode(i, proj_opt_rep_.at(i));
+    rig->setExtrinsicRepId(i, extrinsicRepIds_.at(i));
+    rig->setProjectionIntrinsicRepId(i, projectionIntrinsicRepIds_.at(i));
   }
   rig->setOverlaps(overlaps_);
 }
@@ -216,8 +216,8 @@ void CameraRig::assignTo(okvis::cameras::NCameraSystem *rig) const {
     rig->setCameraIntrinsics(i, cameraGeometries_[i]->getIntrinsics());
     rig->setImageDelay(i, getImageDelay(i));
     rig->setReadoutTime(i, getReadoutTime(i));
-    rig->setExtrinsicOptMode(i, getExtrinsicOptName(i));
-    rig->setProjectionOptMode(i, getProjectionOptName(i));
+    rig->setExtrinsicRepName(i, extrinsicRepName(i));
+    rig->setProjectionIntrinsicRepName(i, getProjIntrinsicRepName(i));
   }
   rig->setOverlaps(overlaps_);
 }

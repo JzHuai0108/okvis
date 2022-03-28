@@ -65,7 +65,8 @@ NCameraSystem::NCameraSystem(
   OKVIS_ASSERT_TRUE_DBG(
       Exception, T_SC.size() == distortionTypes.size(),
       "Number of distortiontypes must match number of extrinsics!");
-
+  extrinsicRepNames_.resize(numCameras());
+  projectionIntrinsicRepNames_.resize(numCameras());
   if (computeOverlaps) {
     this->computeOverlaps();
   }
@@ -91,7 +92,8 @@ void NCameraSystem::reset(
   T_SC_ = T_SC;
   cameraGeometries_ = cameraGeometries;
   distortionTypes_ = distortionTypes;
-
+  extrinsicRepNames_.resize(numCameras());
+  projectionIntrinsicRepNames_.resize(numCameras());
   // recompute overlaps if requested
   if (computeOverlaps) {
     this->computeOverlaps();
@@ -103,15 +105,15 @@ void NCameraSystem::addCamera(
     std::shared_ptr<okvis::kinematics::Transformation> T_SC,
     std::shared_ptr<cameras::CameraBase> cameraGeometry,
     DistortionType distortionType,
-    std::string proj_opt_rep,
-    std::string extrinsic_opt_rep,
+    std::string projectionIntrinsicRepName,
+    std::string extrinsicRepName,
     bool computeOverlaps)
 {
   T_SC_.push_back(T_SC);
   cameraGeometries_.push_back(cameraGeometry);
   distortionTypes_.push_back(distortionType);
-  proj_opt_rep_.emplace_back(proj_opt_rep);
-  extrinsic_opt_rep_.emplace_back(extrinsic_opt_rep);
+  projectionIntrinsicRepNames_.emplace_back(projectionIntrinsicRepName);
+  extrinsicRepNames_.emplace_back(extrinsicRepName);
   // recompute overlaps if requested
   if (computeOverlaps) {
     this->computeOverlaps();
@@ -218,12 +220,12 @@ size_t NCameraSystem::numCameras() const {
   return cameraGeometries_.size();
 }
 
-std::string NCameraSystem::projOptRep(size_t cameraIndex) const {
-  return proj_opt_rep_[cameraIndex];
+std::string NCameraSystem::projectionIntrinsicRep(size_t cameraIndex) const {
+  return projectionIntrinsicRepNames_[cameraIndex];
 }
 
-std::string NCameraSystem::extrinsicOptRep(size_t cameraIndex) const {
-  return extrinsic_opt_rep_[cameraIndex];
+std::string NCameraSystem::extrinsicRep(size_t cameraIndex) const {
+  return extrinsicRepNames_[cameraIndex];
 }
 
 void NCameraSystem::set_T_SC(
@@ -245,12 +247,16 @@ void NCameraSystem::setReadoutTime(int camera_id, double tr) {
   cameraGeometries_[camera_id]->setReadoutTime(tr);
 }
 
-void NCameraSystem::setProjectionOptMode(int camera_id, const std::string& opt_mode) {
-  proj_opt_rep_[camera_id] = opt_mode;
+void NCameraSystem::setProjectionIntrinsicRepName(int camera_id, const std::string& rep_name) {
+  projectionIntrinsicRepNames_[camera_id] = rep_name;
 }
 
-void NCameraSystem::setExtrinsicOptMode(int camera_id, const std::string& opt_mode) {
-  extrinsic_opt_rep_[camera_id] = opt_mode;
+void NCameraSystem::setExtrinsicRepName(int camera_id, const std::string& rep_name) {
+  extrinsicRepNames_[camera_id] = rep_name;
+}
+
+void NCameraSystem::setOverlaps(const std::vector<std::vector<bool>> &overlaps) {
+  overlaps_ = overlaps;
 }
 }  // namespace cameras
 }  // namespace okvis

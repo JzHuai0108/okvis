@@ -5,7 +5,7 @@
  * @author Jianzhu Huai
  */
 
-#include <swift_vio/ProjParamOptModels.hpp>
+#include <swift_vio/ProjectionIntrinsicReps.h>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {

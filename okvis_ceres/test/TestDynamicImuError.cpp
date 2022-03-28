@@ -8,7 +8,7 @@
 #include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSizedLin.hpp>
 #include <swift_vio/ceres/EuclideanParamError.hpp>
-#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/ParallaxAnglePoint.hpp>
 
 #include <okvis/ceres/PoseError.hpp>

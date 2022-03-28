@@ -111,8 +111,8 @@ class VioParametersReader{
     std::string distortionType;               ///< Distortion type. ('radialtangential' 'plumb_bob' 'equdistant')
     double imageDelaySecs;                    ///< Remaining image delay after compensating for SensorsInformation.imageDelay
     double readoutTimeSecs;
-    std::string projOptMode;
-    std::string extrinsicOptMode;
+    std::string projectionIntrinsicRepName;
+    std::string extrinsicRepName;
     CameraCalibration() {}
     std::string toString() const {
       std::stringstream ss;
@@ -123,8 +123,8 @@ class VioParametersReader{
          << focalLength.transpose() << ", (cx, cy) "
          << principalPoint.transpose() << " imageDelay " << imageDelaySecs
          << " secs, readoutTime " << readoutTimeSecs << " secs\n"
-         << "projectionIntrinsicOptMode " << projOptMode << " extrinsicOptMode "
-         << extrinsicOptMode;
+         << "projectionIntrinsicRep " << projectionIntrinsicRepName << " extrinsicRep "
+         << extrinsicRepName;
       return ss.str();
     }
   };

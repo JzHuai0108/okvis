@@ -1,4 +1,4 @@
-#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/TransformMultiplyJacobian.hpp>
 
 namespace swift_vio {

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 
 TEST(Extrinsic_p_CB, ominus) {
   okvis::kinematics::Transformation T_BC;

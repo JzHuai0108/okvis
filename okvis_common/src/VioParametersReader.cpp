@@ -576,7 +576,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
                   calibrations[i].imageDelaySecs, calibrations[i].readoutTimeSecs
                   /*, id ?*/)),
           okvis::cameras::NCameraSystem::Equidistant,
-          calibrations[i].projOptMode, calibrations[i].extrinsicOptMode
+          calibrations[i].projectionIntrinsicRepName, calibrations[i].extrinsicRepName
           , computeOverlaps);
       std::stringstream s;
       s << calibrations[i].T_SC.T();
@@ -603,7 +603,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
                   calibrations[i].imageDelaySecs, calibrations[i].readoutTimeSecs
                   /*, id ?*/)),
           okvis::cameras::NCameraSystem::RadialTangential,
-          calibrations[i].projOptMode, calibrations[i].extrinsicOptMode
+          calibrations[i].projectionIntrinsicRepName, calibrations[i].extrinsicRepName
           , computeOverlaps);
       std::stringstream s;
       s << calibrations[i].T_SC.T();
@@ -634,7 +634,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
                   calibrations[i].imageDelaySecs, calibrations[i].readoutTimeSecs
                   /*, id ?*/)),
           okvis::cameras::NCameraSystem::RadialTangential8,
-          calibrations[i].projOptMode, calibrations[i].extrinsicOptMode
+          calibrations[i].projectionIntrinsicRepName, calibrations[i].extrinsicRepName
           , computeOverlaps);
       std::stringstream s;
       s << calibrations[i].T_SC.T();
@@ -664,7 +664,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
       vioParameters_.nCameraSystem.addCamera(
           T_SC_okvis_ptr, camPtr,
           okvis::cameras::NCameraSystem::FOV,
-          calibrations[i].projOptMode, calibrations[i].extrinsicOptMode
+          calibrations[i].projectionIntrinsicRepName, calibrations[i].extrinsicRepName
           , computeOverlaps);
       std::stringstream s;
       s << calibrations[i].T_SC.T();
@@ -684,7 +684,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
               /*, id ?*/));
       vioParameters_.nCameraSystem.addCamera(
           T_SC_okvis_ptr, camPtr, okvis::cameras::NCameraSystem::EUCM,
-          calibrations[i].projOptMode, calibrations[i].extrinsicOptMode
+          calibrations[i].projectionIntrinsicRepName, calibrations[i].extrinsicRepName
           , computeOverlaps);
       std::stringstream s;
       s << calibrations[i].T_SC.T();
@@ -1031,13 +1031,13 @@ bool VioParametersReader::getCalibrationViaConfig(
                      << calib.readoutTimeSecs;
       }
 
-      if ((*it)["extrinsic_opt_mode"].isString()) {
-        calib.extrinsicOptMode =
-            static_cast<std::string>((*it)["extrinsic_opt_mode"]);
+      if ((*it)["extrinsic_rep"].isString()) {
+        calib.extrinsicRepName =
+            static_cast<std::string>((*it)["extrinsic_rep"]);
       }
-      if ((*it)["projection_opt_mode"].isString()) {
-        calib.projOptMode =
-            static_cast<std::string>((*it)["projection_opt_mode"]);
+      if ((*it)["projection_intrinsic_rep"].isString()) {
+        calib.projectionIntrinsicRepName =
+            static_cast<std::string>((*it)["projection_intrinsic_rep"]);
       }
       calibrations.push_back(calib);
     }

@@ -8,7 +8,7 @@
 
 #include <okvis/kinematics/operators.hpp>
 #include <okvis/Parameters.hpp>
-#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 

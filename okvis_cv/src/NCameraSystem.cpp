@@ -147,18 +147,14 @@ void NCameraSystem::computeOverlaps()
   //cv::waitKey();
 }
 
-void NCameraSystem::setOverlaps(const std::vector<std::vector<bool>> &overlaps) {
-  overlaps_ = overlaps;
-}
-
 std::shared_ptr<NCameraSystem> NCameraSystem::deepCopyPtr() const {
   std::shared_ptr<NCameraSystem> rig(new NCameraSystem());
   for (size_t i = 0u; i < T_SC_.size(); ++i) {
     std::shared_ptr<okvis::kinematics::Transformation> T_SC(
         new okvis::kinematics::Transformation(*T_SC_[i]));
     auto geometry = cloneCameraGeometry(cameraGeometries_[i]);
-    rig->addCamera(T_SC, geometry, distortionTypes_[i], proj_opt_rep_[i],
-                  extrinsic_opt_rep_[i], false);
+    rig->addCamera(T_SC, geometry, distortionTypes_[i], projectionIntrinsicRepNames_[i],
+                  extrinsicRepNames_[i], false);
   }
   rig->setOverlaps(overlaps());
   return rig;

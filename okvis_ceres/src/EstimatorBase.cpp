@@ -53,7 +53,7 @@
 #include <swift_vio/ceres/CameraTimeParamBlock.hpp>
 #include <swift_vio/ceres/EuclideanParamBlock.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
-#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/IoUtil.hpp>
 #include <swift_vio/VectorOperations.hpp>
 
@@ -90,12 +90,12 @@ void EstimatorBase::addCameraSystem(const okvis::cameras::NCameraSystem& cameras
   cameraRig_.clear();
   for (size_t i = 0; i < cameras.numCameras(); ++i) {
     cameraRig_.addCameraDeep(cameras.T_SC(i), cameras.cameraGeometry(i),
-                             cameras.projOptRep(i), cameras.extrinsicOptRep(i));
+                             cameras.projectionIntrinsicRep(i), cameras.extrinsicRep(i));
     bool fixProjectionIntrinsics = false;
-    swift_vio::ProjectionOptNameToId(cameras.projOptRep(i), &fixProjectionIntrinsics);
+    swift_vio::ProjIntrinsicRepNameToId(cameras.projectionIntrinsicRep(i), &fixProjectionIntrinsics);
     fixCameraIntrinsicParams_.push_back(fixProjectionIntrinsics);
     bool fixExtrinsics = false;
-    swift_vio::ExtrinsicModelNameToId(cameras.extrinsicOptRep(i), &fixExtrinsics);
+    swift_vio::ExtrinsicRepNameToId(cameras.extrinsicRep(i), &fixExtrinsics);
     fixCameraExtrinsicParams_.push_back(fixExtrinsics);
   }
 }
@@ -820,8 +820,8 @@ void EstimatorBase::getVariableCameraExtrinsics(
         std::static_pointer_cast<okvis::ceres::PoseParameterBlock>(
             mapPtr_->parameterBlockPtr(extrinsicId));
     okvis::kinematics::Transformation T_XC = extrinsicParamBlockPtr->estimate();
-    swift_vio::ExtrinsicModelToParamValues(
-        cameraRig_.getExtrinsicOptMode(camIdx), T_XC, extrinsicParams);
+    swift_vio::ExtrinsicRepToParamValues(
+        cameraRig_.getExtrinsicRepId(camIdx), T_XC, extrinsicParams);
   } else {
     extrinsicParams->resize(0);
   }

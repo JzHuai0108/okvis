@@ -5,10 +5,10 @@
 #include <swift_vio/CameraRig.hpp>
 
 namespace swift_vio {
-bool doesExtrinsicModelFitImuModel(const std::string& extrinsicModel,
+bool doesExtrinsicRepFitImuModel(const std::string& extrinsicRepName,
                                    const std::string& imuModel);
 
-bool doesExtrinsicModelFitOkvisBackend(
+bool doesExtrinsicRepFitOkvisBackend(
     const okvis::cameras::NCameraSystem& cameraSystem,
     EstimatorAlgorithm algorithm);
 }  // namespace swift_vio

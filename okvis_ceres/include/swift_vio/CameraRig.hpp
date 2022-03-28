@@ -3,8 +3,8 @@
 
 #include <map>
 
-#include <swift_vio/ExtrinsicModels.hpp>
-#include <swift_vio/ProjParamOptModels.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
+#include <swift_vio/ProjectionIntrinsicReps.h>
 
 #include <okvis/assert_macros.hpp>
 #include <okvis/cameras/CameraBase.hpp>
@@ -43,10 +43,10 @@ class CameraRig {
   std::vector<okvis::cameras::NCameraSystem::DistortionType> distortionTypes_;
 
   ///< This indicates for each camera which subset of the extrinsic parameters are variable in estimation.
-  std::vector<int> extrinsic_opt_rep_;
+  std::vector<int> extrinsicRepIds_;
 
   ///< This indicates for each camera which subset of the projection intrinsic parameters are variable in estimation.
-  std::vector<int> proj_opt_rep_;
+  std::vector<int> projectionIntrinsicRepIds_;
 
   ///< for each camera, is the intrinsic parameters fixed?
   std::vector<bool> fixCameraIntrinsicParams_;
@@ -122,29 +122,29 @@ class CameraRig {
     return cameraGeometries_[camera_id]->noIntrinsicsParameters();
   }
 
-  inline std::string getProjectionOptName(int camera_id) const {
+  inline std::string getProjIntrinsicRepName(int camera_id) const {
     if (fixCameraIntrinsicParams_[camera_id])
       return "FIXED";
-    return ProjectionModelIdToName(proj_opt_rep_[camera_id]);
+    return ProjectionIntrinsicRepIdToName(projectionIntrinsicRepIds_[camera_id]);
   }
 
-  inline int getProjectionOptMode(int camera_id) const {
-    return proj_opt_rep_[camera_id];
+  inline int getProjectionIntrinsicRepId(int camera_id) const {
+    return projectionIntrinsicRepIds_[camera_id];
   }
 
-  inline int getExtrinsicOptMode(int camera_id) const {
-    if (camera_id >= (int)extrinsic_opt_rep_.size()) {
+  inline int getExtrinsicRepId(int camera_id) const {
+    if (camera_id >= (int)extrinsicRepIds_.size()) {
       return Extrinsic_p_BC_q_BC::kModelId;
     } else {
-      return extrinsic_opt_rep_[camera_id];
+      return extrinsicRepIds_[camera_id];
     }
   }
 
-  inline std::string getExtrinsicOptName(int camera_id) const {
+  inline std::string extrinsicRepName(int camera_id) const {
     if (fixCameraExtrinsicParams_[camera_id]) {
       return "FIXED";
     }
-    return ExtrinsicModelIdToName(extrinsic_opt_rep_[camera_id]);
+    return ExtrinsicRepIdToName(extrinsicRepIds_[camera_id]);
   }
 
   inline bool fixCameraIntrinsics(int camId) const {
@@ -173,11 +173,11 @@ class CameraRig {
   }
 
   inline int getMinimalExtrinsicDim(int camera_id) const {
-    return ExtrinsicModelGetMinimalDim(extrinsic_opt_rep_[camera_id]);
+    return ExtrinsicRepGetMinimalDim(extrinsicRepIds_[camera_id]);
   }
 
-  inline int getMinimalProjectionDim(int camera_id) const {
-    return ProjectionOptGetMinimalDim(proj_opt_rep_[camera_id]);
+  inline int getMinimalProjectionIntrinsicDim(int camera_id) const {
+    return ProjIntrinsicRepGetMinimalDim(projectionIntrinsicRepIds_[camera_id]);
   }
 
   inline int getCameraParamsMinimalDim(int camera_id) const {
@@ -200,23 +200,23 @@ class CameraRig {
     *(T_SC_[camera_id]) = T_SC;
   }
 
-  inline void setProjectionOptMode(int camera_id, int opt_mode) {
-    proj_opt_rep_[camera_id] = opt_mode;
+  inline void setProjectionIntrinsicRepId(int camera_id, int rep_id) {
+    projectionIntrinsicRepIds_[camera_id] = rep_id;
   }
 
-  inline void setExtrinsicOptMode(int camera_id, int opt_mode) {
-    extrinsic_opt_rep_[camera_id] = opt_mode;
+  inline void setExtrinsicRepId(int camera_id, int rep_id) {
+    extrinsicRepIds_[camera_id] = rep_id;
   }
 
-  inline void setProjectionOptMode(int camera_id, const std::string & opt_rep) {
+  inline void setProjectionIntrinsicRepId(int camera_id, const std::string & rep_name) {
     bool fixIntrinsics = false;
-    proj_opt_rep_[camera_id] = ProjectionOptNameToId(opt_rep, &fixIntrinsics);
+    projectionIntrinsicRepIds_[camera_id] = ProjIntrinsicRepNameToId(rep_name, &fixIntrinsics);
     fixCameraIntrinsicParams_[camera_id] = fixIntrinsics;
   }
 
-  inline void setExtrinsicOptMode(int camera_id, const std::string & opt_rep) {
+  inline void setExtrinsicRepId(int camera_id, const std::string & rep_name) {
     bool fix = false;
-    extrinsic_opt_rep_[camera_id] = ExtrinsicModelNameToId(opt_rep, &fix);
+    extrinsicRepIds_[camera_id] = ExtrinsicRepNameToId(rep_name, &fix);
     fixCameraExtrinsicParams_[camera_id] = fix;
   }
 
@@ -240,28 +240,28 @@ class CameraRig {
   inline int
   addCamera(std::shared_ptr<okvis::kinematics::Transformation> T_SC,
             std::shared_ptr<okvis::cameras::CameraBase> cameraGeometry,
-            std::string proj_opt_rep, std::string extrinsic_opt_rep) {
+            std::string projectionIntrinsicRepName, std::string extrinsicRepName) {
     bool fixIntrinsics = false;
     bool fixExtrinsics = false;
-    int proj_opt_id = ProjectionOptNameToId(proj_opt_rep, &fixIntrinsics);
-    int extrinsic_opt_id = ExtrinsicModelNameToId(extrinsic_opt_rep, &fixExtrinsics);
-    return addCamera(T_SC, cameraGeometry, proj_opt_id, extrinsic_opt_id,
+    int projIntrinsicRepId = ProjIntrinsicRepNameToId(projectionIntrinsicRepName, &fixIntrinsics);
+    int extrinsicRepId = ExtrinsicRepNameToId(extrinsicRepName, &fixExtrinsics);
+    return addCamera(T_SC, cameraGeometry, projIntrinsicRepId, extrinsicRepId,
                       fixIntrinsics, fixExtrinsics);
   }
 
   int addCamera(std::shared_ptr<okvis::kinematics::Transformation> T_SC,
             std::shared_ptr<okvis::cameras::CameraBase> cameraGeometry,
-            int proj_opt_id, int extrinsic_opt_id, bool fixIntrinsics, bool fixExtrinsics);
+            int projIntrinsicRepId, int extrinsicRepId, bool fixIntrinsics, bool fixExtrinsics);
 
   inline int
   addCameraDeep(std::shared_ptr<const okvis::kinematics::Transformation> T_SC,
             std::shared_ptr<const okvis::cameras::CameraBase> cameraGeometry,
-            std::string proj_opt_rep, std::string extrinsic_opt_rep) {
+            std::string projectionIntrinsicRepName, std::string extrinsicRepName) {
     bool fixIntrinsics = false;
     bool fixExtrinsics = false;
-    int proj_opt_id = ProjectionOptNameToId(proj_opt_rep, &fixIntrinsics);
-    int extrinsic_opt_id = ExtrinsicModelNameToId(extrinsic_opt_rep, &fixExtrinsics);
-    return addCameraDeep(T_SC, cameraGeometry, proj_opt_id, extrinsic_opt_id, fixIntrinsics, fixExtrinsics);
+    int projIntrinsicRepId = ProjIntrinsicRepNameToId(projectionIntrinsicRepName, &fixIntrinsics);
+    int extrinsicRepId = ExtrinsicRepNameToId(extrinsicRepName, &fixExtrinsics);
+    return addCameraDeep(T_SC, cameraGeometry, projIntrinsicRepId, extrinsicRepId, fixIntrinsics, fixExtrinsics);
   }
 
   CameraRig deepCopy() const;
@@ -283,7 +283,7 @@ class CameraRig {
 private:
   int addCameraDeep(std::shared_ptr<const okvis::kinematics::Transformation> T_SC,
             std::shared_ptr<const okvis::cameras::CameraBase> cameraGeometry,
-            int proj_opt_id, int extrinsic_opt_id, bool fixIntrinsics, bool fixExtrinsics);
+            int projIntrinsicRepId, int extrinsicRepId, bool fixIntrinsics, bool fixExtrinsics);
 
 };
 }  // namespace swift_vio

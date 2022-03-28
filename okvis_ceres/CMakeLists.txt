@@ -31,7 +31,7 @@ add_library(${PROJECT_NAME}
   swift_vio/BearingResiduals.cpp
   swift_vio/CameraObservationModel.cpp
   swift_vio/CameraTimeParamBlock.cpp
-  swift_vio/ExtrinsicModels.cpp
+  swift_vio/ExtrinsicReps.cpp
   swift_vio/ImuErrorWithGravity.cpp
   swift_vio/MultipleTransformPointJacobian.cpp
   swift_vio/NormalVectorParameterBlock.cpp
@@ -41,7 +41,7 @@ add_library(${PROJECT_NAME}
   swift_vio/PointSharedData.cpp
   swift_vio/PoseError.cpp
   swift_vio/PoseParameterBlock.cpp
-  swift_vio/ProjParamOptModels.cpp
+  swift_vio/ProjectionIntrinsicReps.cpp
   swift_vio/RelativePoseError.cpp
   swift_vio/SimulatedMotionForParallaxAngleTest.cpp
   swift_vio/checkSensorRig.cpp
@@ -84,7 +84,7 @@ if(BUILD_TESTS)
     test/TestBearingResiduals.cpp
     test/TestCeresTinySolver.cpp
     test/TestEstimator.cpp
-    test/TestExtrinsicModels.cpp
+    test/TestExtrinsicReps.cpp
     test/TestHomogeneousPointError.cpp
     test/TestReprojectionError.cpp
     test/TestDynamicImuError.cpp

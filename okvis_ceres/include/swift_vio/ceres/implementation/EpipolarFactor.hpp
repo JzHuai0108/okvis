@@ -9,7 +9,7 @@
 #include <okvis/kinematics/operators.hpp>
 
 #include <swift_vio/EpipolarJacobian.hpp>
-#include <swift_vio/ExtrinsicModels.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/Measurements.hpp>
 #include <swift_vio/RelativeMotionJacobian.hpp>
 #include <swift_vio/imu/SimpleImuOdometry.hpp>
@@ -171,11 +171,11 @@ bool EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
       dfj_dXcam(2);
   std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d>>
       cov_fj(2);
-  int projOptModelId = PROJ_INTRINSIC_MODEL::kModelId;
+  int projIntrinsicRepId = PROJ_INTRINSIC_MODEL::kModelId;
   bool directionJacOk = true;
   for (int j = 0; j < 2; ++j) {
     bool projectOk =
-        swift_vio::obsDirectionJacobian(xy1[j], cameraGeometryBase_, projOptModelId,
+        swift_vio::obsDirectionJacobian(xy1[j], cameraGeometryBase_, projIntrinsicRepId,
                              covariance_[j], &dfj_dXcam[j], &cov_fj[j]);
     if (!projectOk) {
       directionJacOk = false;

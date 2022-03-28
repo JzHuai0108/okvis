@@ -2,7 +2,7 @@
 #define INCLUDE_SWIFT_VIO_EPIPOLAR_JACOBIAN_HPP_
 #include <Eigen/Geometry>
 
-#include <swift_vio/ProjParamOptModels.hpp>
+#include <swift_vio/ProjectionIntrinsicReps.h>
 #include <okvis/cameras/CameraBase.hpp>
 #include <okvis/kinematics/operators.hpp>
 
@@ -20,7 +20,7 @@ namespace swift_vio {
 inline bool obsDirectionJacobian(
     const Eigen::Vector3d& obsDirection,
     std::shared_ptr<const okvis::cameras::CameraBase> cameraGeometry,
-    int projOptModelId, const Eigen::Matrix2d& imageObservationCov,
+    int projIntrinsicRepId, const Eigen::Matrix2d& imageObservationCov,
     Eigen::Matrix<double, 3, Eigen::Dynamic>* dfj_dXcam,
     Eigen::Matrix3d* cov_fj) {
   const Eigen::Vector3d& fj = obsDirection;
@@ -31,7 +31,7 @@ inline bool obsDirectionJacobian(
       cameraGeometry->project(fj, &imagePoint, &pointJacobian, &intrinsicsJacobian);
   if (projectOk != okvis::cameras::CameraBase::ProjectionStatus::Successful)
     return false;
-  ProjectionOptMinimalIntrinsicJacobian(projOptModelId, &intrinsicsJacobian);
+  ProjIntrinsicRepMinimalIntrinsicJacobian(projIntrinsicRepId, &intrinsicsJacobian);
   Eigen::Matrix2d dz_df12 = pointJacobian.topLeftCorner<2, 2>();
   Eigen::Matrix2d df12_dz = dz_df12.inverse();
   int cols = intrinsicsJacobian.cols();

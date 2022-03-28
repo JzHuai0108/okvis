@@ -109,8 +109,8 @@ class NCameraSystem
   inline void addCamera(std::shared_ptr<okvis::kinematics::Transformation> T_SC,
                         std::shared_ptr<cameras::CameraBase> cameraGeometry,
                         DistortionType distortionType,
-                        std::string proj_opt_rep = "",
-                        std::string extrinsic_opt_rep = "",
+                        std::string projectionIntrinsicRepName = "",
+                        std::string extrinsicRepName = "",
                         bool computeOverlaps = true);
 
   /// \brief Obtatin the number of cameras currently added.
@@ -153,9 +153,9 @@ class NCameraSystem
   /// @return True, if there is at least one pixel of overlap.
   inline bool hasOverlap(size_t cameraIndexSeenBy, size_t cameraIndex) const;
 
-  inline std::string projOptRep(size_t cameraIndex) const;
+  inline std::string projectionIntrinsicRep(size_t cameraIndex) const;
 
-  inline std::string extrinsicOptRep(size_t cameraIndex) const;
+  inline std::string extrinsicRep(size_t cameraIndex) const;
 
   inline void
   set_T_SC(size_t camIdx,
@@ -168,9 +168,9 @@ class NCameraSystem
 
   inline void setReadoutTime(int camera_id, double tr);
 
-  inline void setProjectionOptMode(int camera_id, const std::string& opt_mode);
+  inline void setProjectionIntrinsicRepName(int camera_id, const std::string& rep_name);
 
-  inline void setExtrinsicOptMode(int camera_id, const std::string& opt_mode);
+  inline void setExtrinsicRepName(int camera_id, const std::string& rep_name);
 
   inline void setOverlaps(const std::vector<std::vector<bool>> &overlaps);
 
@@ -186,8 +186,8 @@ protected:
   std::vector<std::vector<cv::Mat>> overlapMats_;  ///< Overlaps between cameras: mats
   std::vector<std::vector<bool>> overlaps_;  ///< Overlaps between cameras: binary
 
-  std::vector<std::string> proj_opt_rep_;
-  std::vector<std::string> extrinsic_opt_rep_;
+  std::vector<std::string> projectionIntrinsicRepNames_;
+  std::vector<std::string> extrinsicRepNames_;
 };
 
 /**
