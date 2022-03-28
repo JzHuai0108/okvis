@@ -77,46 +77,46 @@ VioParametersReader::VioParametersReader(const std::string& filename) {
 
 static void parseExpandedCameraParamSigmas(
     cv::FileNode cameraParamNode,
-    CameraNoiseParameters* camera_extrinsics) {
+    CameraNoiseParameters* camera_noise) {
   if (cameraParamNode["sigma_focal_length"].isReal()) {
     cameraParamNode["sigma_focal_length"] >>
-        camera_extrinsics->sigma_focal_length;
+        camera_noise->sigma_focal_length;
   } else {
-    camera_extrinsics->sigma_focal_length = 0.0;
+    camera_noise->sigma_focal_length = 0.0;
     LOG(WARNING) << "camera_params: sigma_focal_length parameter not provided. "
                  << "Setting to default 0.0";
   }
   if (cameraParamNode["sigma_principal_point"].isReal()) {
     cameraParamNode["sigma_principal_point"] >>
-        camera_extrinsics->sigma_principal_point;
+        camera_noise->sigma_principal_point;
   } else {
-    camera_extrinsics->sigma_principal_point = 0.0;
+    camera_noise->sigma_principal_point = 0.0;
     LOG(WARNING)
         << "camera_params: sigma_principal_point parameter not provided. "
         << "Setting to default 0.0";
   }
   cv::FileNode a0Node = cameraParamNode["sigma_distortion"];
-  camera_extrinsics->sigma_distortion.clear();
-  camera_extrinsics->sigma_distortion.reserve(5);
+  camera_noise->sigma_distortion.clear();
+  camera_noise->sigma_distortion.reserve(5);
   if (a0Node.isSeq()) {
     for (size_t jack = 0; jack < a0Node.size(); ++jack)
-      camera_extrinsics->sigma_distortion.push_back(
+      camera_noise->sigma_distortion.push_back(
           static_cast<double>(a0Node[jack]));
   } else {
     LOG(WARNING) << "camera_params: sigma_distortion parameter not provided. "
                  << "Setting to default 0.0";
   }
   if (cameraParamNode["sigma_td"].isReal()) {
-    cameraParamNode["sigma_td"] >> camera_extrinsics->sigma_td;
+    cameraParamNode["sigma_td"] >> camera_noise->sigma_td;
   } else {
-    camera_extrinsics->sigma_td = 0.0;
+    camera_noise->sigma_td = 0.0;
     LOG(WARNING) << "camera_params: sigma_td parameter not provided. "
                  << "Setting to default 0.0";
   }
   if (cameraParamNode["sigma_tr"].isReal()) {
-    cameraParamNode["sigma_tr"] >> camera_extrinsics->sigma_tr;
+    cameraParamNode["sigma_tr"] >> camera_noise->sigma_tr;
   } else {
-    camera_extrinsics->sigma_tr = 0.0;
+    camera_noise->sigma_tr = 0.0;
     LOG(WARNING) << "camera_params: sigma_tr parameter not provided. "
                  << "Setting to default 0.0";
   }
@@ -436,39 +436,39 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
   // camera params
   if (file["camera_params"]["sigma_absolute_translation"].isReal()) {
     file["camera_params"]["sigma_absolute_translation"]
-        >> vioParameters_.camera_extrinsics.sigma_absolute_translation;
+        >> vioParameters_.camera_noise.sigma_absolute_translation;
   } else {
-    vioParameters_.camera_extrinsics.sigma_absolute_translation = 0.0;
+    vioParameters_.camera_noise.sigma_absolute_translation = 0.0;
     LOG(WARNING)
         << "camera_params: sigma_absolute_translation parameter not provided. Setting to default 0.0";
   }
   if (file["camera_params"]["sigma_absolute_orientation"].isReal()) {
     file["camera_params"]["sigma_absolute_orientation"]
-        >> vioParameters_.camera_extrinsics.sigma_absolute_orientation;
+        >> vioParameters_.camera_noise.sigma_absolute_orientation;
   } else {
-    vioParameters_.camera_extrinsics.sigma_absolute_orientation = 0.0;
+    vioParameters_.camera_noise.sigma_absolute_orientation = 0.0;
     LOG(WARNING)
         << "camera_params: sigma_absolute_orientation parameter not provided. Setting to default 0.0";
   }
   if (file["camera_params"]["sigma_c_relative_translation"].isReal()) {
     file["camera_params"]["sigma_c_relative_translation"]
-        >> vioParameters_.camera_extrinsics.sigma_c_relative_translation;
+        >> vioParameters_.camera_noise.sigma_c_relative_translation;
   } else {
-    vioParameters_.camera_extrinsics.sigma_c_relative_translation = 0.0;
+    vioParameters_.camera_noise.sigma_c_relative_translation = 0.0;
     LOG(WARNING)
         << "camera_params: sigma_c_relative_translation parameter not provided. Setting to default 0.0";
   }
   if (file["camera_params"]["sigma_c_relative_orientation"].isReal()) {
     file["camera_params"]["sigma_c_relative_orientation"]
-        >> vioParameters_.camera_extrinsics.sigma_c_relative_orientation;
+        >> vioParameters_.camera_noise.sigma_c_relative_orientation;
   } else {
-    vioParameters_.camera_extrinsics.sigma_c_relative_orientation = 0.0;
+    vioParameters_.camera_noise.sigma_c_relative_orientation = 0.0;
     LOG(WARNING)
         << "camera_params: sigma_c_relative_orientation parameter not provided. Setting to default 0.0";
   }
 
   parseExpandedCameraParamSigmas(file["camera_params"],
-                                 &vioParameters_.camera_extrinsics);
+                                 &vioParameters_.camera_noise);
   if(file["publishing_options"]["publish_rate"].isInt()) {
     file["publishing_options"]["publish_rate"] 
         >> vioParameters_.publishing.publishRate;

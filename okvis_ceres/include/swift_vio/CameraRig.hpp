@@ -122,6 +122,12 @@ class CameraRig {
     return cameraGeometries_[camera_id]->noIntrinsicsParameters();
   }
 
+  inline std::string getProjectionOptName(int camera_id) const {
+    if (fixCameraIntrinsicParams_[camera_id])
+      return "FIXED";
+    return ProjectionModelIdToName(proj_opt_rep_[camera_id]);
+  }
+
   inline int getProjectionOptMode(int camera_id) const {
     return proj_opt_rep_[camera_id];
   }
@@ -132,6 +138,13 @@ class CameraRig {
     } else {
       return extrinsic_opt_rep_[camera_id];
     }
+  }
+
+  inline std::string getExtrinsicOptName(int camera_id) const {
+    if (fixCameraExtrinsicParams_[camera_id]) {
+      return "FIXED";
+    }
+    return ExtrinsicModelIdToName(extrinsic_opt_rep_[camera_id]);
   }
 
   inline bool fixCameraIntrinsics(int camId) const {
@@ -258,6 +271,8 @@ class CameraRig {
   static CameraRig deepCopy(const okvis::cameras::NCameraSystem &ncameraSystem);
 
   static std::shared_ptr<CameraRig> deepCopyPtr(const okvis::cameras::NCameraSystem &ncameraSystem);
+
+  void initializeTo(okvis::cameras::NCameraSystem *rig) const;
 
   void assignTo(CameraRig *rig) const;
 

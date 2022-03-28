@@ -2,6 +2,10 @@
 #include <swift_vio/TransformMultiplyJacobian.hpp>
 
 namespace swift_vio {
+const std::string Extrinsic_p_CB::kName = "P_CB";
+const std::string Extrinsic_p_BC_q_BC::kName = "P_BC_Q_BC";
+const std::string Extrinsic_p_C0C_q_C0C::kName = "P_C0C_Q_C0C";
+
 void Extrinsic_p_C0C_q_C0C::dT_BC_dExtrinsic(
     const okvis::kinematics::Transformation &T_BCi,
     const okvis::kinematics::Transformation *T_BC0,

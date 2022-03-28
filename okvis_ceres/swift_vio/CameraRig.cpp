@@ -189,13 +189,25 @@ std::shared_ptr<CameraRig> CameraRig::deepCopyPtr(const okvis::cameras::NCameraS
   return rig;
 }
 
+void CameraRig::initializeTo(okvis::cameras::NCameraSystem *rig) const {
+  rig->reset(this->T_SC_, this->cameraGeometries_, this->distortionTypes_, false);
+  rig->setOverlaps(this->overlaps_);
+  for (size_t i = 0 ; i < cameraGeometries_.size(); ++i) {
+    rig->setExtrinsicOptMode(i, getExtrinsicOptName(i));
+    rig->setProjectionOptMode(i, getProjectionOptName(i));
+  }
+}
+
 void CameraRig::assignTo(CameraRig *rig) const {
   for (size_t i = 0u; i < T_SC_.size(); ++i) {
     rig->setCameraExtrinsic(i, *T_SC_[i]);
     rig->setCameraIntrinsics(i, cameraGeometries_[i]->getIntrinsics());
     rig->setImageDelay(i, getImageDelay(i));
     rig->setReadoutTime(i, getReadoutTime(i));
+    rig->setExtrinsicOptMode(i, extrinsic_opt_rep_.at(i));
+    rig->setProjectionOptMode(i, proj_opt_rep_.at(i));
   }
+  rig->setOverlaps(overlaps_);
 }
 
 void CameraRig::assignTo(okvis::cameras::NCameraSystem *rig) const {
@@ -204,7 +216,10 @@ void CameraRig::assignTo(okvis::cameras::NCameraSystem *rig) const {
     rig->setCameraIntrinsics(i, cameraGeometries_[i]->getIntrinsics());
     rig->setImageDelay(i, getImageDelay(i));
     rig->setReadoutTime(i, getReadoutTime(i));
+    rig->setExtrinsicOptMode(i, getExtrinsicOptName(i));
+    rig->setProjectionOptMode(i, getProjectionOptName(i));
   }
+  rig->setOverlaps(overlaps_);
 }
 
 /// \brief compute all the overlaps of fields of view. Attention: can be expensive.

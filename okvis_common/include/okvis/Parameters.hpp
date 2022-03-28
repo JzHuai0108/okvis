@@ -374,7 +374,7 @@ struct VioParameters {
   EstimatorOptions optimization;    ///< Estimator options.
   Visualization visualization;  ///< Visualization parameters.
   SensorsInformation sensors_information; ///< Information on camera and IMU setup.
-  CameraNoiseParameters camera_extrinsics; ///< Camera extrinsic estimation parameters.
+  CameraNoiseParameters camera_noise; ///< Camera extrinsic estimation parameters.
   okvis::cameras::NCameraSystem nCameraSystem;  ///< Camera configuration.
   ImuParameters imu;  ///< IMU parameters
   MagnetometerParameters magnetometer;  ///< Magnetometer parameters.

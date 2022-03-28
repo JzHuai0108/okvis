@@ -41,6 +41,7 @@ add_library(${PROJECT_NAME}
   swift_vio/PointSharedData.cpp
   swift_vio/PoseError.cpp
   swift_vio/PoseParameterBlock.cpp
+  swift_vio/ProjParamOptModels.cpp
   swift_vio/RelativePoseError.cpp
   swift_vio/SimulatedMotionForParallaxAngleTest.cpp
   swift_vio/checkSensorRig.cpp

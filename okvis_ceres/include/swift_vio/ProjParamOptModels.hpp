@@ -10,6 +10,7 @@ class ProjectionOptFXY_CXY {
  public:
   static const int kModelId = 1;
   static const size_t kNumParams = 4;
+  static const std::string kName;
   static inline int getMinimalDim() { return kNumParams; }
 
   static void localToGlobal(const Eigen::VectorXd& local_opt_params,
@@ -44,6 +45,7 @@ class ProjectionOptFX_CXY {
  public:
   static const int kModelId = 2;
   static const size_t kNumParams = 3;
+  static const std::string kName;
   static inline int getMinimalDim() { return kNumParams; }
 
   static void localToGlobal(const Eigen::VectorXd& local_opt_params,
@@ -87,6 +89,7 @@ class ProjectionOptFX {
  public:
   static const int kModelId = 3;
   static const size_t kNumParams = 1;
+  static const std::string kName;
   static inline int getMinimalDim() { return kNumParams; }
 
   static void localToGlobal(const Eigen::VectorXd& local_opt_params,
@@ -163,6 +166,21 @@ inline int ProjectionOptNameToId(std::string pinhole_opt_rep, bool* isFixed=null
     }
     return ProjectionOptFXY_CXY::kModelId;
   }
+}
+
+inline std::string ProjectionModelIdToName(int model_id) {
+  switch (model_id) {
+#define MODEL_CASES PROJ_OPT_MODEL_CASES
+#define PROJ_OPT_MODEL_CASE(ProjOptModel) \
+  case ProjOptModel::kModelId:            \
+    return ProjOptModel::kName;
+
+    MODEL_SWITCH_CASES
+
+#undef PROJ_OPT_MODEL_CASE
+#undef MODEL_CASES
+  }
+  return "";
 }
 
 inline void ProjectionOptMinimalIntrinsicJacobian(

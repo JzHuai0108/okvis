@@ -142,9 +142,9 @@ void ThreadedKFVio::init() {
   estimator_->addImu(parameters_.imu);
   estimator_->addCameraSystem(parameters_.nCameraSystem);
   for (size_t i = 0; i < numCameras_; ++i) {
-    // parameters_.camera_extrinsics is never set (default 0's)...
+    // parameters_.camera_noise is never set (default 0's)...
     // do they ever change?
-    estimator_->addCameraParameterStds(parameters_.camera_extrinsics);
+    estimator_->addCameraParameterStds(parameters_.camera_noise);
     cameraMeasurementsReceived_.emplace_back(
           std::shared_ptr<threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement> > >
           (new threadsafe::ThreadSafeQueue<std::shared_ptr<okvis::CameraMeasurement> >()));

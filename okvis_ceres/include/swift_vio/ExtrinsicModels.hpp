@@ -109,6 +109,7 @@ public:
 class Extrinsic_p_CB final : public PoseLocalParameterizationInvTranslation {
 public:
   static const int kModelId = 1;
+  static const std::string kName;
   virtual ~Extrinsic_p_CB() {}
   static inline Eigen::MatrixXd initCov(double sigma_translation,
                                         double /*sigma_orientation*/) {
@@ -311,6 +312,7 @@ public:
 class Extrinsic_p_BC_q_BC final : public PoseLocalParameterizationSimplified {
 public:
   static const int kModelId = 2;
+  static const std::string kName;
   virtual ~Extrinsic_p_BC_q_BC() {}
 
   static void toDimensionLabels(std::vector<std::string> *extrinsicLabels) {
@@ -408,7 +410,7 @@ public:
 class Extrinsic_p_C0C_q_C0C final : public PoseLocalParameterizationSimplified {
 public:
   static const int kModelId = 3;
-
+  static const std::string kName;
   virtual ~Extrinsic_p_C0C_q_C0C() {}
 
   static void toDimensionLabels(std::vector<std::string> *extrinsicLabels) {
@@ -534,6 +536,21 @@ inline int ExtrinsicModelNameToId(std::string extrinsic_opt_rep,
     }
     return Extrinsic_p_BC_q_BC::kModelId;
   }
+}
+
+inline std::string ExtrinsicModelIdToName(int model_id) {
+  switch (model_id) {
+#define MODEL_CASES EXTRINSIC_MODEL_CASES
+#define EXTRINSIC_MODEL_CASE(ExtrinsicModel)                                   \
+  case ExtrinsicModel::kModelId:                                               \
+    return ExtrinsicModel::kName;
+
+    MODEL_SWITCH_CASES
+
+#undef EXTRINSIC_MODEL_CASE
+#undef MODEL_CASES
+  }
+  return "";
 }
 
 inline void ExtrinsicModelOplus(int model_id, const double *const deltaT_XC,
