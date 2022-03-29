@@ -3,11 +3,13 @@
 #include "glog/logging.h"
 #include <gtest/gtest.h>
 
+#include <swift_vio/ceres/checkImuError.h>
 #include <swift_vio/ceres/DynamicImuError.hpp>
 #include <swift_vio/ceres/NormalVectorParameterBlock.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSizedLin.hpp>
 #include <swift_vio/ceres/EuclideanParamError.hpp>
+#include <swift_vio/ceres/ImuErrorConstBias.hpp>
 #include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/ParallaxAnglePoint.hpp>
 
@@ -225,10 +227,32 @@ public:
     cost_function_imu->SetNumResiduals(15);
 
     problem.AddResidualBlock(cost_function_imu, NULL, params);
-    // check Jacobians: only by manual inspection...
-    // they verify pretty badly due to the fact that the information matrix is
-    // also a function of the states
-    cost_function_imu->checkJacobians(params.data());
+    okvis::ceres::checkJacobians(*cost_function_imu, params.data());
+  }
+
+  void addImuErrorConstBias() {
+    typedef okvis::ceres::ImuErrorConstBias<swift_vio::Imu_BG_BA>
+        DynamicImuErrorT;
+    // create the Imu error term
+    DynamicImuErrorT *cost_function_imu =
+        new DynamicImuErrorT(imuMeasurements, imuParameters, t_0, t_1);
+    std::vector<double *> params = {poseParameterBlock_0.parameters(),
+                                    speedParameterBlock_0.parameters(),
+                                    biasParameterBlock_0.parameters(),
+                                    poseParameterBlock_1.parameters(),
+                                    speedParameterBlock_1.parameters(),
+                                    gravityDirectionBlock.parameters()};
+
+    cost_function_imu->AddParameterBlock(7);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(6);
+    cost_function_imu->AddParameterBlock(7);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->SetNumResiduals(9);
+
+    problem.AddResidualBlock(cost_function_imu, NULL, params);
+    okvis::ceres::checkJacobians(*cost_function_imu, params.data());
   }
 
   void addImuErrorTgTsTa() {
@@ -264,10 +288,7 @@ public:
     problem.SetParameterBlockConstant(Tg.parameters());
     problem.SetParameterBlockConstant(Ts.parameters());
     problem.SetParameterBlockConstant(Ta.parameters());
-    // check Jacobians: only by manual inspection...
-    // they verify pretty badly due to the fact that the information matrix is
-    // also a function of the states
-    cost_function_imu->checkJacobians(params.data());
+    okvis::ceres::checkJacobians(*cost_function_imu, params.data());
   }
 
   void addImuErrorMgTsMa() {
@@ -302,10 +323,40 @@ public:
     problem.SetParameterBlockConstant(Mg.parameters());
     problem.SetParameterBlockConstant(Ts.parameters());
     problem.SetParameterBlockConstant(Ma.parameters());
-    // check Jacobians: only by manual inspection...
-    // they verify pretty badly due to the fact that the information matrix is
-    // also a function of the states
-    cost_function_imu->checkJacobians(params.data());
+    okvis::ceres::checkJacobians(*cost_function_imu, params.data());
+  }
+
+  void addImuErrorMgTsMaConstBias() {
+    typedef okvis::ceres::ImuErrorConstBias<swift_vio::Imu_BG_BA_MG_TS_MA>
+        DynamicImuErrorT;
+    DynamicImuErrorT *cost_function_imu =
+        new DynamicImuErrorT(imuMeasurements, imuParameters, t_0, t_1);
+    std::vector<double *> params = {poseParameterBlock_0.parameters(),
+                                    speedParameterBlock_0.parameters(),
+                                    biasParameterBlock_0.parameters(),
+                                    poseParameterBlock_1.parameters(),
+                                    speedParameterBlock_1.parameters(),
+                                    gravityDirectionBlock.parameters(),
+                                    Mg.parameters(),
+                                    Ts.parameters(),
+                                    Ma.parameters()};
+
+    cost_function_imu->AddParameterBlock(7);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(6);
+    cost_function_imu->AddParameterBlock(7);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(3);
+    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(9);
+    cost_function_imu->AddParameterBlock(6);
+    cost_function_imu->SetNumResiduals(9);
+
+    problem.AddResidualBlock(cost_function_imu, NULL, params);
+    problem.SetParameterBlockConstant(Mg.parameters());
+    problem.SetParameterBlockConstant(Ts.parameters());
+    problem.SetParameterBlockConstant(Ma.parameters());
+    okvis::ceres::checkJacobians(*cost_function_imu, params.data());
   }
 
   void addPriors() {
@@ -353,14 +404,13 @@ public:
 
     // make sure it converged
     OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error);
-    EXPECT_TRUE(summary.final_cost < 1e-2) << "cost not reducible";
-    EXPECT_TRUE(2 * (T_WS_1.q() * poseParameterBlock_1.estimate().q().inverse())
-                        .vec()
-                        .norm() <
-                1e-2)
+    EXPECT_LT(summary.final_cost, 1e-2) << "cost not reducible";
+    EXPECT_LT(2 * (T_WS_1.q() * poseParameterBlock_1.estimate().q().inverse())
+                      .vec()
+                      .norm(),
+              1e-2)
         << "quaternions not close enough";
-    EXPECT_TRUE((T_WS_1.r() - poseParameterBlock_1.estimate().r()).norm() <
-                0.04)
+    EXPECT_LT((T_WS_1.r() - poseParameterBlock_1.estimate().r()).norm(), 0.04)
         << "translation not close enough";
   }
 
@@ -417,5 +467,21 @@ TEST(ImuOdometryFactor, Imu_BG_BA_MG_TS_MA) {
   test.setup();
   test.addPriors();
   test.addImuErrorMgTsMa();
+  test.solve();
+}
+
+TEST(ImuOdometryFactor, Imu_BG_BA_const_bias) {
+  DynamicImuErrorTest test;
+  test.setup();
+  test.addPriors();
+  test.addImuErrorConstBias();
+  test.solve();
+}
+
+TEST(ImuOdometryFactor, Imu_BG_BA_MG_TS_MA_const_bias) {
+  DynamicImuErrorTest test;
+  test.setup();
+  test.addPriors();
+  test.addImuErrorMgTsMaConstBias();
   test.solve();
 }

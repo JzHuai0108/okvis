@@ -19,7 +19,7 @@ namespace ceres {
 
 // Construct with measurements and parameters.
 template <typename ImuModelT>
-DynamicImuError<ImuModelT>::DynamicImuError(const okvis::ImuMeasurementDeque & imuMeasurements,
+ImuErrorConstBias<ImuModelT>::ImuErrorConstBias(const okvis::ImuMeasurementDeque & imuMeasurements,
                    const okvis::ImuParameters & imuParameters,
                    const okvis::Time& t_0, const okvis::Time& t_1) {
   setImuMeasurements(imuMeasurements);
@@ -29,15 +29,15 @@ DynamicImuError<ImuModelT>::DynamicImuError(const okvis::ImuMeasurementDeque & i
 
   OKVIS_ASSERT_TRUE_DBG(Exception,
                      t_0 >= imuMeasurements.front().timeStamp,
-                     "First IMU measurement included in DynamicImuError is not old enough!");
+                     "First IMU measurement included in ImuErrorConstBias is not old enough!");
   OKVIS_ASSERT_TRUE_DBG(Exception,
                      t_1 <= imuMeasurements.back().timeStamp,
-                     "Last IMU measurement included in DynamicImuError is not new enough!");
+                     "Last IMU measurement included in ImuErrorConstBias is not new enough!");
 }
 
 // Propagates pose, speeds and biases with given IMU measurements.
 template <typename ImuModelT>
-int DynamicImuError<ImuModelT>::redoPreintegration(const Eigen::Matrix<double, 6, 1> &biases) const {
+int ImuErrorConstBias<ImuModelT>::redoPreintegration(const Eigen::Matrix<double, 6, 1> &biases) const {
 //  auto start = std::chrono::high_resolution_clock::now();
   // ensure unique access
   std::lock_guard<std::mutex> lock(preintegrationMutex_);
@@ -148,14 +148,14 @@ int DynamicImuError<ImuModelT>::redoPreintegration(const Eigen::Matrix<double, 6
 
 // This evaluates the error term and additionally computes the Jacobians.
 template <typename ImuModelT>
-bool DynamicImuError<ImuModelT>::Evaluate(double const* const * parameters, double* residuals,
+bool ImuErrorConstBias<ImuModelT>::Evaluate(double const* const * parameters, double* residuals,
                         double** jacobians) const {
   return EvaluateWithMinimalJacobians(parameters, residuals, jacobians, NULL);
 }
 
 template <typename ImuModelT>
 template <size_t Start, size_t End>
-void DynamicImuError<ImuModelT>::fillAnalyticJacLoop(
+void ImuErrorConstBias<ImuModelT>::fillAnalyticJacLoop(
     double **jacobians, double **jacobiansMinimal,
     const Eigen::Matrix<double, 3, 3> &derot_dDrot, const ImuModelT &imuModel) const {
   if constexpr (Start < End) {
@@ -169,7 +169,6 @@ void DynamicImuError<ImuModelT>::fillAnalyticJacLoop(
           derot_dDrot * imuModel.template dDrot_dx<Start>();
       J.template block<3, ImuModelT::kXBlockDims[Start]>(6, 0) =
           imuModel.template dDv_dx<Start>();
-      J.template bottomRows<6>().setZero();
       J = squareRootInformation_ * J;
       if (jacobiansMinimal != NULL && jacobiansMinimal[Index::extra + Start] != NULL) {
         Eigen::Map<Eigen::Matrix<double, kNumResiduals, ImuModelT::kXBlockDims[Start],
@@ -181,7 +180,6 @@ void DynamicImuError<ImuModelT>::fillAnalyticJacLoop(
             derot_dDrot * imuModel.template dDrot_dminx<Start>();
         Jm.template block<3, ImuModelT::kXBlockDims[Start]>(6, 0) =
             imuModel.template dDv_dminx<Start>();
-        Jm.template bottomRows<6>().setZero();
         Jm = squareRootInformation_ * Jm;
       }
     }
@@ -193,7 +191,7 @@ void DynamicImuError<ImuModelT>::fillAnalyticJacLoop(
 // This evaluates the error term and additionally computes
 // the Jacobians in the minimal internal representation.
 template <typename ImuModelT>
-bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* const * parameters,
+bool ImuErrorConstBias<ImuModelT>::EvaluateWithMinimalJacobians(double const* const * parameters,
                                             double* residuals,
                                             double** jacobians,
                                             double** jacobiansMinimal) const {
@@ -211,7 +209,6 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
   Eigen::Vector3d v_WS0 = Eigen::Map<const Eigen::Vector3d>(parameters[Index::v_WB0]);
   Eigen::Matrix<double, 6, 1> biases0 = Eigen::Map<const Eigen::Matrix<double, 6, 1>>(parameters[Index::bgBa0]);
   Eigen::Vector3d v_WS1 = Eigen::Map<const Eigen::Vector3d>(parameters[Index::v_WB1]);
-  Eigen::Matrix<double, 6, 1> biases1 = Eigen::Map<const Eigen::Matrix<double, 6, 1>>(parameters[Index::bgBa1]);
 
   imuModel_.updateParameters(parameters[Index::bgBa0], parameters + Index::extra);
 
@@ -254,7 +251,7 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
     Eigen::Matrix<double, 3, 3> dDv_dba = imuModel_.dDv_dba();
 
     Eigen::Matrix<double,kNumResiduals,15> F0 =
-        Eigen::Matrix<double,kNumResiduals,15>::Identity(); // holds for d/db_g, d/db_a
+        Eigen::Matrix<double,kNumResiduals,15>::Identity();
     const Eigen::Vector3d delta_p_est_W =
         T_WS_0.r() - T_WS_1.r() + v_WS0*Delta_t + 0.5*g_W*Delta_t*Delta_t;
     const Eigen::Vector3d delta_v_est_W =
@@ -276,7 +273,7 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
 
     // assign Jacobian w.r.t. x1
     Eigen::Matrix<double,kNumResiduals,15> F1 =
-        -Eigen::Matrix<double,kNumResiduals,15>::Identity(); // holds for the biases
+        -Eigen::Matrix<double,kNumResiduals,15>::Identity();
     F1.block<3,3>(0,0) = -C_S0_W;
     F1.block<3,3>(3,3) = -(okvis::kinematics::plus(Dq) *
         okvis::kinematics::oplus(T_WS_0.q()) *
@@ -288,7 +285,6 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
     error.segment<3>(0) =  C_S0_W * delta_p_est_W + imuModel_.Delta_p() + F0.block<3,6>(0,9)*Delta_b;
     error.segment<3>(3) = 2*(Dq*(T_WS_1.q().inverse()*T_WS_0.q())).vec(); //2*T_WS_0.q()*Dq*T_WS_1.q().inverse();//
     error.segment<3>(6) = C_S0_W * delta_v_est_W + imuModel_.Delta_v() + F0.block<3,6>(6,9)*Delta_b;
-    error.tail<6>() = biases0 - biases1;
 
     // error weighting
     Eigen::Map<Eigen::Matrix<double, kNumResiduals, 1> > weighted_error(residuals);
@@ -376,19 +372,7 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
           }
         }
       }
-      if (jacobians[Index::bgBa1] != NULL) {
-        Eigen::Map<Eigen::Matrix<double, kNumResiduals, 6, Eigen::RowMajor> > J(jacobians[Index::bgBa1]);
-        J = squareRootInformation_ * F1.block<kNumResiduals, 6>(0, 9);
 
-        // if requested, provide minimal Jacobians
-        if (jacobiansMinimal != NULL) {
-          if (jacobiansMinimal[Index::bgBa1] != NULL) {
-            Eigen::Map<Eigen::Matrix<double, kNumResiduals, 6, Eigen::RowMajor> > J_minimal_mapped(
-                jacobiansMinimal[Index::bgBa1]);
-            J_minimal_mapped = J;
-          }
-        }
-      }
       if (jacobians[Index::unitgW] != NULL) {
         Eigen::Map<Eigen::Matrix<double, kNumResiduals, 3, Eigen::RowMajor>> J(
             jacobians[Index::unitgW]);
@@ -421,7 +405,7 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobians(double const* cons
 
 template <typename ImuModelT>
 template <size_t Start, size_t End>
-void DynamicImuError<ImuModelT>::fillNumericJacLoop(double *const * parameters,
+void ImuErrorConstBias<ImuModelT>::fillNumericJacLoop(double *const * parameters,
                                   double **jacobians,
                                   double **jacobiansMinimal,
                                   const ImuModelT &imuModel) const {
@@ -482,7 +466,7 @@ void DynamicImuError<ImuModelT>::fillNumericJacLoop(double *const * parameters,
 }
 
 template <typename ImuModelT>
-bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobiansNumeric(
+bool ImuErrorConstBias<ImuModelT>::EvaluateWithMinimalJacobiansNumeric(
     double *const *parameters, double */*residuals*/, double **jacobians,
     double **jacobiansMinimal) const {
   double dx = 1e-6;
@@ -639,35 +623,6 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobiansNumeric(
     }
   }
 
-  if (jacobians) {
-    Eigen::Map<Eigen::Matrix<double, kNumResiduals, 6, Eigen::RowMajor>> Jb_numDiff(jacobians[Index::bgBa1]);
-    Eigen::Map<Eigen::Matrix<double, 6, 1>> biasParameterBlock_1(parameters[Index::bgBa1]);
-        Eigen::Matrix<double, 6, 1> bias1 = biasParameterBlock_1;
-    for (size_t i = 0; i < 6; ++i) {
-      Eigen::Matrix<double, 6, 1> ds_1;
-      Eigen::Matrix<double, kNumResiduals, 1> residuals_p;
-      Eigen::Matrix<double, kNumResiduals, 1> residuals_m;
-      ds_1.setZero();
-      ds_1[i] = dx;
-      Eigen::Matrix<double, 6, 1> plussed = bias1 + ds_1;
-      biasParameterBlock_1 = plussed;
-      redo_ = true;
-      Evaluate(parameters, residuals_p.data(), NULL);
-      ds_1[i] = -dx;
-      plussed = bias1 + ds_1;
-      biasParameterBlock_1 = plussed;
-      redo_ = true;
-      Evaluate(parameters, residuals_m.data(), NULL);
-      biasParameterBlock_1 = bias1; // reset
-      Jb_numDiff.col(i) = (residuals_p - residuals_m) * (1.0 / (2 * dx));
-    }
-
-    if (jacobiansMinimal) {
-      Eigen::Map<Eigen::Matrix<double, kNumResiduals, 6, Eigen::RowMajor>> Jb(jacobiansMinimal[Index::bgBa1]);
-      Jb = Jb_numDiff;
-    }
-  }
-
   if (jacobiansMinimal) {
     Eigen::Map<Eigen::Matrix<double, kNumResiduals, 2, Eigen::RowMajor>> J_minNumDiff(jacobiansMinimal[Index::unitgW]);
     double gravityDirectionBlock[3];
@@ -717,6 +672,5 @@ bool DynamicImuError<ImuModelT>::EvaluateWithMinimalJacobiansNumeric(
       parameters, jacobians, jacobiansMinimal, imuModel_);
   return true;
 }
-
 }  // namespace ceres
 }  // namespace okvis

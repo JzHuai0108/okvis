@@ -1,6 +1,6 @@
 
-#ifndef INCLUDE_SWIFTVIO_CERES_DYNAMICIMUERROR_HPP_
-#define INCLUDE_SWIFTVIO_CERES_DYNAMICIMUERROR_HPP_
+#ifndef INCLUDE_SWIFTVIO_CERES_IMUERRORCONSTBIAS_HPP_
+#define INCLUDE_SWIFTVIO_CERES_IMUERRORCONSTBIAS_HPP_
 
 #include <vector>
 #include <mutex>
@@ -22,17 +22,16 @@ namespace okvis {
 namespace ceres {
 
 /// \brief Implements a nonlinear IMU factor.
-/// 15 /* number of residuals */,
+///  9 /* number of residuals */,
 ///  7 /* size of first parameter (PoseParameterBlock k) */,
 ///  3 /* size of second parameter (SpeedParameterBlock k) */,
 ///  6 /* size of third parameter (BiasParameterBlock k) */,
 ///  7 /* size of fourth parameter (PoseParameterBlock k+1) */,
 ///  3 /* size of fifth parameter (SpeedParameterBlock k+1) */,
-///  6 /* size of sixth parameter (BiasParameterBlock k+1) */,
 ///  3 /* size of gravity direction */,
 ///  others /* number of extra parameters depending on the IMU model.
 template <typename ImuModelT>
-class DynamicImuError :
+class ImuErrorConstBias :
     public ::ceres::DynamicCostFunction,
     public ErrorInterface {
  public:
@@ -46,7 +45,6 @@ class DynamicImuError :
     bgBa0,
     T_WB1,
     v_WB1,
-    bgBa1,
     unitgW,
     extra,
   };
@@ -55,7 +53,7 @@ class DynamicImuError :
   typedef ::ceres::DynamicCostFunction base_t;
 
   /// \brief The number of residuals
-  static constexpr int kNumResiduals = 15;
+  static constexpr int kNumResiduals = 9;
 
   /// \brief The type of the covariance.
   typedef Eigen::Matrix<double, kNumResiduals, kNumResiduals> covariance_t;
@@ -63,19 +61,12 @@ class DynamicImuError :
   /// \brief The type of the information (same matrix dimension as covariance).
   typedef covariance_t information_t;
 
-  /// \brief The type of hte overall Jacobian.
-  typedef Eigen::Matrix<double, kNumResiduals, kNumResiduals> jacobian_t;
-
-  /// \brief The type of the Jacobian w.r.t. poses --
-  /// \warning This is w.r.t. minimal tangential space coordinates...
-  typedef Eigen::Matrix<double, kNumResiduals, 7> jacobian0_t;
-
   /// \brief Default constructor -- assumes information recomputation.
-  DynamicImuError() {
+  ImuErrorConstBias() {
   }
 
   /// \brief Trivial destructor.
-  virtual ~DynamicImuError() {
+  virtual ~ImuErrorConstBias() {
   }
 
   /// \brief Construct with measurements and parameters.
@@ -83,7 +74,7 @@ class DynamicImuError :
   /// \@param[in] imuParameters The parameters to be used.
   /// \@param[in] t_0 Start time.
   /// \@param[in] t_1 End time.
-  DynamicImuError(const okvis::ImuMeasurementDeque & imuMeasurements,
+  ImuErrorConstBias(const okvis::ImuMeasurementDeque & imuMeasurements,
            const okvis::ImuParameters & imuParameters, const okvis::Time& t_0,
            const okvis::Time& t_1);
 
@@ -202,7 +193,7 @@ class DynamicImuError :
 
   /// @brief Return parameter block type as string
   virtual std::string typeInfo() const {
-    return "DynamicImuError";
+    return "ImuErrorConstBias";
   }
 
   void setReweight(bool reweight) const {
@@ -240,6 +231,6 @@ class DynamicImuError :
 }  // namespace ceres
 }  // namespace okvis
 
-#include <swift_vio/implementation/DynamicImuError.hpp>
+#include <swift_vio/implementation/ImuErrorConstBias.hpp>
 
-#endif /* INCLUDE_SWIFTVIO_CERES_DYNAMICIMUERROR_HPP_ */
+#endif /* INCLUDE_SWIFTVIO_CERES_IMUERRORCONSTBIAS_HPP_ */

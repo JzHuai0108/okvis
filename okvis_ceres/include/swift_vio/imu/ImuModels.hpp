@@ -14,6 +14,7 @@
 #include <okvis/ModelSwitch.hpp>
 #include <okvis/Parameters.hpp>
 #include <okvis/Time.hpp>
+#include <okvis/kinematics/MatrixPseudoInverse.hpp>
 
 #include <swift_vio/matrixUtilities.h>
 #include <swift_vio/ParallaxAnglePoint.hpp>
@@ -68,14 +69,7 @@ public:                                                                        \
   }                                                                            \
   Eigen::Matrix<double, 3, 3> dDv_dba() const {                                \
     return dDv_db_.rightCols<3>();                                             \
-  }                                                                            \
-  void getWeight(Eigen::Matrix<double, 15, 15> *information) {                 \
-    P_delta_ = 0.5 * (P_delta_ + P_delta_.transpose().eval());                 \
-    information->setIdentity();                                                \
-    P_delta_.llt().solveInPlace(*information);                                 \
-    *information = 0.5 * (*information + information->transpose().eval());     \
-  }                                                                            \
-                                                                               \
+  }                                                                            \                                                                  \
 private:                                                                       \
   Eigen::Matrix<double, 3, 1> bg_;                                             \
   Eigen::Matrix<double, 3, 1> ba_;                                             \
@@ -203,11 +197,22 @@ class Imu_BG_BA {
 
   void resetPreintegration();
 
-  void getWeight(Eigen::Matrix<double, 15, 15> *information) {
+  template <typename DerivedT>
+  void getWeight(Eigen::MatrixBase<DerivedT> *information,
+                 Eigen::MatrixBase<DerivedT> *rootInformation = nullptr) {
     P_delta_ = 0.5 * (P_delta_ + P_delta_.transpose().eval());
-    information->setIdentity();
-    P_delta_.llt().solveInPlace(*information);
-    *information = 0.5 * (*information + information->transpose().eval());
+    if (rootInformation) {
+      okvis::MatrixPseudoInverse::inverseSymmSqrt(
+          P_delta_.topLeftCorner<DerivedT::RowsAtCompileTime,
+                                 DerivedT::ColsAtCompileTime>(),
+          *rootInformation, *information);
+      *rootInformation = rootInformation->transpose().eval();
+    } else {
+      okvis::MatrixPseudoInverse::inverseSymm(
+          P_delta_.topLeftCorner<DerivedT::RowsAtCompileTime,
+                                 DerivedT::ColsAtCompileTime>(),
+          *information);
+    }
   }
 
   Eigen::Matrix<double, 3, 3> dDp_dbg() const { return dp_db_g_; }
@@ -383,11 +388,20 @@ class Imu_BG_BA_TG_TS_TA {
     updateParameters(bgba, xparamPtrs.data());
   }
 
-  void getWeight(Eigen::Matrix<double, 15, 15> *information) {
+  template <typename DerivedT>
+  void getWeight(Eigen::MatrixBase<DerivedT> *information,
+                 Eigen::MatrixBase<DerivedT> *rootInformation = nullptr) {
     P_delta_ = 0.5 * (P_delta_ + P_delta_.transpose().eval());
     information->setIdentity();
-    P_delta_.llt().solveInPlace(*information);
-    *information = 0.5 * (*information + information->transpose().eval());
+    P_delta_
+        .topLeftCorner<DerivedT::RowsAtCompileTime,
+                       DerivedT::ColsAtCompileTime>()
+        .llt()
+        .solveInPlace(*information);
+    if (rootInformation) {
+      Eigen::LLT<DerivedT> lltOfInfo(information->derived());
+      rootInformation->derived() = lltOfInfo.matrixL().transpose();
+    }
   }
 
   void propagate(double dt, const Eigen::Vector3d &omega_S_0,
@@ -682,11 +696,20 @@ public:
    MgTs_.setZero();
  }
 
- void getWeight(Eigen::Matrix<double, 15, 15> *information) {
+ template <typename DerivedT>
+ void getWeight(Eigen::MatrixBase<DerivedT> *information,
+                Eigen::MatrixBase<DerivedT> *rootInformation = nullptr) {
    P_delta_ = 0.5 * (P_delta_ + P_delta_.transpose().eval());
    information->setIdentity();
-   P_delta_.llt().solveInPlace(*information);
-   *information = 0.5 * (*information + information->transpose().eval());
+   P_delta_
+       .topLeftCorner<DerivedT::RowsAtCompileTime,
+                      DerivedT::ColsAtCompileTime>()
+       .llt()
+       .solveInPlace(*information);
+   if (rootInformation) {
+     Eigen::LLT<DerivedT> lltOfInfo(information->derived());
+     rootInformation->derived() = lltOfInfo.matrixL().transpose();
+   }
  }
 
  /**

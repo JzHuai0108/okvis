@@ -5,7 +5,7 @@
  */
 
 #include <gtest/gtest.h>
-
+#include <chrono>
 #include <swift_vio/VectorNormalizationJacobian.hpp>
 #include <okvis/kinematics/MatrixPseudoInverse.hpp>
 
@@ -162,4 +162,69 @@ TEST(matrixTestSuite, testMatrixSqrt) {
            "iteration "
         << i;
   }
+}
+
+TEST(matrixTestSuite, testMatrixInverseSqrt) {
+  using namespace Eigen;
+  using namespace std::chrono;
+  constexpr int rows = 9;
+  int runs = 100;
+  double time1(0);
+  double time2(0);
+  for (int i = 0; i < runs; ++i) {
+    MatrixXd X = MatrixXd::Random(rows, rows);
+    MatrixXd A = X * X.transpose();
+    Eigen::MatrixXd L1(A.rows(), A.cols()), invA1(A.rows(), A.cols());
+
+    Eigen::Matrix<double, rows, rows> A2 = A;
+    Eigen::Matrix<double, rows, rows> L2, invA2;
+    auto start = high_resolution_clock::now();
+    okvis::MatrixPseudoInverse::pseudoInverseSymmSqrt(A, L1, invA1);
+    auto stop = high_resolution_clock::now();
+    auto duration1 = duration_cast<microseconds>(stop - start);
+    okvis::MatrixPseudoInverse::inverseSymmSqrt(A2, L2, invA2);
+    auto stop2 = high_resolution_clock::now();
+    auto duration2 = duration_cast<microseconds>(stop2 - stop);
+    time1 += duration1.count();
+    time2 += duration2.count();
+    EXPECT_LT((L1 * L1.transpose() * A - Matrix<double, rows, rows>::Identity())
+                  .lpNorm<Eigen::Infinity>(),
+              1e-7)
+        << "Wrong square root from self adjoint eigen solver:\n"
+        << L1;
+    EXPECT_LT((L2 * L2.transpose() * A - Matrix<double, rows, rows>::Identity())
+                  .lpNorm<Eigen::Infinity>(),
+              1e-7)
+        << "Wrong square root from llt:\n"
+        << L1;
+    EXPECT_LT((invA1 - invA2).lpNorm<Eigen::Infinity>(), 1e-3)
+        << "Different invA " << i;
+  }
+  std::cout << "Average time: self adjoint eigen solver " << (time1 / runs)
+            << " us, llt " << (time2 / runs) << " us.\n";
+}
+
+TEST(matrixTestSuite, matrixInverse) {
+  using namespace Eigen;
+  using namespace std::chrono;
+  constexpr int rows = 9;
+  int runs = 100;
+  double time1(0);
+  for (int i = 0; i < runs; ++i) {
+    MatrixXd X = MatrixXd::Random(rows, rows);
+    MatrixXd A = X * X.transpose();
+    Eigen::MatrixXd invA(A.rows(), A.cols());
+
+    auto start = high_resolution_clock::now();
+    okvis::MatrixPseudoInverse::inverseSymm(A, invA);
+    auto stop = high_resolution_clock::now();
+    auto duration1 = duration_cast<microseconds>(stop - start);
+    time1 += duration1.count();
+    EXPECT_LT((invA * A - Matrix<double, rows, rows>::Identity())
+                  .lpNorm<Eigen::Infinity>(),
+              1e-7)
+        << "Wrong square root from llt\n"
+        << invA;
+  }
+  std::cout << "Average inversion time with llt " << (time1 / runs) << " us.\n";
 }

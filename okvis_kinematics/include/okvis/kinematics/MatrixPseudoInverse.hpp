@@ -68,14 +68,18 @@ public:
       const Eigen::MatrixBase<Derived>&result, double epsilon =
           std::numeric_limits<typename Derived::Scalar>::epsilon(), int * rank = 0);
 
+  template<typename Derived1, typename Derived2>
+  static bool inverseSymm(
+      const Eigen::MatrixBase<Derived1> &A, const Eigen::MatrixBase<Derived2> &invA);
+
   /**
-   * @brief Pseudo inversion and square root (Cholesky decomposition) of a symmetric matrix.
+   * @brief Pseudo inversion and square root of a symmetric matrix.
    * @warning   This uses Eigen-decomposition, it assumes the input is symmetric positive semi-definite
    *            (negative Eigenvalues are set to zero). Also if the input is positive semi-definite,
    *            its zero eigenvalues are at the lower part of the diagonal.
    * @tparam Derived Matrix type (auto-deducible).
    * @param[in] a Input Matrix, \f$A\f$.
-   * @param[out] result Output, \f$L\f$, i.e. the Cholesky decomposition of a pseudo-inverse, \f$A^{-1} = L L^*\f$.
+   * @param[out] result Output, \f$L\f$, i.e. \f$A^{-1} = L L^*\f$, note L is not a lower triangular matrix in general.
    * @param[in] epsilon The tolerance.
    * @param[out] rank The rank, if of interest.
    * @return
@@ -87,14 +91,30 @@ public:
           std::numeric_limits<typename Derived::Scalar>::epsilon(),
       int* rank = NULL);
 
+  template <typename Derived>
+  static bool pseudoInverseSymmSqrt(
+      const Eigen::MatrixBase<Derived> &A, const Eigen::MatrixBase<Derived> &L,
+      const Eigen::MatrixBase<Derived> &invA,
+      double epsilon = std::numeric_limits<typename Derived::Scalar>::epsilon(),
+      int *rank = NULL);
+
   /**
-   * @brief Pseudo square root (Cholesky decomposition) of a symmetric matrix.
+   * @brief take inverse of matrix A, invA, and compute the cholesky factor L of invA.
+   * invA = L * L'.
+   */
+  template<typename Derived1, typename Derived2>
+  static bool inverseSymmSqrt(
+      const Eigen::MatrixBase<Derived1> &A, const Eigen::MatrixBase<Derived2> &L,
+      const Eigen::MatrixBase<Derived2> &invA);
+
+  /**
+   * @brief Pseudo square root of a symmetric matrix.
    * @warning   This uses Eigen-decomposition, it assumes the input is symmetric positive semi-definite
    *            (negative Eigenvalues are set to zero). Also if the input is positive semi-definite,
    *            its zero eigenvalues are at the lower part of the diagonal.
    * @tparam Derived Matrix type (auto-deducible).
    * @param[in] a Input Matrix, \f$A\f$.
-   * @param[out] result Output, \f$L\f$, i.e. the Cholesky decomposition of a pseudo-inverse, \f$A = L L^*\f$.
+   * @param[out] result Output, \f$L\f$, i.e. \f$A = L L^*\f$, note L is not necessarily lower triangular.
    * @param[in] epsilon The tolerance.
    * @param[out] rank The rank, if of interest.
    * @return
@@ -125,14 +145,14 @@ public:
 
 
   /**
-   * @brief Block-wise pseudo inversion and square root (Cholesky decomposition)
+   * @brief Block-wise pseudo inversion and square root
    *        of a symmetric matrix with non-zero diagonal blocks.
    * @warning   This uses Eigen-decomposition, it assumes the input is symmetric positive semi-definite
    *            (negative Eigenvalues are set to zero).
    * @tparam Derived Matrix type (auto-deducible).
    * @tparam blockDim The block size of the diagonal blocks.
    * @param[in] M_in Input Matrix
-   * @param[out] M_out Output, i.e. the Cholesky decomposition of a pseudo-inverse.
+   * @param[out] M_out Output, i.e. the SVD inverse root of a pseudo-inverse.
    * @param[in] epsilon The tolerance.
    * @return
    */
@@ -177,9 +197,6 @@ bool MatrixPseudoInverse::pseudoInverseSymm(
   return true;
 }
 
-// Pseudo inversion and square root (Cholesky decomposition) of a symmetric matrix.
-// attention: this uses Eigen-decomposition, it assumes the input is symmetric positive semi-definite
-// (negative Eigenvalues are set to zero)
 template<typename Derived>
 bool MatrixPseudoInverse::pseudoInverseSymmSqrt(
     const Eigen::MatrixBase<Derived>&a, const Eigen::MatrixBase<Derived>&result,
@@ -208,6 +225,71 @@ bool MatrixPseudoInverse::pseudoInverseSymmSqrt(
     }
   }
 
+  return true;
+}
+
+template<typename Derived>
+bool MatrixPseudoInverse::pseudoInverseSymmSqrt(
+    const Eigen::MatrixBase<Derived>&A, const Eigen::MatrixBase<Derived> &L,
+    const Eigen::MatrixBase<Derived> &invA,
+    double epsilon, int * rank) {
+
+  OKVIS_ASSERT_TRUE_DBG(Exception, A.rows() == A.cols(),
+                        "matrix supplied is not quadratic");
+
+  Eigen::SelfAdjointEigenSolver<Derived> saes(A);
+
+  typename Derived::Scalar tolerance = epsilon * A.cols()
+      * saes.eigenvalues().array().maxCoeff();
+
+  const_cast<Eigen::MatrixBase<Derived>&>(L) = (saes.eigenvectors())
+      * Eigen::VectorXd(
+          Eigen::VectorXd(
+              (saes.eigenvalues().array() > tolerance).select(
+                  saes.eigenvalues().array().inverse(), 0)).array().sqrt())
+          .asDiagonal();
+
+  const_cast<Eigen::MatrixBase<Derived>&>(invA) = (saes.eigenvectors())
+      * Eigen::VectorXd(
+          (saes.eigenvalues().array() > tolerance).select(
+              saes.eigenvalues().array().inverse(), 0)).asDiagonal()
+      * (saes.eigenvectors().transpose());
+
+  if (rank) {
+    *rank = 0;
+    for (int i = 0; i < A.rows(); ++i) {
+      if (saes.eigenvalues()[i] > tolerance)
+        (*rank)++;
+    }
+  }
+
+  return true;
+}
+
+template<typename Derived1, typename Derived2>
+bool MatrixPseudoInverse::inverseSymm(
+    const Eigen::MatrixBase<Derived1> &A, const Eigen::MatrixBase<Derived2> &invA) {
+  OKVIS_ASSERT_TRUE_DBG(Exception, A.rows() == A.cols(),
+                        "matrix supplied is not quadratic");
+  Derived2 &refInvA = const_cast<Derived2 &>(invA.derived());
+  refInvA.setIdentity();
+  A.llt().solveInPlace(refInvA);
+  return true;
+}
+
+template<typename Derived1, typename Derived2>
+bool MatrixPseudoInverse::inverseSymmSqrt(
+    const Eigen::MatrixBase<Derived1> &A, const Eigen::MatrixBase<Derived2> &L,
+    const Eigen::MatrixBase<Derived2> &invA) {
+  OKVIS_ASSERT_TRUE_DBG(Exception, A.rows() == A.cols(),
+                        "matrix supplied is not quadratic");
+  Derived2 &refInvA = const_cast<Derived2 &>(invA.derived());
+  refInvA.setIdentity();
+  A.llt().solveInPlace(refInvA);
+
+  Derived2 &refL = const_cast<Derived2 &>(L.derived());
+  Eigen::LLT<Derived2> llt(refInvA);
+  refL = llt.matrixL();
   return true;
 }
 
@@ -269,10 +351,6 @@ void MatrixPseudoInverse::blockPinverse(
   }
 }
 
-// Block-wise pseudo inversion and square root (Cholesky decomposition)
-// of a symmetric matrix with non-zero diagonal blocks.
-// attention: this uses Eigen-decomposition, it assumes the input is symmetric positive semi-definite
-// (negative Eigenvalues are set to zero)
 template<typename Derived, int blockDim>
 void MatrixPseudoInverse::blockPinverseSqrt(
     const Eigen::MatrixBase<Derived>& M_in,
