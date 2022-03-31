@@ -35,6 +35,21 @@ DynamicImuError<ImuModelT>::DynamicImuError(const okvis::ImuMeasurementDeque & i
                      "Last IMU measurement included in DynamicImuError is not new enough!");
 }
 
+template <typename ImuModelT>
+void DynamicImuError<ImuModelT>::setParameterBlockAndResidualSizes() {
+  AddParameterBlock(7);
+  AddParameterBlock(3);
+  AddParameterBlock(6);
+  AddParameterBlock(7);
+  AddParameterBlock(3);
+  AddParameterBlock(6);
+  AddParameterBlock(3);
+  for (size_t i = 0; i < ImuModelT::kXBlockDims.size(); ++i) {
+    AddParameterBlock(ImuModelT::kXBlockDims[i]);
+  }
+  SetNumResiduals(kNumResiduals);
+}
+
 // Propagates pose, speeds and biases with given IMU measurements.
 template <typename ImuModelT>
 int DynamicImuError<ImuModelT>::redoPreintegration(const Eigen::Matrix<double, 6, 1> &biases) const {

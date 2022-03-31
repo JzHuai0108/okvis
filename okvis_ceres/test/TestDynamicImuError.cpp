@@ -216,15 +216,7 @@ public:
                                     speedParameterBlock_1.parameters(),
                                     biasParameterBlock_1.parameters(),
                                     gravityDirectionBlock.parameters()};
-
-    cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(6);
-    cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(6);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->SetNumResiduals(15);
+    cost_function_imu->setParameterBlockAndResidualSizes();
 
     problem.AddResidualBlock(cost_function_imu, NULL, params);
     okvis::ceres::checkJacobians(*cost_function_imu, params.data());
@@ -242,14 +234,7 @@ public:
                                     poseParameterBlock_1.parameters(),
                                     speedParameterBlock_1.parameters(),
                                     gravityDirectionBlock.parameters()};
-
-    cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(6);
-    cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->SetNumResiduals(9);
+    cost_function_imu->setParameterBlockAndResidualSizes();
 
     problem.AddResidualBlock(cost_function_imu, NULL, params);
     okvis::ceres::checkJacobians(*cost_function_imu, params.data());
@@ -271,18 +256,7 @@ public:
                                     Tg.parameters(),
                                     Ts.parameters(),
                                     Ta.parameters()};
-
-    cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(6);
-    cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(6);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(9);
-    cost_function_imu->AddParameterBlock(9);
-    cost_function_imu->AddParameterBlock(9);
-    cost_function_imu->SetNumResiduals(15);
+    cost_function_imu->setParameterBlockAndResidualSizes();
 
     problem.AddResidualBlock(cost_function_imu, NULL, params);
     problem.SetParameterBlockConstant(Tg.parameters());
@@ -306,18 +280,7 @@ public:
                                     Mg.parameters(),
                                     Ts.parameters(),
                                     Ma.parameters()};
-
-    cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(6);
-    cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(6);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(9);
-    cost_function_imu->AddParameterBlock(9);
-    cost_function_imu->AddParameterBlock(6);
-    cost_function_imu->SetNumResiduals(15);
+    cost_function_imu->setParameterBlockAndResidualSizes();
 
     problem.AddResidualBlock(cost_function_imu, NULL, params);
     problem.SetParameterBlockConstant(Mg.parameters());
@@ -340,17 +303,7 @@ public:
                                     Mg.parameters(),
                                     Ts.parameters(),
                                     Ma.parameters()};
-
-    cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(6);
-    cost_function_imu->AddParameterBlock(7);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(3);
-    cost_function_imu->AddParameterBlock(9);
-    cost_function_imu->AddParameterBlock(9);
-    cost_function_imu->AddParameterBlock(6);
-    cost_function_imu->SetNumResiduals(9);
+    cost_function_imu->setParameterBlockAndResidualSizes();
 
     problem.AddResidualBlock(cost_function_imu, NULL, params);
     problem.SetParameterBlockConstant(Mg.parameters());

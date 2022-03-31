@@ -12,7 +12,9 @@
 #include <vector>
 #include <memory>
 
+#include <okvis/ceres/ParameterBlock.hpp>
 #include <swift_vio/CameraIdentifier.h>
+
 #include <swift_vio/ceres/RsReprojectionErrorAidp.hpp>
 
 namespace okvis {
@@ -121,6 +123,15 @@ class RsReprojectionErrorAidpAdapter
   void setParameterBlockAndResidualSizes();
 
   void uniqueBlocks(std::vector<double *> *ambientBlocks) const {
+    if (targetCamera_.cameraIndex == hostCamera_.cameraIndex) {
+      ambientBlocks->erase(ambientBlocks->begin() + kernel_t::Index::T_BCh);
+    }
+    if (targetCamera_.frameId == hostCamera_.frameId) {
+      ambientBlocks->erase(ambientBlocks->begin() + kernel_t::Index::T_WBh);
+    }
+  }
+
+  void uniqueBlocks(std::vector<std::shared_ptr<okvis::ceres::ParameterBlock>> *ambientBlocks) const {
     if (targetCamera_.cameraIndex == hostCamera_.cameraIndex) {
       ambientBlocks->erase(ambientBlocks->begin() + kernel_t::Index::T_BCh);
     }

@@ -78,6 +78,8 @@ class ImuErrorConstBias :
            const okvis::ImuParameters & imuParameters, const okvis::Time& t_0,
            const okvis::Time& t_1);
 
+  void setParameterBlockAndResidualSizes();
+
   /**
    * @brief Propagates pose, speeds and biases with given IMU measurements.
    * @warning This is not actually const, since the re-propagation must somehow be stored...

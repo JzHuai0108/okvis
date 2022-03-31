@@ -35,6 +35,20 @@ ImuErrorConstBias<ImuModelT>::ImuErrorConstBias(const okvis::ImuMeasurementDeque
                      "Last IMU measurement included in ImuErrorConstBias is not new enough!");
 }
 
+template <typename ImuModelT>
+void ImuErrorConstBias<ImuModelT>::setParameterBlockAndResidualSizes() {
+  AddParameterBlock(7);
+  AddParameterBlock(3);
+  AddParameterBlock(6);
+  AddParameterBlock(7);
+  AddParameterBlock(3);
+  AddParameterBlock(3);
+  for (size_t i = 0; i < ImuModelT::kXBlockDims.size(); ++i) {
+    AddParameterBlock(ImuModelT::kXBlockDims[i]);
+  }
+  SetNumResiduals(kNumResiduals);
+}
+
 // Propagates pose, speeds and biases with given IMU measurements.
 template <typename ImuModelT>
 int ImuErrorConstBias<ImuModelT>::redoPreintegration(const Eigen::Matrix<double, 6, 1> &biases) const {
