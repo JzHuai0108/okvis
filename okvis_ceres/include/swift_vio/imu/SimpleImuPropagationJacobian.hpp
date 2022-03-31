@@ -86,6 +86,10 @@ public:
   dtheta_dunitgW(double deltaTime, const Eigen::Vector3d &gravityDirection,
                  double gravityMagnitude);
 
+  void Phi_pq(const Eigen::Vector3d &start_p_WB,
+              const Eigen::Vector3d &start_v_WB, const Eigen::Vector3d &gW,
+              Eigen::Matrix3d *phi) const;
+
 private:
   okvis::Time startEpoch_;
   okvis::Time endEpoch_;

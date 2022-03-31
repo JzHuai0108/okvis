@@ -24,18 +24,17 @@ template <class GEOMETRY_TYPE>
 RsReprojectionErrorAidp<GEOMETRY_TYPE>::RsReprojectionErrorAidp(
     const measurement_t& measurement,
     const covariance_t& covariance,
-    std::shared_ptr<const camera_geometry_t> targetCamera,
+    std::shared_ptr<const camera_geometry_t> targetCameraGeometry,
     std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasCanopy,
     std::shared_ptr<const okvis::ImuParameters> imuParameters,
     okvis::Time targetStateTime, okvis::Time targetImageTime)
     : imuMeasCanopy_(imuMeasCanopy),
       imuParameters_(imuParameters),
-      targetCamera_(targetCamera),
+      targetCameraGeometry_(targetCameraGeometry),
       targetStateTime_(targetStateTime),
       targetImageTime_(targetImageTime) {
   measurement_ = measurement;
   setCovariance(covariance);
-  cameraGeometryBase_ = targetCamera;
 }
 
 template <class GEOMETRY_TYPE>
@@ -89,20 +88,23 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
   Eigen::Map<const Eigen::Quaterniond> q_WBh(parameters[Index::T_WBh] + 3);
   okvis::kinematics::Transformation T_WBh(p_WBh, q_WBh);
 
-  Eigen::Matrix<double, -1, 1> intrinsics = Eigen::Map<const Eigen::Matrix<double, kIntrinsicDim, 1>>(parameters[Index::Intrinsics]); //proj intrinsics+DistortionIntrinsics
+  Eigen::Matrix<double, -1, 1> intrinsics =
+      Eigen::Map<const Eigen::Matrix<double, kIntrinsicDim, 1>>(
+          parameters[Index::Intrinsics]);
 
   double readoutTime = parameters[Index::ReadoutTime][0]; //tr
   double cameraTd = parameters[Index::CameraTd][0];       //td
 
-  Eigen::Matrix<double, 3, 1> speed = Eigen::Map<const Eigen::Matrix<double, 3, 1>>(parameters[Index::Speed]);
+  Eigen::Map<const Eigen::Matrix<double, 3, 1>> v_WB0(parameters[Index::Speed]);
   Eigen::Matrix<double, 6, 1> bgBa = Eigen::Map<const Eigen::Matrix<double, 6, 1>>(parameters[Index::Biases]);
+  Eigen::Matrix<double, 3, 1> speed = v_WB0;
 
   Eigen::Map<const Eigen::Matrix<double, 9, 1>> Tg(parameters[Index::M_gi]); // not used for now.
   Eigen::Map<const Eigen::Matrix<double, 9, 1>> Ts(parameters[Index::M_si]); // not used for now.
   Eigen::Map<const Eigen::Matrix<double, 6, 1>> Ta(parameters[Index::M_ai]); // not used for now.
 
   double ypixel(measurement_[1]);
-  uint32_t height = cameraGeometryBase_->imageHeight();
+  uint32_t height = targetCameraGeometry_->imageHeight();
   double kpN = ypixel / height - 0.5;
   double relativeFeatureTime = cameraTd + readoutTime * kpN + ( targetImageTime_- targetStateTime_).toSec(); 
   std::pair<Eigen::Matrix<double, 3, 1>, Eigen::Quaternion<double>> pair_T_WBt(p_WBt0, q_WBt0);
@@ -131,11 +133,11 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
   Eigen::Matrix<double, 2, Eigen::Dynamic> Jpi;
   Eigen::Matrix<double, 2, Eigen::Dynamic> Jpi_weighted;
   if (jacobians != NULL){
-    cameraGeometryBase_->projectWithExternalParameters(hp_Ct.head<3>(), intrinsics, &kp, &Jh, &Jpi);
+    targetCameraGeometry_->projectWithExternalParameters(hp_Ct.head<3>(), intrinsics, &kp, &Jh, &Jpi);
     Jh_weighted = squareRootInformation_ * Jh;
     Jpi_weighted = squareRootInformation_ * Jpi;
   } else {
-    cameraGeometryBase_->projectWithExternalParameters(hp_Ct.head<3>(), intrinsics, &kp, &Jh, &Jpi);
+    targetCameraGeometry_->projectWithExternalParameters(hp_Ct.head<3>(), intrinsics, &kp, &Jh, &Jpi);
   }
   measurement_t error = kp - measurement_;
 
@@ -179,6 +181,9 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     Eigen::Matrix3d dp_WB_dvW;
     sipj.dp_dv_WB(&dp_WB_dvW);
 
+    Eigen::Matrix3d Phi_pq;
+    sipj.Phi_pq(p_WBt0, v_WB0, imuParameters_->gravity(), &Phi_pq);
+
     Eigen::Vector3d dhC_td = mtpj.dp_dT(1).topRows<3>() * dT_WB_dt;
     Eigen::Matrix3d dhC_vW = mtpj.dp_dT(1).topRows<3>().leftCols<3>() * dp_WB_dvW;
     Eigen::Matrix3d dtheta_dbg = - C_WBt * relativeFeatureTime;
@@ -191,6 +196,7 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
     {
       Eigen::Matrix<double, 2, 6, Eigen::RowMajor> J0_minimal;
       J0_minimal = Jh_weighted * mtpj.dp_dT(1).topRows<3>();
+      J0_minimal.rightCols<3>() += J0_minimal.leftCols<3>() * Phi_pq;
 
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J0(jacobians[0]);
       J0.leftCols<6>() = J0_minimal;
@@ -496,13 +502,13 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
   Eigen::Matrix<double, 2, Eigen::Dynamic> Jpi_weighted;
   if (jacobians != NULL)
   {
-    cameraGeometryBase_->projectHomogeneousWithExternalParameters(hp_C, Intrinsics, &kp, &Jh, &Jpi);
+    targetCameraGeometry_->projectHomogeneousWithExternalParameters(hp_C, Intrinsics, &kp, &Jh, &Jpi);
     Jh_weighted = squareRootInformation_ * Jh;
     Jpi_weighted = squareRootInformation_ * Jpi;
   }
   else
   {
-    cameraGeometryBase_->projectHomogeneousWithExternalParameters(hp_C, Intrinsics, &kp);
+    targetCameraGeometry_->projectHomogeneousWithExternalParameters(hp_C, Intrinsics, &kp);
   }
 
   measurement_t error = kp - measurement_;
@@ -534,7 +540,7 @@ bool RsReprojectionErrorAidp<GEOMETRY_TYPE>::
       setJacobiansZero(jacobians, jacobiansMinimal);
       return true;
     }
-    uint32_t height = cameraGeometryBase_->imageHeight();
+    uint32_t height = targetCameraGeometry_->imageHeight();
     double ypixel(measurement_[1]);
     double kpN = ypixel / height - 0.5;
 
@@ -887,7 +893,7 @@ operator()(const Scalar *const T_WBt,
 
   Scalar trLatestEstimate = t_r[0];
 
-  uint32_t height = rsre_.cameraGeometryBase_->imageHeight();
+  uint32_t height = rsre_.targetCameraGeometry_->imageHeight();
   double ypixel(rsre_.measurement_[1]);
   Scalar kpN = (Scalar)(ypixel / height - 0.5);
   Scalar tdLatestEstimate = t_d[0];

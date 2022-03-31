@@ -178,6 +178,10 @@ class RsReprojectionErrorAidp
   {
   }
 
+  static size_t numParameterBlocks() {
+    return Index::M_ai + 1;
+  }
+
   /// \brief Set the information.
   /// @param[in] information The information (weight) matrix.
   virtual void setCovariance(const covariance_t& information);
@@ -264,12 +268,10 @@ class RsReprojectionErrorAidp
  protected:
   measurement_t measurement_; ///< The (2D) measurement.
 
-  std::shared_ptr<const camera_geometry_t> cameraGeometryBase_;
-
   std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasCanopy_;
   std::shared_ptr<const okvis::ImuParameters> imuParameters_;
 
-  std::shared_ptr<const camera_geometry_t> targetCamera_;
+  std::shared_ptr<const camera_geometry_t> targetCameraGeometry_;
 
   // weighting related
   covariance_t information_; ///< The 2x2 information matrix.

@@ -45,4 +45,14 @@ Eigen::Matrix<double, 3, 2> SimpleImuPropagationJacobian::dtheta_dunitgW(
     double /*gravityMagnitude*/) {
   return Eigen::Matrix<double, 3, 2>::Zero();
 }
+
+void SimpleImuPropagationJacobian::Phi_pq(const Eigen::Vector3d &start_p_WB,
+                                          const Eigen::Vector3d &start_v_WB,
+                                          const Eigen::Vector3d &gW,
+                                          Eigen::Matrix3d *phi) const {
+  double delta = (endEpoch_ - startEpoch_).toSec();
+  Eigen::Vector3d dr = -(endp_WB_B_ - start_p_WB - start_v_WB * delta -
+                         0.5 * gW * delta * delta);
+  *phi = okvis::kinematics::crossMx(dr);
+}
 } // namespace swift_vio
