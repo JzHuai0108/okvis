@@ -6,7 +6,7 @@
 namespace swift_vio {
 // Space separated output format for Eigen matrices.
 static const Eigen::IOFormat kSpaceInitFmt(Eigen::StreamPrecision,
-                                           Eigen::DontAlignCols, " ", " ", "",
+                                           Eigen::DontAlignCols, " ", "\n", "",
                                            "", "", "");
 
 }  // namespace swift_vio
