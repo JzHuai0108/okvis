@@ -15,7 +15,6 @@
 #include <okvis/Measurements.hpp>
 
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
 
 #include <swift_vio/imu/ImuModels.hpp>

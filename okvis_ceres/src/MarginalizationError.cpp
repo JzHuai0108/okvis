@@ -43,6 +43,9 @@
 #include <okvis/kinematics/MatrixPseudoInverse.hpp>
 #include <okvis/assert_macros.hpp>
 
+#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
+#include <swift_vio/ceres/InverseDepthPointBlock.hpp>
+
 //#define USE_NEW_LINEARIZATION_POINT
 
 /// \brief okvis Main namespace of this package.
@@ -154,7 +157,8 @@ bool MarginalizationError::addResidualBlock(
     if (it == parameterBlockId2parameterBlockInfoIdx_.end()) {  // not found. add it.
         // let's see, if it is actually a landmark, because then it will go into the sparse part
       bool isLandmark = false;
-      if (std::dynamic_pointer_cast<HomogeneousPointParameterBlock>(
+      if (std::dynamic_pointer_cast<InverseDepthPointBlock>(
+            parameterBlockSpec.second) != 0 || std::dynamic_pointer_cast<HomogeneousPointParameterBlock>(
           parameterBlockSpec.second) != 0) {
         isLandmark = true;
       }

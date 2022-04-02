@@ -6,7 +6,6 @@
 #include <swift_vio/FrameTypedefs.hpp>
 #include <swift_vio/imu/ImuRig.hpp>
 #include <swift_vio/imu/ImuOdometry.h>
-#include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
 
 namespace swift_vio {
@@ -220,7 +219,7 @@ std::vector<int> PointSharedData::anchorObservationIds() const {
   return anchorObservationIds;
 }
 
-std::shared_ptr<const PoseParameterBlock> PointSharedData::poseParameterBlockPtr(
+std::shared_ptr<const okvis::ceres::PoseParameterBlock> PointSharedData::poseParameterBlockPtr(
     int observationIndex) const {
   return stateInfoForObservations_.at(observationIndex).T_WBj_ptr;
 }

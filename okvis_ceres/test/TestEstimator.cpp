@@ -40,12 +40,9 @@
 #include <okvis/cameras/EquidistantDistortion.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/ImuError.hpp>
 #include <okvis/ceres/ReprojectionError.hpp>
-#include <okvis/ceres/PoseError.hpp>
 #include <okvis/ceres/SpeedAndBiasError.hpp>
-#include <okvis/ceres/RelativePoseError.hpp>
 #include <okvis/assert_macros.hpp>
 #include <swift_vio/PointLandmarkSimulation.hpp>
 

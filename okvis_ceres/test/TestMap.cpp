@@ -40,7 +40,6 @@
 #include <okvis/ceres/Map.hpp>
 #include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/MarginalizationError.hpp>
@@ -73,9 +72,9 @@ public:
     extrinsicsParameterBlock_ptr.reset(new okvis::ceres::PoseParameterBlock(T_SC, 2, okvis::Time(0)));
 
     // use the custom graph/map datastructure now:
-    map.addParameterBlock(poseParameterBlock_ptr, okvis::ceres::Map::Pose6d);
+    map.addParameterBlock(poseParameterBlock_ptr, okvis::ceres::Map::Pose6dSimple);
     map.addParameterBlock(extrinsicsParameterBlock_ptr,
-                          okvis::ceres::Map::Pose6d);
+                          okvis::ceres::Map::Pose6dSimple);
     map.setParameterBlockConstant(extrinsicsParameterBlock_ptr);  // do not optimize this...
     std::cout << " [ OK ] " << std::endl;
 

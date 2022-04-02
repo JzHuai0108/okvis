@@ -40,7 +40,6 @@
 
 #include <okvis/ceres/Map.hpp>
 #include <ceres/ordered_groups.h>
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/MarginalizationError.hpp>
 #include <okvis/kinematics/MatrixPseudoInverse.hpp>
 
@@ -335,13 +334,13 @@ bool Map::addParameterBlock(
           &normalVectorParameterization_);
       break;
     }
-    case Parameterization::Pose6d: {
-      problem_->AddParameterBlock(parameterBlock->parameters(),
-                                  parameterBlock->dimension(),
-                                  &poseLocalParameterization_);
-      parameterBlock->setLocalParameterizationPtr(&poseLocalParameterization_);
-      break;
-    }
+//    case Parameterization::Pose6d: {
+//      problem_->AddParameterBlock(parameterBlock->parameters(),
+//                                  parameterBlock->dimension(),
+//                                  &poseLocalParameterization_);
+//      parameterBlock->setLocalParameterizationPtr(&poseLocalParameterization_);
+//      break;
+//    }
     case Parameterization::Pose6dSimple: {
       problem_->AddParameterBlock(parameterBlock->parameters(),
                                   parameterBlock->dimension(),
@@ -752,141 +751,6 @@ Map::ParameterBlockCollection Map::parameters(
     return empty;  // empty vector
   }
   return it->second;
-}
-
-::ceres::LocalParameterization* Map::selectLocalParameterization(
-    const ::ceres::LocalParameterization* query) {
-  std::vector<::ceres::LocalParameterization*> pool{
-      &homogeneousPointLocalParameterization_, &inverseDepthPointLocalParameterization_,
-      &poseLocalParameterization_, &poseLocalParameterizationSimple_,
-      &poseLocalParameterization3d_, &poseLocalParameterization4d_,
-      &poseLocalParameterization2d_, &normalVectorParameterization_};
-  for (::ceres::LocalParameterization* pointer : pool) {
-    if (query == pointer) {
-      return pointer;
-    }
-  }
-  LOG(WARNING) << "Local parameterization pointer not matched!";
-  return nullptr;
-}
-
-std::shared_ptr<ParameterBlock> Map::internalAddParameterBlockById(
-    uint64_t id, std::shared_ptr<::ceres::Problem> problem) {
-  std::shared_ptr<ParameterBlock> parameterBlock = id2ParameterBlock_Map_[id];
-  const ::ceres::LocalParameterization* parameterizationPtr =
-      parameterBlock->localParameterizationPtr();
-  std::shared_ptr<ParameterBlock> parameterBlockCopy;
-  switch (parameterBlock->dimension()) {
-    case 7:
-      parameterBlockCopy.reset(new PoseParameterBlock(
-          *std::static_pointer_cast<PoseParameterBlock>(parameterBlock)));
-      break;
-    case 4:
-      parameterBlockCopy.reset(new HomogeneousPointParameterBlock(
-          *std::static_pointer_cast<HomogeneousPointParameterBlock>(
-              parameterBlock)));
-      break;
-    case 9:
-      parameterBlockCopy.reset(new SpeedAndBiasParameterBlock(
-          *std::static_pointer_cast<SpeedAndBiasParameterBlock>(
-              parameterBlock)));
-      break;
-    default:
-      LOG(WARNING) << "Parameter block of dim " << parameterBlock->dimension()
-                   << " not recognized!";
-      break;
-  }
-
-  if (parameterizationPtr) {
-    problem->AddParameterBlock(
-        parameterBlockCopy->parameters(), parameterBlockCopy->dimension(),
-        selectLocalParameterization(parameterizationPtr));
-  } else {
-    problem->AddParameterBlock(parameterBlockCopy->parameters(),
-                               parameterBlockCopy->dimension());
-  }
-  if (parameterBlock->fixed()) {
-    problem->SetParameterBlockConstant(parameterBlockCopy->parameters());
-  }  // else pass as parameters are default to be variable.
-  return parameterBlockCopy;
-}
-
-std::shared_ptr<::ceres::Problem> Map::cloneProblem(
-    std::unordered_map<uint64_t, std::shared_ptr<okvis::ceres::ParameterBlock>>*
-        blockId2BlockCopyPtr) {
-  ::ceres::Problem::Options problemOptions;
-  problemOptions.local_parameterization_ownership =
-      ::ceres::Ownership::DO_NOT_TAKE_OWNERSHIP;
-  problemOptions.loss_function_ownership =
-      ::ceres::Ownership::DO_NOT_TAKE_OWNERSHIP;
-  problemOptions.cost_function_ownership =
-      ::ceres::Ownership::DO_NOT_TAKE_OWNERSHIP;
-  std::shared_ptr<::ceres::Problem> problem(
-      new ::ceres::Problem(problemOptions));
-  // add parameter blocks in the order of {constants}, {camera pose, speed and
-  // bias, extrinsics}, lastly {landmarks}.
-  std::vector<uint64_t> nonlmkIds;
-  nonlmkIds.reserve(20);
-  std::vector<uint64_t> constIds;
-  constIds.reserve(5);
-  std::vector<uint64_t> lmkIds;
-  lmkIds.reserve(id2ParameterBlock_Map_.size());
-
-  for (auto parameterBlockIdToPointer : id2ParameterBlock_Map_) {
-    std::shared_ptr<ParameterBlock> parameterBlock =
-        parameterBlockIdToPointer.second;
-    if (parameterBlock->dimension() == 4) {
-      lmkIds.push_back(parameterBlockIdToPointer.first);
-    } else {
-      if (parameterBlock->fixed()) {
-        constIds.push_back(parameterBlockIdToPointer.first);
-      } else {
-        nonlmkIds.push_back(parameterBlockIdToPointer.first);
-      }
-    }
-  }
-
-  for (auto id : constIds) {
-    std::shared_ptr<ParameterBlock> blockCopyPtr =
-        internalAddParameterBlockById(id, problem);
-    blockId2BlockCopyPtr->emplace(id, blockCopyPtr);
-  }
-  for (auto id : nonlmkIds) {
-    std::shared_ptr<ParameterBlock> blockCopyPtr =
-        internalAddParameterBlockById(id, problem);
-    blockId2BlockCopyPtr->emplace(id, blockCopyPtr);
-  }
-  for (auto id : lmkIds) {
-    std::shared_ptr<ParameterBlock> blockCopyPtr =
-        internalAddParameterBlockById(id, problem);
-    blockId2BlockCopyPtr->emplace(id, blockCopyPtr);
-  }
-
-  // add residual blocks.
-  for (auto residualIdToSpec : residualBlockId2ResidualBlockSpec_Map_) {
-    const ::ceres::ResidualBlockId& residualId = residualIdToSpec.first;
-    const ResidualBlockSpec& spec = residualIdToSpec.second;
-    std::shared_ptr<::ceres::CostFunction> costFunctionPtr =
-        std::dynamic_pointer_cast<::ceres::CostFunction>(
-            spec.errorInterfacePtr);
-    OKVIS_ASSERT_TRUE_DBG(Exception, costFunctionPtr != 0,
-                          "An okvis::ceres::ErrorInterface not derived from "
-                          "ceres::CostFunction!");
-    auto iter = residualBlockId2ParameterBlockCollection_Map_.find(residualId);
-    OKVIS_ASSERT_TRUE_DBG(
-        Exception, iter != residualBlockId2ParameterBlockCollection_Map_.end(),
-        "Parameter block connection not found for a residual block!");
-    const ParameterBlockCollection& collection = iter->second;
-    std::vector<double*> parameter_blocks;
-    parameter_blocks.reserve(collection.size());
-    for (const ParameterBlockSpec& blockSpec : collection) {
-      std::shared_ptr<ParameterBlock> blockCopyPtr = blockId2BlockCopyPtr->at(blockSpec.second->id());
-      parameter_blocks.push_back(blockCopyPtr->parameters());
-    }
-    problem->AddResidualBlock(costFunctionPtr.get(), spec.lossFunctionPtr,
-                              parameter_blocks);
-  }
-  return problem;
 }
 
 void Map::printMapInfo() const {

@@ -41,9 +41,10 @@
 
 #include <Eigen/Core>
 #include <okvis/ceres/ParameterBlockSized.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/Time.hpp>
+
+#include <swift_vio/ExtrinsicReps.hpp>
 
 namespace okvis {
 namespace ceres{
@@ -76,7 +77,7 @@ public:
   virtual void setEstimate(const okvis::kinematics::Transformation& T_WS);
 
   /// @param[in] timestamp The timestamp of this state.
-  void setTimestamp(const okvis::Time& timestamp){timestamp_=timestamp;}
+  // void setTimestamp(const okvis::Time& timestamp){timestamp_=timestamp;}
 
   // getters
   /// @brief Get estimate.
@@ -85,25 +86,21 @@ public:
 
   /// \brief Get the time.
   /// \return The timestamp of this state.
-  okvis::Time timestamp() const {return timestamp_;}
+  // okvis::Time timestamp() const {return timestamp_;}
 
-  // minimal internal parameterization
-  // x0_plus_Delta=Delta_Chi[+]x0
-  /// \brief Generalization of the addition operation,
-  ///        x_plus_delta = Plus(x, delta)
-  ///        with the condition that Plus(x, 0) = x.
-  /// @param[in] x0 Variable.
-  /// @param[in] Delta_Chi Perturbation.
-  /// @param[out] x0_plus_Delta Perturbed x.
-  virtual void plus(const double* x0, const double* Delta_Chi, double* x0_plus_Delta) const {
-    PoseLocalParameterization::plus(x0,Delta_Chi,x0_plus_Delta);
+  void fixPositionLinPoint(const okvis::kinematics::Transformation &T_WS);
+
+  void fixPositionLinPoint();
+  
+  okvis::kinematics::Transformation linPoint() const;
+  
+  Eigen::Vector3d positionLinPoint() const {
+    return pLinPoint_;
   }
 
-  /// \brief The jacobian of Plus(x, delta) w.r.t delta at delta = 0.
-  /// @param[in] x0 Variable.
-  /// @param[out] jacobian The Jacobian.
-  virtual void plusJacobian(const double* x0, double* jacobian) const {
-    PoseLocalParameterization::plusJacobian(x0,jacobian);
+  Eigen::Quaterniond orientationLinPoint() const {
+    return Eigen::Quaterniond(parameters_[6], parameters_[3], parameters_[4],
+                              parameters_[5]);
   }
 
   // Delta_Chi=x0_plus_Delta[-]x0
@@ -113,7 +110,7 @@ public:
   /// @param[out] Delta_Chi Minimal difference.
   /// \return True on success.
   virtual void minus(const double* x0, const double* x0_plus_Delta, double* Delta_Chi) const {
-    PoseLocalParameterization::minus(x0, x0_plus_Delta, Delta_Chi);
+    swift_vio::PoseLocalParameterizationSimplified::ominus(x0, x0_plus_Delta, Delta_Chi);
   }
 
   /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
@@ -121,14 +118,16 @@ public:
   /// @param[out] jacobian the Jacobian (dimension minDim x dim).
   /// \return True on success.
   virtual void liftJacobian(const double* x0, double* jacobian) const {
-    PoseLocalParameterization::liftJacobian(x0,jacobian);
+    swift_vio::PoseLocalParameterizationSimplified::liftJacobian(x0,jacobian);
   }
 
   /// @brief Return parameter block type as string
   virtual std::string typeInfo() const {return "PoseParameterBlock";}
 
 private:
-  okvis::Time timestamp_; ///< Time of this state.
+  // okvis::Time timestamp_; ///< Time of this state.
+  Eigen::Vector3d pLinPoint_;
+  bool plinPointFixed_;
 };
 
 } // namespace ceres

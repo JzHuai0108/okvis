@@ -17,7 +17,6 @@
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
 #include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 
 #include <swift_vio/imu/ImuModels.hpp>
 #include <swift_vio/ExtrinsicReps.hpp>
@@ -52,9 +51,9 @@ class LocalBearingVector;
 template <class GEOMETRY_TYPE>
 class RsReprojectionError
     : public ::ceres::SizedCostFunction<
-          2 /* number of residuals */, 7 /* pose with PoseLocalParameterization */,
+          2 /* number of residuals */, 7 /* pose with PoseLocalParameterizationSimplified */,
           4 /* landmark with HomogeneousPointLocalParameterization */,
-          7 /* variable dim of extrinsics with PoseLocalParameterization */,
+          7 /* variable dim of extrinsics with PoseLocalParameterizationSimplified */,
           GEOMETRY_TYPE::NumIntrinsics,
           1 /* frame readout time */,
           1 /* time offset between visual and inertial data */,

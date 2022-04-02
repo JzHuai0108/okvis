@@ -11,6 +11,7 @@
 
 #include <swift_vio/DirectionFromParallaxAngleJacobian.hpp>
 #include <swift_vio/EpipolarJacobian.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/ceres/JacobianHelpers.hpp>
 #include <swift_vio/Measurements.hpp>
 #include <swift_vio/imu/SimpleImuOdometry.hpp>
@@ -215,7 +216,7 @@ bool ChordalDistance<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
       jMinimal.leftCols<3>().setZero();
       jMinimal.rightCols<3>() = squareRootInformation_ * de_dtheta_WCtij * dtheta_WCtij_dtheta_WBtij;
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> jLift;
-      PoseLocalParameterization::liftJacobian(parameters[0], jLift.data());
+      swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[0], jLift.data());
       Eigen::Map<Eigen::Matrix<double, kNumResiduals, 7, Eigen::RowMajor>> j(jacobians[0]);
       j = jMinimal * jLift;
       if (jacobiansMinimal) {
@@ -278,7 +279,7 @@ bool ChordalDistance<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
         default:
           jMinimal.template rightCols<3>() = squareRootInformation_ * de_dtheta_WCtij *
                                     dtheta_WCtij_dtheta_BC;
-          PoseLocalParameterization::liftJacobian(parameters[4],
+          swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[4],
                                                   jLift.data());
           break;
       }
@@ -503,7 +504,7 @@ bool ChordalDistance<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
       Eigen::Map<Eigen::Matrix<double, kNumResiduals, 7, Eigen::RowMajor>> j(
           jacobians[0]);
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> jLift;
-      PoseLocalParameterization::liftJacobian(parameters[0], jLift.data());
+      swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[0], jLift.data());
       j = jMinimal * jLift;
       if (jacobiansMinimal) {
         if (jacobiansMinimal[0]) {
@@ -524,7 +525,7 @@ bool ChordalDistance<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
       Eigen::Map<Eigen::Matrix<double, kNumResiduals, 7, Eigen::RowMajor>> j(
           jacobians[1]);
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> jLift;
-      PoseLocalParameterization::liftJacobian(parameters[1], jLift.data());
+      swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[1], jLift.data());
       j = jMinimal * jLift;
       if (jacobiansMinimal) {
         if (jacobiansMinimal[1]) {
@@ -548,7 +549,7 @@ bool ChordalDistance<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
             squareRootInformation_ * de_dN * dN_dp_WCtai * dp_WCtai_dp_WBtai;
         jMinimal.rightCols(3).setZero();
         Eigen::Matrix<double, 6, 7, Eigen::RowMajor> jLift;
-        PoseLocalParameterization::liftJacobian(parameters[2], jLift.data());
+        swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[2], jLift.data());
         j = jMinimal * jLift;
       }
       if (jacobiansMinimal) {
@@ -626,7 +627,7 @@ bool ChordalDistance<GEOMETRY_TYPE, PROJ_INTRINSIC_MODEL, EXTRINSIC_MODEL>::
                           dN_dp_WCtij * dp_WCtij_dtheta_BC) +
                  okvis::kinematics::crossMx(pair_T_WCtij.second * unit_fj) *
                      dtheta_WCtij_dtheta_BC);
-            PoseLocalParameterization::liftJacobian(parameters[4], jLift.data());
+            swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[4], jLift.data());
           }
           break;
       }

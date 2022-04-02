@@ -4,15 +4,14 @@
 #include <gtest/gtest.h>
 #include <swift_vio/ceres/ImuErrorWithGravity.hpp>
 #include <swift_vio/ceres/NormalVectorParameterBlock.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/ParallaxAnglePoint.hpp>
 
 #include <okvis/ceres/PoseError.hpp>
 #include <okvis/ceres/SpeedAndBiasError.hpp>
+#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/Time.hpp>
 #include <okvis/FrameTypedefs.hpp>
@@ -160,7 +159,7 @@ TEST(okvisTestSuite, ImuErrorWithGravity){
 	// let's use our own local quaternion perturbation
 	std::cout<<"setting local parameterization for pose... "<<std::flush;
 	::ceres::LocalParameterization* poseLocalParameterization2d = new okvis::ceres::PoseLocalParameterization2d;
-	::ceres::LocalParameterization* poseLocalParameterization = new okvis::ceres::PoseLocalParameterization;
+	::ceres::LocalParameterization* poseLocalParameterization = new swift_vio::PoseLocalParameterizationSimplified;
 	problem.SetParameterization(poseParameterBlock_0.parameters(),poseLocalParameterization2d);
 	problem.SetParameterization(poseParameterBlock_1.parameters(),poseLocalParameterization);
 

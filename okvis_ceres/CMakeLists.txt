@@ -33,16 +33,14 @@ add_library(${PROJECT_NAME}
   swift_vio/CameraTimeParamBlock.cpp
   swift_vio/ExtrinsicReps.cpp
   swift_vio/ImuErrorWithGravity.cpp
+  swift_vio/InverseDepthPointBlock.cpp
   swift_vio/MultipleTransformPointJacobian.cpp
   swift_vio/NormalVectorParameterBlock.cpp
   swift_vio/ParallaxAnglePoint.cpp
   swift_vio/PointLandmarkModels.cpp
   swift_vio/PointLandmarkSimulation.cpp
   swift_vio/PointSharedData.cpp
-  swift_vio/PoseError.cpp
-  swift_vio/PoseParameterBlock.cpp
   swift_vio/ProjectionIntrinsicReps.cpp
-  swift_vio/RelativePoseError.cpp
   swift_vio/SimulatedMotionForParallaxAngleTest.cpp
   swift_vio/checkSensorRig.cpp
   swift_vio/imu/BoundedImuDeque.cpp

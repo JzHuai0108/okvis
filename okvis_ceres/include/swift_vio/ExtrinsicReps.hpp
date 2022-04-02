@@ -8,7 +8,6 @@
 #include <okvis/ModelSwitch.hpp>
 #include <swift_vio/ceres/JacobianHelpers.hpp>
 
-// #include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/LocalParamizationAdditionalInterfaces.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/kinematics/sophus_operators.hpp>

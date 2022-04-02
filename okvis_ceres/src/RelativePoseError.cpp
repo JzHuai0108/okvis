@@ -37,7 +37,6 @@
  */
 
 #include <okvis/ceres/RelativePoseError.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -118,12 +117,8 @@ bool RelativePoseError::EvaluateWithMinimalJacobians(
           .block<3, 3>(0, 0);
       J0_minimal = (squareRootInformation_ * J0_minimal).eval();
 
-      // pseudo inverse of the local parametrization Jacobian:
-      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[0], J_lift.data());
-
-      // hallucinate Jacobian w.r.t. state
-      J0 = J0_minimal * J_lift;
+      J0.leftCols<6>() = J0_minimal;
+      J0.col(6).setZero();
 
       if (jacobiansMinimal != NULL) {
         if (jacobiansMinimal[0] != NULL) {
@@ -142,12 +137,8 @@ bool RelativePoseError::EvaluateWithMinimalJacobians(
           .block<3, 3>(0, 0);
       J1_minimal = (squareRootInformation_ * J1_minimal).eval();
 
-      // pseudo inverse of the local parametrization Jacobian:
-      Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[1], J_lift.data());
-
-      // hallucinate Jacobian w.r.t. state
-      J1 = J1_minimal * J_lift;
+      J1.leftCols<6>() = J1_minimal;
+      J1.col(6).setZero();
 
       if (jacobiansMinimal != NULL) {
         if (jacobiansMinimal[1] != NULL) {

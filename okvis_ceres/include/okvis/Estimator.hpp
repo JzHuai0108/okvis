@@ -57,7 +57,6 @@
 #include <okvis/Measurements.hpp>
 #include <okvis/Variables.hpp>
 #include <okvis/EstimatorBase.hpp>
-#include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/Map.hpp>

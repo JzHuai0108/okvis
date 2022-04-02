@@ -15,8 +15,6 @@
 #include <swift_vio/imu/SimpleImuOdometry.hpp>
 #include <swift_vio/ceres/JacobianHelpers.hpp>
 
-#include <okvis/ceres/PoseLocalParameterization.hpp>
-
 namespace okvis {
 namespace ceres {
 
@@ -310,7 +308,7 @@ bool EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
       if (jacobians[index]) {
         // pseudo inverse of the local parametrization Jacobian:
         Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-        PoseLocalParameterization::liftJacobian(parameters[index],
+        swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[index],
                                                 J_lift.data());
         Eigen::Matrix<double, 1, 6, Eigen::RowMajor> de_dT_GBtj;
         de_dT_GBtj.head<3>() = de_dp_GBtj[index];
@@ -329,7 +327,7 @@ bool EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
     // T_BC
     if (jacobians[2]) {
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[2], J_lift.data());
+      swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[2], J_lift.data());
       Eigen::Map<Eigen::Matrix<double, kNumResiduals, 7, Eigen::RowMajor>>
           jacMapped(jacobians[2]);
       jacMapped = squareRootInformation_ * de_dExtrinsic * J_lift;

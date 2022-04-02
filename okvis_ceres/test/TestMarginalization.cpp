@@ -46,7 +46,6 @@
 #include <okvis/ceres/SpeedAndBiasError.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/kinematics/Transformation.hpp>
@@ -84,13 +83,13 @@ TEST(okvisTestSuite, Marginalization){
 
   // use the custom graph/map data structure now:
   okvis::ceres::Map map;
-  map.addParameterBlock(poseParameterBlock0_ptr, okvis::ceres::Map::Pose6d);
+  map.addParameterBlock(poseParameterBlock0_ptr, okvis::ceres::Map::Pose6dSimple);
   map.setParameterBlockConstant(poseParameterBlock0_ptr);
-  map.addParameterBlock(poseParameterBlock1_ptr, okvis::ceres::Map::Pose6d);
+  map.addParameterBlock(poseParameterBlock1_ptr, okvis::ceres::Map::Pose6dSimple);
   map.setParameterBlockConstant(poseParameterBlock1_ptr);
-  map.addParameterBlock(poseParameterBlock2_ptr, okvis::ceres::Map::Pose6d);
+  map.addParameterBlock(poseParameterBlock2_ptr, okvis::ceres::Map::Pose6dSimple);
   map.addParameterBlock(extrinsicsParameterBlock_ptr,
-                        okvis::ceres::Map::Pose6d);
+                        okvis::ceres::Map::Pose6dSimple);
   //map.setParameterBlockConstant(extrinsicsParameterBlock_ptr);
   std::cout << " [ OK ] " << std::endl;
 

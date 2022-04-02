@@ -105,7 +105,7 @@ class Map {
     HomogeneousPoint,     ///< Use okvis::ceres::HomogeneousPointLocalParameterization.
     InverseDepthPoint,
     UnitVector,
-    Pose6d,               ///< Use okvis::ceres::PoseLocalParameterization.
+//    Pose6d,               ///< Use okvis::ceres::PoseLocalParameterization.
     Pose6dSimple,         ///< Use PoseLocalParameterizationSimplified
     Pose3d,               ///< Use okvis::ceres::PoseLocalParameterization3d (orientation varying).
     Pose4d,               ///< Use okvis::ceres::PoseLocalParameterization4d (position and yaw varying).
@@ -342,26 +342,6 @@ class Map {
   ::ceres::Problem* problemUnsafe() const {
     return problem_.get();
   }
-
-  /**
-   * @brief selectLocalParameterization essentially cast away the const.
-   * @param query
-   */
-  ::ceres::LocalParameterization* selectLocalParameterization(
-      const ::ceres::LocalParameterization* query);
-
-  std::shared_ptr<ParameterBlock> internalAddParameterBlockById(
-      uint64_t id, std::shared_ptr<::ceres::Problem> problem);
-
-  /**
-   * @brief cloneProblem clone a ceres::Problem from the internal problem_.
-   * @warning member function constness is forsaken because of selectLocalParameterization.
-   * @return cloned problem.
-   */
-  std::shared_ptr<::ceres::Problem> cloneProblem(
-      std::unordered_map<uint64_t,
-                         std::shared_ptr<okvis::ceres::ParameterBlock>>*
-          blockId2BlockCopyPtr);
 
   /**
    * @brief printMapInfo print basic info of the problem's graph.

@@ -38,6 +38,7 @@
 
 #include <okvis/kinematics/operators.hpp>
 #include <okvis/kinematics/Transformation.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -168,7 +169,7 @@ bool ReprojectionError<GEOMETRY_T>::EvaluateWithMinimalJacobians(
 
       // pseudo inverse of the local parametrization Jacobian:
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[0], J_lift.data());
+      swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[0], J_lift.data());
 
       // hallucinate Jacobian w.r.t. state
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor> > J0(
@@ -220,7 +221,7 @@ bool ReprojectionError<GEOMETRY_T>::EvaluateWithMinimalJacobians(
 
       // pseudo inverse of the local parametrization Jacobian:
       Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-      PoseLocalParameterization::liftJacobian(parameters[2], J_lift.data());
+      swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[2], J_lift.data());
 
       // hallucinate Jacobian w.r.t. state
       Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor> > J2(

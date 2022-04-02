@@ -38,13 +38,14 @@
 #include <okvis/ceres/HomogeneousPointError.hpp>
 #include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
 #include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/Time.hpp>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/assert_macros.hpp>
+
+#include <swift_vio/ExtrinsicReps.hpp>
 
 TEST(okvisTestSuite, ReprojectionError){
 	// initialize random number generator
@@ -79,7 +80,7 @@ TEST(okvisTestSuite, ReprojectionError){
 
 	// let's use our own local quaternion perturbation
 	std::cout<<"setting local parameterization for pose... "<<std::flush;
-	::ceres::LocalParameterization* poseLocalParameterization = new okvis::ceres::PoseLocalParameterization;
+	::ceres::LocalParameterization* poseLocalParameterization = new swift_vio::PoseLocalParameterizationSimplified;
 
 	problem.SetParameterization(poseParameterBlock.parameters(),poseLocalParameterization);
 	problem.SetParameterization(extrinsicsParameterBlock.parameters(),poseLocalParameterization);

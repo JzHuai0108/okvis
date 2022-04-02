@@ -43,7 +43,6 @@
 #include <memory>
 #include <ceres/ceres.h>
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
 #include <okvis/ceres/ReprojectionErrorBase.hpp>
 

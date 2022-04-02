@@ -10,6 +10,7 @@
 #include <okvis/kinematics/operators.hpp>
 
 #include <swift_vio/ceres/JacobianHelpers.hpp>
+#include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/ParallaxAnglePoint.hpp>
 #include <swift_vio/Measurements.hpp>
 #include <swift_vio/imu/SimpleImuOdometry.hpp>
@@ -373,7 +374,7 @@ void RsReprojectionError<GEOMETRY_TYPE>::
     J0_minimal = Jh_weighted * dhC_deltaTWS;
     // pseudo inverse of the local parametrization Jacobian
     Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-    PoseLocalParameterization::liftJacobian(parameters[Index::T_WBt], J_lift.data());
+    swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[Index::T_WBt], J_lift.data());
 
     // hallucinate Jacobian w.r.t. state
     Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J0(jacobians[0]);
@@ -408,7 +409,7 @@ void RsReprojectionError<GEOMETRY_TYPE>::
         J2_minimal = Jh_weighted * dhC_dExtrinsic;
     Eigen::Map<Eigen::Matrix<double, 2, 7, Eigen::RowMajor>> J2(jacobians[2]);
     Eigen::Matrix<double, 6, 7, Eigen::RowMajor> J_lift;
-    PoseLocalParameterization::liftJacobian(parameters[Index::T_BCt], J_lift.data());
+    swift_vio::PoseLocalParameterizationSimplified::liftJacobian(parameters[Index::T_BCt], J_lift.data());
     J2 = J2_minimal * J_lift;
 
     if (jacobiansMinimal != NULL) {

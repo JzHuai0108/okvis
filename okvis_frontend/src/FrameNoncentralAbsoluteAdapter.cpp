@@ -39,7 +39,6 @@
  */
 
 #include <opengv/absolute_pose/FrameNoncentralAbsoluteAdapter.hpp>
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 
 // cameras and distortions
 #include <okvis/CameraModelSwitch.hpp>

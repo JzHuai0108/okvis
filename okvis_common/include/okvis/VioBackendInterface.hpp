@@ -53,9 +53,7 @@
 #include <okvis/Measurements.hpp>
 #include <okvis/Parameters.hpp>
 #include <okvis/Variables.hpp>
-#include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 #include <okvis/ceres/Map.hpp>
 #include <okvis/ceres/MarginalizationError.hpp>
 #include <okvis/ceres/ReprojectionError.hpp>

@@ -10,7 +10,7 @@
 
 #include <okvis/Measurements.hpp>
 #include <okvis/Parameters.hpp>
-#include <swift_vio/ceres/PoseParameterBlock.hpp>
+#include <okvis/ceres/PoseParameterBlock.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSizedLin.hpp>
 
@@ -25,7 +25,7 @@ struct StateInfoForOneKeypoint {
 
     StateInfoForOneKeypoint(
         uint64_t _frameId, size_t _camIdx,
-        std::shared_ptr<const PoseParameterBlock> T_WB_ptr,
+        std::shared_ptr<const okvis::ceres::PoseParameterBlock> T_WB_ptr,
         double _normalizedRow, okvis::Time imageStamp)
         : frameId(_frameId),
           cameraId(_camIdx),
@@ -35,7 +35,7 @@ struct StateInfoForOneKeypoint {
 
     uint64_t frameId;
     size_t cameraId;
-    std::shared_ptr<const PoseParameterBlock> T_WBj_ptr;
+    std::shared_ptr<const okvis::ceres::PoseParameterBlock> T_WBj_ptr;
     std::shared_ptr<const okvis::ceres::SpeedParameterBlock> v_WBj_ptr;
     std::shared_ptr<const okvis::ceres::BiasParameterBlock> biasPtr;
     // IMU measurements covering the state epoch.
@@ -75,7 +75,7 @@ class PointSharedData {
 
   void addKeypointObservation(
       const okvis::KeypointIdentifier& kpi,
-      std::shared_ptr<const PoseParameterBlock> T_WBj_ptr,
+      std::shared_ptr<const okvis::ceres::PoseParameterBlock> T_WBj_ptr,
       double normalizedRow, okvis::Time imageTimestamp) {
     stateInfoForObservations_.emplace_back(kpi.frameId, kpi.cameraIndex,
                                            T_WBj_ptr, normalizedRow, imageTimestamp);
@@ -358,7 +358,7 @@ class PointSharedData {
 
   /// @name Getters for parameter blocks
   /// @{
-  std::shared_ptr<const PoseParameterBlock> poseParameterBlockPtr(
+  std::shared_ptr<const okvis::ceres::PoseParameterBlock> poseParameterBlockPtr(
       int observationIndex) const;
 
   std::shared_ptr<const okvis::ceres::ParameterBlock>

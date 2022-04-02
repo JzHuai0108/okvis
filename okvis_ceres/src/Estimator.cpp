@@ -156,11 +156,11 @@ bool Estimator::addStates(
   if(statesMap_.empty())
   {
     referencePoseId_ = states.id; // set this as reference pose
-    if (!mapPtr_->addParameterBlock(poseParameterBlock,ceres::Map::Pose6d)) {
+    if (!mapPtr_->addParameterBlock(poseParameterBlock,ceres::Map::Pose6dSimple)) {
       return false;
     }
   } else {
-    if (!mapPtr_->addParameterBlock(poseParameterBlock,ceres::Map::Pose6d)) {
+    if (!mapPtr_->addParameterBlock(poseParameterBlock,ceres::Map::Pose6dSimple)) {
       return false;
     }
   }
@@ -192,7 +192,7 @@ bool Estimator::addStates(
       std::shared_ptr<okvis::ceres::PoseParameterBlock> extrinsicsParameterBlockPtr(
           new okvis::ceres::PoseParameterBlock(T_SC, id,
                                                multiFrame->timestamp()));
-      if(!mapPtr_->addParameterBlock(extrinsicsParameterBlockPtr,ceres::Map::Pose6d)){
+      if(!mapPtr_->addParameterBlock(extrinsicsParameterBlockPtr,ceres::Map::Pose6dSimple)){
         return false;
       }
       cameraInfos.at(CameraSensorStates::T_XCi).id = id;

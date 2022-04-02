@@ -66,6 +66,32 @@ class EuclideanParamBlockSized
     return intrinsicParams;
   }
 
+  // Delta_Chi=x0_plus_Delta[-]x0
+  /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
+  /// @param[in] x0 Variable.
+  /// @param[in] x0_plus_Delta Perturbed variable.
+  /// @param[out] Delta_Chi Minimal difference.
+  /// \return True on success.
+  void minus(const double* x0, const double* x0_plus_Delta,
+                     double* Delta_Chi) const final {
+    Eigen::Map<const Eigen::Matrix<double, Dim, 1> > x0_(x0);
+    Eigen::Map<Eigen::Matrix<double, Dim, 1> > Delta_Chi_(Delta_Chi);
+    Eigen::Map<const Eigen::Matrix<double, Dim, 1> > x0_plus_Delta_(
+        x0_plus_Delta);
+    Delta_Chi_ = x0_plus_Delta_ - x0_;
+  }
+
+  /// \brief Computes the Jacobian from minimal space to naively overparameterised space as used by ceres.
+//  /// @param[in] x0 Variable.
+  /// @param[out] jacobian the Jacobian (dimension minDim x dim).
+  /// \return True on success.
+  void liftJacobian(const double * /*unused: x*/,
+                    double *jacobian) const final {
+    Eigen::Map<Eigen::Matrix<double, Dim, Dim, Eigen::RowMajor>> identity(
+        jacobian);
+    identity.setIdentity();
+  }
+
   /// @brief Return parameter block type as string
   virtual std::string typeInfo() const { return "EuclideanParamBlockSized"; }
 };

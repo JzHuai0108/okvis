@@ -36,15 +36,16 @@
 #include <okvis/ceres/ImuError.hpp>
 #include <okvis/ceres/PoseError.hpp>
 #include <okvis/ceres/SpeedAndBiasError.hpp>
+#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
+
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/Time.hpp>
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/assert_macros.hpp>
+
+#include <swift_vio/ExtrinsicReps.hpp>
 
 double sinc_test(double x){
 	if(fabs(x)>1e-10) {
@@ -203,7 +204,7 @@ TEST(okvisTestSuite, ImuError){
 	// let's use our own local quaternion perturbation
 	std::cout<<"setting local parameterization for pose... "<<std::flush;
 	::ceres::LocalParameterization* poseLocalParameterization2d = new okvis::ceres::PoseLocalParameterization2d;
-	::ceres::LocalParameterization* poseLocalParameterization = new okvis::ceres::PoseLocalParameterization;
+	::ceres::LocalParameterization* poseLocalParameterization = new swift_vio::PoseLocalParameterizationSimplified;
 	problem.SetParameterization(poseParameterBlock_0.parameters(),poseLocalParameterization2d);
 	problem.SetParameterization(poseParameterBlock_1.parameters(),poseLocalParameterization);
 	std::cout<<" [ OK ] "<<std::endl;

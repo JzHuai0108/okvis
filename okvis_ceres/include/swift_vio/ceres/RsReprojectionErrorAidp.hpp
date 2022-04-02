@@ -15,7 +15,6 @@
 
 #include <okvis/assert_macros.hpp>
 #include <okvis/cameras/CameraBase.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/Parameters.hpp>
@@ -87,11 +86,11 @@ template <class GEOMETRY_TYPE>
 class RsReprojectionErrorAidp
     : public ::ceres::SizedCostFunction<
           2 /* number of residuals */, 
-          7 /* T_WBt with PoseLocalParameterization */,
+          7 /* T_WBt with PoseLocalParameterizationSimplified */,
           4 /* hp_Ch with InverseDepthParameterization */,
-          7 /* T_WBh with PoseLocalParameterization */,
-          7 /* T_BCt with PoseLocalParameterization */,
-          7 /* T_BCh with PoseLocalParameterization */,
+          7 /* T_WBh with PoseLocalParameterizationSimplified */,
+          7 /* T_BCt with PoseLocalParameterizationSimplified */,
+          7 /* T_BCh with PoseLocalParameterizationSimplified */,
           GEOMETRY_TYPE::NumIntrinsics,
           1 /* frame readout time */,
           1 /* camera time offset */,

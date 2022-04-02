@@ -49,10 +49,7 @@
 #include "ceres/ceres.h"
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/assert_macros.hpp>
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
-#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
-#include <okvis/ceres/PoseParameterBlock.hpp>
-#include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
+
 #include <okvis/ceres/Map.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
 

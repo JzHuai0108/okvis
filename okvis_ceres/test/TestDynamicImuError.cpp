@@ -14,7 +14,6 @@
 #include <swift_vio/ParallaxAnglePoint.hpp>
 
 #include <okvis/ceres/PoseError.hpp>
-#include <okvis/ceres/PoseLocalParameterization.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
 #include <okvis/ceres/SpeedAndBiasError.hpp>
 #include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>

@@ -45,7 +45,7 @@ namespace ceres {
 
 // Default constructor (assumes not fixed).
 PoseParameterBlock::PoseParameterBlock()
-    : base_t::ParameterBlockSized() {
+    : base_t::ParameterBlockSized(), plinPointFixed_(false) {
   setFixed(false);
 }
 
@@ -56,10 +56,10 @@ PoseParameterBlock::~PoseParameterBlock() {
 // Constructor with estimate and time.
 PoseParameterBlock::PoseParameterBlock(
     const okvis::kinematics::Transformation& T_WS, uint64_t id,
-    const okvis::Time& timestamp) {
+    const okvis::Time& timestamp) : plinPointFixed_(false) {
   setEstimate(T_WS);
   setId(id);
-  setTimestamp(timestamp);
+  // setTimestamp(timestamp);
   setFixed(false);
 }
 
@@ -76,6 +76,19 @@ void PoseParameterBlock::setEstimate(
   parameters_[4] = q[1];
   parameters_[5] = q[2];
   parameters_[6] = q[3];
+
+  if (!plinPointFixed_) {
+    pLinPoint_ = r;
+  }
+}
+
+void PoseParameterBlock::fixPositionLinPoint(const okvis::kinematics::Transformation& T_WS) {
+  pLinPoint_ = T_WS.r();
+  plinPointFixed_ = true;
+}
+
+void PoseParameterBlock::fixPositionLinPoint() {
+  plinPointFixed_ = true;
 }
 
 // getters
@@ -87,5 +100,10 @@ okvis::kinematics::Transformation PoseParameterBlock::estimate() const {
                          parameters_[5]));
 }
 
+okvis::kinematics::Transformation PoseParameterBlock::linPoint() const {
+  return okvis::kinematics::Transformation(
+      pLinPoint_, Eigen::Quaterniond(parameters_[6], parameters_[3],
+                                     parameters_[4], parameters_[5]));
+}
 }  // namespace ceres
 }  // namespace okvis

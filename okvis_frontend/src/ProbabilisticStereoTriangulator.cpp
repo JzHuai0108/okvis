@@ -43,7 +43,6 @@
 #include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/ceres/PoseError.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
-#include <okvis/ceres/HomogeneousPointParameterBlock.hpp>
 
 // cameras and distortions
 #include <okvis/cameras/EUCM.hpp>
