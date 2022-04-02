@@ -14,6 +14,7 @@
 #include <swift_vio/ParallaxAnglePoint.hpp>
 #include <swift_vio/Measurements.hpp>
 #include <swift_vio/imu/SimpleImuOdometry.hpp>
+#include <swift_vio/imu/SimpleImuPropagationJacobian.hpp>
 
 namespace okvis {
 /// \brief ceres Namespace for ceres-related functionality implemented in okvis.
@@ -73,11 +74,6 @@ bool RsReprojectionError<GEOMETRY_TYPE>::
     EvaluateWithMinimalJacobiansAnalytic(double const* const* parameters,
                                  double* residuals, double** jacobians,
                                  double** jacobiansMinimal) const {
-  // We avoid the use of okvis::kinematics::Transformation here due to
-  // quaternion normalization and so forth. This only matters in order to be
-  // able to check Jacobians with numeric differentiation chained, first w.r.t.
-  // q and then d_alpha.
-
   Eigen::Map<const Eigen::Vector3d> t_WB_W0(parameters[Index::T_WBt]);
   Eigen::Map<const Eigen::Quaterniond> q_WB0(parameters[Index::T_WBt] + 3);
 
@@ -96,8 +92,8 @@ bool RsReprojectionError<GEOMETRY_TYPE>::
   double relativeFeatureTime = tdLatestEstimate + trLatestEstimate * kpN + (imageTime_ - stateEpoch_).toSec();
   std::pair<Eigen::Matrix<double, 3, 1>, Eigen::Quaternion<double>> pairT_WB(
       t_WB_W0, q_WB0);
-  Eigen::Matrix<double, 3, 1> speed =
-      Eigen::Map<const Eigen::Matrix<double, 3, 1>>(parameters[Index::SpeedAndBiases]);
+  Eigen::Map<const Eigen::Matrix<double, 3, 1>> v_WB0(parameters[Index::SpeedAndBiases]);
+  Eigen::Matrix<double, 3, 1> speed = v_WB0;
 
   Eigen::Matrix<double, 6, 1> bgBa =
       Eigen::Map<const Eigen::Matrix<double, 6, 1>>(parameters[Index::SpeedAndBiases] + 3);
@@ -205,6 +201,11 @@ bool RsReprojectionError<GEOMETRY_TYPE>::
     dhS_deltaTWS.topLeftCorner<3, 3>() = -C_BW * hp_W[3];
     dhS_deltaTWS.topRightCorner<3, 3>() =
         C_BW * okvis::kinematics::crossMx(p_BP_W);
+
+    Eigen::Matrix3d phi;
+    swift_vio::Phi_pq(t_WB_W0, t_WB_W, v_WB0, gW, relativeFeatureTime, &phi);
+    dhS_deltaTWS.rightCols<3>() += dhS_deltaTWS.leftCols<3>() * phi;
+
     dhS_deltaTWS.row(3).setZero();
     dhC_deltaTWS = T_CB * dhS_deltaTWS;
     dhC_deltahpW = T_CB * T_BW;

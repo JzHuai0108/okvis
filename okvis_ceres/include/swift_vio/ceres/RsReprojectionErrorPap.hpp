@@ -39,28 +39,14 @@ public:
 ///     extent of the rolling shutter effect. This is most likely to occur with
 ///     observations in the most recent frame.
 /// \tparam GEOMETRY_TYPE The camera gemetry type.
-/// \tparam PROJ_INTRINSIC_MODEL describes which subset of the projection
-///     intrinsic parameters of the camera geometry model is represented and
-///     optimized in the ceres solver.
-///     It maps the subset to the full projection intrinsic parameters
-///     using additional constant values from a provided camera geometry.
-///     Its kNumParams should not be zero.
-/// \tparam EXTRINSIC_MODEL describes which subset of the extrinsic parameters,
-///     is represented and optimized in the ceres solver.
-///     It maps the subset to the full extrinsic parameters using additional
-///     constant values from a provided extrinsic entity, e.g., T_BC.
-///     Its kNumParams should not be zero.
-/// TODO(jhuai): Merge projection and distortion intrinsics.
-template <class GEOMETRY_TYPE, class PROJ_INTRINSIC_MODEL,
-          class EXTRINSIC_MODEL = swift_vio::Extrinsic_p_BC_q_BC>
+template <class GEOMETRY_TYPE>
 class RsReprojectionErrorPap
     : public ::ceres::SizedCostFunction<
           2 /* residuals */, 7 /* observing frame pose */, 7 /* main anchor */,
           7 /* associate anchor */,
           swift_vio::ParallaxAngleParameterization::kGlobalDim /* landmark */,
           7 /* camera extrinsic */,
-          PROJ_INTRINSIC_MODEL::kNumParams /* camera projection intrinsic */,
-          GEOMETRY_TYPE::distortion_t::NumDistortionIntrinsics,
+          GEOMETRY_TYPE::NumIntrinsics /* camera intrinsic */,
           1 /* frame readout time */, 1 /* camera time delay */,
           9 /* velocity and biases of observing frame */,
           9 /* velocity and biases of main anchor */,
@@ -70,28 +56,32 @@ class RsReprojectionErrorPap
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
 
+  enum Index {
+    T_WBt = 0,
+    T_WBm,
+    T_WBa,
+    PAP,
+    T_BC,
+    Intrinsics,
+    TR,
+    TD,
+    SpeedAndBiast,
+    SpeedAndBiasm,
+    SpeedAndBiasa
+  };
+
   /// \brief Make the camera geometry type accessible.
   typedef GEOMETRY_TYPE camera_geometry_t;
   typedef swift_vio::ParallaxAngleParameterization LANDMARK_MODEL;
-  static const int kProjectionIntrinsicDim = PROJ_INTRINSIC_MODEL::kNumParams;
-  static const int kDistortionDim = GEOMETRY_TYPE::distortion_t::NumDistortionIntrinsics;
+  static const int kIntrinsicDim = GEOMETRY_TYPE::NumIntrinsics;
 
   /// \brief The base class type.
   typedef ::ceres::SizedCostFunction<
-      kNumResiduals, 7, 7, 7, LANDMARK_MODEL::kGlobalDim, 7, PROJ_INTRINSIC_MODEL::kNumParams,
-      GEOMETRY_TYPE::distortion_t::NumDistortionIntrinsics, 1, 1, 9, 9, 9>
+      kNumResiduals, 7, 7, 7, LANDMARK_MODEL::kGlobalDim, 7, kIntrinsicDim,
+      1, 1, 9, 9, 9>
       base_t;
 
-  typedef typename std::conditional<
-      (PROJ_INTRINSIC_MODEL::kNumParams > 1),
-      Eigen::Matrix<double, kNumResiduals, PROJ_INTRINSIC_MODEL::kNumParams,
-                    Eigen::RowMajor>,
-      Eigen::Matrix<double, kNumResiduals, PROJ_INTRINSIC_MODEL::kNumParams> >::type
-      ProjectionIntrinsicJacType;
-
-  typedef typename std::conditional<(kDistortionDim > 1),
-      Eigen::Matrix<double, kNumResiduals, kDistortionDim, Eigen::RowMajor>,
-      Eigen::Matrix<double, kNumResiduals, kDistortionDim>>::type DistortionJacType;
+  typedef Eigen::Matrix<double, kNumResiduals, kIntrinsicDim, Eigen::RowMajor> IntrinsicJacType;
 
   /// \brief Default constructor.
   RsReprojectionErrorPap();

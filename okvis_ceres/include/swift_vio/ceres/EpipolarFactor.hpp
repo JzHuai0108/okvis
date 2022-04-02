@@ -31,22 +31,19 @@ public:
 };
 
 /**
- * \brief The 1D epipolar error.
- * \tparam GEOMETRY_TYPE The camera gemetry type.
- * The constant params are passed into the residual error through the constructor interface.
- * The variable params are reflected in terms of dim in the SizedCostFunction base class.
- * The Jacobians are computed according to these dims except for the reparameterized pose.
- * The variable params will be passed to the evaluate function as scalar
- * pointers so they can be stored as vector<scalar> or Eigen::Vector.
+ * @brief The 1D epipolar error.
+ * @param GEOMETRY_TYPE The camera gemetry type.
+ * @warning To compute residual and Jacobians, this factor updates the camera
+ * geometry each time the camera intrinsics are passed to this factor by the
+ * ceres solver. This may cause a racing condition in writing the shared camera
+ * geometry. A solution is to implement backProjectWithExternalParameters in the camera models.
  */
-template <class GEOMETRY_TYPE, class EXTRINSIC_MODEL,
-          class PROJ_INTRINSIC_MODEL>
+template <class GEOMETRY_TYPE>
 class EpipolarFactor
     : public ::ceres::SizedCostFunction<
           1 /* residuals */, 7 /* left pose */, 7 /* right pose */,
           7 /* extrinsics */,
-          PROJ_INTRINSIC_MODEL::kNumParams /* projecction intrinsics */,
-          GEOMETRY_TYPE::distortion_t::NumDistortionIntrinsics,
+          GEOMETRY_TYPE::NumIntrinsics /* intrinsics */,
           1 /* readout time */,
           1 /* camera time delay */>,
       public EpipolarFactorBase /* use this base to simplify handling visual
@@ -56,15 +53,22 @@ class EpipolarFactor
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
 
+  enum Index {
+    T_WBl = 0,
+    T_WBr,
+    T_BC,
+    Intrinsics,
+    TR,
+    TD
+  };
   /// \brief Make the camera geometry type accessible.
   typedef GEOMETRY_TYPE camera_geometry_t;
 
-  static const int kDistortionDim = GEOMETRY_TYPE::distortion_t::NumDistortionIntrinsics;
+  static const int kIntrinsicDim = GEOMETRY_TYPE::NumIntrinsics;
 
   /// \brief The base class type.
   typedef ::ceres::SizedCostFunction<
-      1, 7, 7, 7, PROJ_INTRINSIC_MODEL::kNumParams,
-      kDistortionDim, 1, 1>
+      1, 7, 7, 7, kIntrinsicDim, 1, 1>
       base_t;
 
   /// \brief The keypoint type (measurement type).

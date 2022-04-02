@@ -6,6 +6,11 @@
 #include <okvis/ModelSwitch.hpp>
 
 namespace swift_vio {
+/**
+ * @brief Different parameterizations of the projection intrinsic parameters.
+ * @deprecated These parameterizations are redundant wrt the camera geometry model,
+ * and tend to scatter everywhere.
+ */
 class ProjIntrinsic_FXY_CXY {
  public:
   static const int kModelId = 1;

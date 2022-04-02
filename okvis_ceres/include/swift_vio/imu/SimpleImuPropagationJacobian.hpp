@@ -98,6 +98,15 @@ private:
   Eigen::Matrix<double, 3, 1> endV_WB_W_;
   Eigen::Matrix<double, 3, 1> endOmega_WB_B_;
 };
+
+inline void Phi_pq(const Eigen::Vector3d &start_p_WB, const Eigen::Vector3d &end_p_WB,
+            const Eigen::Vector3d &start_v_WB, const Eigen::Vector3d &gW,
+            double dt, Eigen::Matrix3d *phi) {
+  Eigen::Vector3d dr =
+      -(end_p_WB - start_p_WB - start_v_WB * dt - 0.5 * gW * dt * dt);
+  *phi = okvis::kinematics::crossMx(dr);
+}
+
 } // namespace swift_vio
 
 #endif // INCLUDE_SWIFT_VIO_SIMPLE_IMU_PROPAGATION_JACOBIAN_HPP_

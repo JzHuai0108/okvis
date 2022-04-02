@@ -18,15 +18,12 @@
 namespace okvis {
 namespace ceres {
 
-template <class GEOMETRY_TYPE, class EXTRINSIC_MODEL,
-          class PROJ_INTRINSIC_MODEL>
-EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL,
-               PROJ_INTRINSIC_MODEL>::EpipolarFactor()
+template <class GEOMETRY_TYPE>
+EpipolarFactor<GEOMETRY_TYPE>::EpipolarFactor()
     : gravityMag_(9.80665) {}
 
-template <class GEOMETRY_TYPE, class EXTRINSIC_MODEL,
-          class PROJ_INTRINSIC_MODEL>
-EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
+template <class GEOMETRY_TYPE>
+EpipolarFactor<GEOMETRY_TYPE>::
     EpipolarFactor(
         std::shared_ptr<camera_geometry_t> cameraGeometry,
         uint64_t landmarkId,
@@ -61,24 +58,22 @@ EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
   }
 }
 
-template <class GEOMETRY_TYPE, class EXTRINSIC_MODEL,
-          class PROJ_INTRINSIC_MODEL>
-bool EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
+template <class GEOMETRY_TYPE>
+bool EpipolarFactor<GEOMETRY_TYPE>::
     Evaluate(double const* const* parameters, double* residuals,
              double** jacobians) const {
   return EvaluateWithMinimalJacobians(parameters, residuals, jacobians, NULL);
 }
 
-template <class GEOMETRY_TYPE, class EXTRINSIC_MODEL,
-          class PROJ_INTRINSIC_MODEL>
-void EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
+template <class GEOMETRY_TYPE>
+void EpipolarFactor<GEOMETRY_TYPE>::
     poseAndVelocityAtObservation(
         std::pair<Eigen::Matrix<double, 3, 1>, Eigen::Quaternion<double>>*
             pair_T_WB,
         Eigen::Matrix<double, 6, 1>* velAndOmega,
         double const* const* parameters, int index) const {
-  double trLatestEstimate = parameters[5][0];
-  double tdLatestEstimate = parameters[6][0];
+  double trLatestEstimate = parameters[Index::TR][0];
+  double tdLatestEstimate = parameters[Index::TD][0];
   Eigen::Matrix<double, 3, 1> speed = speedAndBiases_[index].head<3>();
   Eigen::Matrix<double, 6, 1> bgBa = speedAndBiases_[index].tail<6>();
 
@@ -102,17 +97,11 @@ void EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
   velAndOmega->tail<3>() = queryValue.measurement.gyroscopes;
 }
 
-template <class GEOMETRY_TYPE, class EXTRINSIC_MODEL,
-          class PROJ_INTRINSIC_MODEL>
-bool EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
+template <class GEOMETRY_TYPE>
+bool EpipolarFactor<GEOMETRY_TYPE>::
     EvaluateWithMinimalJacobians(double const* const* parameters,
                                  double* residuals, double** jacobians,
                                  double** jacobiansMinimal) const {
-  // We avoid the use of okvis::kinematics::Transformation here due to
-  // quaternion normalization and so forth. This only matters in order to be
-  // able to check Jacobians with numeric differentiation chained, first w.r.t.
-  // q and then d_alpha.
-
   // pose: world to sensor transformation
   Eigen::Map<const Eigen::Vector3d> t_WB1_W(parameters[0]);
   const Eigen::Quaterniond q_WB1(parameters[0][6], parameters[0][3],
@@ -124,21 +113,12 @@ bool EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
   Eigen::Map<const Eigen::Vector3d> t_BC_B(parameters[2]);
   const Eigen::Quaterniond q_BC(parameters[2][6], parameters[2][3],
                                 parameters[2][4], parameters[2][5]);
-  // Warn: use GEOMETRY_TYPE::NumIntrinsics will lead to undefined
-  // reference to NumIntrinsics of 4 instantiated PinholeCamera template class.
-  Eigen::VectorXd intrinsics(4 + kDistortionDim);
 
-  Eigen::Map<const Eigen::Matrix<double, PROJ_INTRINSIC_MODEL::kNumParams, 1>>
-      projIntrinsics(parameters[3]);
-  PROJ_INTRINSIC_MODEL::localToGlobal(projIntrinsics, &intrinsics);
-
-  Eigen::Map<const Eigen::Matrix<double, kDistortionDim, 1>>
-      distortionIntrinsics(parameters[4]);
-  intrinsics.tail<kDistortionDim>() = distortionIntrinsics;
+  Eigen::Map<const Eigen::Matrix<double, kIntrinsicDim, 1>> intrinsics(parameters[3]);
   cameraGeometryBase_->setIntrinsics(intrinsics);
 
-  double trLatestEstimate = parameters[5][0];
-  double tdLatestEstimate = parameters[6][0];
+  double trLatestEstimate = parameters[Index::TR][0];
+  double tdLatestEstimate = parameters[Index::TD][0];
   int index = 0;
   std::pair<Eigen::Matrix<double, 3, 1>, Eigen::Quaternion<double>> pair_T_WB1(
       t_WB1_W, q_WB1);
@@ -169,7 +149,7 @@ bool EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
       dfj_dXcam(2);
   std::vector<Eigen::Matrix3d, Eigen::aligned_allocator<Eigen::Matrix3d>>
       cov_fj(2);
-  int projIntrinsicRepId = PROJ_INTRINSIC_MODEL::kModelId;
+  int projIntrinsicRepId = swift_vio::ProjIntrinsic_FXY_CXY::kModelId;
   bool directionJacOk = true;
   for (int j = 0; j < 2; ++j) {
     bool projectOk =
@@ -195,7 +175,6 @@ bool EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
   epj.de_dfk(&de_dfj[1]);
   const double headObsCovModifier = 4;
   // TODO(jhuai): set and fix squareRootInfo in the constructor
-  // TODO(jhuai): account for the IMU noise
   Eigen::Matrix<double, 1, 1> cov_e = de_dfj[0] * cov_fj[0] * de_dfj[0].transpose() * headObsCovModifier +
                  de_dfj[1] * cov_fj[1] * de_dfj[1].transpose();
   bool covOk = cov_e[0] > 1e-8;
@@ -222,22 +201,14 @@ bool EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
     Eigen::Matrix<double, 3, 3> dp_dt_CB;
 
     Eigen::Matrix<double, 1, Eigen::Dynamic> de_dExtrinsic;
-    switch (EXTRINSIC_MODEL::kModelId) {
-
-      case swift_vio::Extrinsic_p_CB::kModelId:
-        rmj.dp_dt_CB(&dp_dt_CB);
-        de_dExtrinsic = de_dt_Ctij_Ctik * dp_dt_CB;
-        break;
-      case swift_vio::Extrinsic_p_BC_q_BC::kModelId:
-      default:
-        rmj.dtheta_dtheta_BC(&dtheta_dtheta_BC);
-        rmj.dp_dtheta_BC(&dp_dtheta_BC);
-        rmj.dp_dt_BC(&dp_dt_BC);
-        de_dExtrinsic.resize(1, 6);
-        de_dExtrinsic.head<3>() = de_dt_Ctij_Ctik * dp_dt_BC;
-        de_dExtrinsic.tail<3>() = de_dt_Ctij_Ctik * dp_dtheta_BC +
-                                  de_dtheta_Ctij_Ctik * dtheta_dtheta_BC;
-        break;
+    {
+      rmj.dtheta_dtheta_BC(&dtheta_dtheta_BC);
+      rmj.dp_dtheta_BC(&dp_dtheta_BC);
+      rmj.dp_dt_BC(&dp_dt_BC);
+      de_dExtrinsic.resize(1, 6);
+      de_dExtrinsic.head<3>() = de_dt_Ctij_Ctik * dp_dt_BC;
+      de_dExtrinsic.tail<3>() = de_dt_Ctij_Ctik * dp_dtheta_BC +
+                                de_dtheta_Ctij_Ctik * dtheta_dtheta_BC;
     }
     Eigen::Matrix<double, 1, Eigen::Dynamic> de_dxcam =
         de_dfj[0] * dfj_dXcam[0] + de_dfj[1] * dfj_dXcam[1];
@@ -337,67 +308,48 @@ bool EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
         jacMinimalMapped = squareRootInformation_ * de_dExtrinsic;
       }
     }
-    // proj intrinsics
+    // intrinsics
     if (jacobians[3]) {
       Eigen::Map<
-          Eigen::Matrix<double, kNumResiduals, PROJ_INTRINSIC_MODEL::kNumParams,
+          Eigen::Matrix<double, kNumResiduals, kIntrinsicDim,
                         Eigen::RowMajor>>
           jacMapped(jacobians[3]);
-      jacMapped = squareRootInformation_ *
-                  de_dxcam.head<PROJ_INTRINSIC_MODEL::kNumParams>();
+      jacMapped = squareRootInformation_ * de_dxcam;
       if (jacobiansMinimal && jacobiansMinimal[3]) {
         Eigen::Map<
             Eigen::Matrix<double, kNumResiduals,
-                          PROJ_INTRINSIC_MODEL::kNumParams, Eigen::RowMajor>>
+                          kIntrinsicDim, Eigen::RowMajor>>
             jacMinimalMapped(jacobiansMinimal[3]);
-        jacMinimalMapped = squareRootInformation_ *
-                           de_dxcam.head<PROJ_INTRINSIC_MODEL::kNumParams>();
-      }
-    }
-    // distortion
-    if (jacobians[4]) {
-      Eigen::Map<
-          Eigen::Matrix<double, kNumResiduals, kDistortionDim, Eigen::RowMajor>>
-          jacMapped(jacobians[4]);
-      jacMapped = squareRootInformation_ * de_dxcam.tail<kDistortionDim>();
-      if (jacobiansMinimal && jacobiansMinimal[4]) {
-        Eigen::Map<Eigen::Matrix<double, kNumResiduals, kDistortionDim,
-                                 Eigen::RowMajor>>
-            jacMinimalMapped(jacobiansMinimal[4]);
-        jacMinimalMapped =
-            squareRootInformation_ * de_dxcam.tail<kDistortionDim>();
+        jacMinimalMapped = jacMapped;
       }
     }
     // tr
-    if (jacobians[5]) {
-      jacobians[5][0] = squareRootInformation_ * de_dtr;
-      if (jacobiansMinimal && jacobiansMinimal[5]) {
-        jacobiansMinimal[5][0] = squareRootInformation_ * de_dtr;
+    if (jacobians[Index::TR]) {
+      jacobians[Index::TR][0] = squareRootInformation_ * de_dtr;
+      if (jacobiansMinimal && jacobiansMinimal[Index::TR]) {
+        jacobiansMinimal[Index::TR][0] = squareRootInformation_ * de_dtr;
       }
     }
     // td
-    if (jacobians[6]) {
-      jacobians[6][0] = squareRootInformation_ * de_dtd;
-      if (jacobiansMinimal && jacobiansMinimal[6]) {
-        jacobiansMinimal[6][0] = squareRootInformation_ * de_dtd;
+    if (jacobians[Index::TD]) {
+      jacobians[Index::TD][0] = squareRootInformation_ * de_dtd;
+      if (jacobiansMinimal && jacobiansMinimal[Index::TD]) {
+        jacobiansMinimal[Index::TD][0] = squareRootInformation_ * de_dtd;
       }
     }
   }
   return true;
 }
 
-template <class GEOMETRY_TYPE, class EXTRINSIC_MODEL,
-          class PROJ_INTRINSIC_MODEL>
-void EpipolarFactor<GEOMETRY_TYPE, EXTRINSIC_MODEL, PROJ_INTRINSIC_MODEL>::
+template <class GEOMETRY_TYPE>
+void EpipolarFactor<GEOMETRY_TYPE>::
     setJacobiansZero(double** jacobians, double** jacobiansMinimal) const {
   zeroJacobian<7, 6, 1>(0, jacobians, jacobiansMinimal);
   zeroJacobian<7, 6, 1>(1, jacobians, jacobiansMinimal);
-  zeroJacobian<7, EXTRINSIC_MODEL::kNumParams, 1>(2, jacobians, jacobiansMinimal);
-  zeroJacobian<PROJ_INTRINSIC_MODEL::kNumParams,
-               PROJ_INTRINSIC_MODEL::kNumParams, 1>(3, jacobians, jacobiansMinimal);
-  zeroJacobian<kDistortionDim, kDistortionDim, 1>(4, jacobians, jacobiansMinimal);
-  zeroJacobian<1, 1, 1>(5, jacobians, jacobiansMinimal);
-  zeroJacobian<1, 1, 1>(6, jacobians, jacobiansMinimal);
+  zeroJacobian<7, 6, 1>(2, jacobians, jacobiansMinimal);
+  zeroJacobian<kIntrinsicDim, kIntrinsicDim, 1>(3, jacobians, jacobiansMinimal);
+  zeroJacobian<1, 1, 1>(Index::TR, jacobians, jacobiansMinimal);
+  zeroJacobian<1, 1, 1>(Index::TD, jacobians, jacobiansMinimal);
 }
 
 }  // namespace ceres
