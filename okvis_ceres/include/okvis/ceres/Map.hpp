@@ -363,7 +363,7 @@ class Map {
           ::ceres::CovarianceAlgorithmType::SPARSE_QR) const;
 
   /**
-   * @brief getParameterBlockMinimalCovariance
+   * @brief getParameterBlockMinimalCovariance by ceres functions
    * @param parameterBlockIds
    * @param problem
    * @param covList list of Row Major covariance blocks for parameter block index pairs,
@@ -380,7 +380,10 @@ class Map {
           ::ceres::CovarianceAlgorithmType::SPARSE_QR) const;
 
   /**
-   * @brief computeNavStateCovariance compute covariance of the navigation state.
+   * @brief computeNavStateCovariance compute covariance of the navigation state
+   * by Schur complement technique.
+   * This method handles rank deficiency, but is 50 times slower than SPARSE_QR for
+   * VIO nav state covariance computation.
    * @return True if successful.
    */
   bool computeNavStateCovariance(uint64_t poseId, const std::vector<uint64_t> &speedAndBiasIdList,

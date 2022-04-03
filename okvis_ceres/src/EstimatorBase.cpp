@@ -202,7 +202,7 @@ void EstimatorBase::printNavStateAndBiases(std::ostream& stream, uint64_t poseId
   stream << " " << sb.transpose().format(swift_vio::kSpaceInitFmt);
 }
 
-bool EstimatorBase::printStatesAndStdevs(std::ostream& stream) const {
+bool EstimatorBase::printStatesAndStdevs(std::ostream& stream, const Eigen::MatrixXd *cov) const {
   uint64_t poseId = statesMap_.rbegin()->first;
   printNavStateAndBiases(stream, poseId);
 
@@ -212,9 +212,14 @@ bool EstimatorBase::printStatesAndStdevs(std::ostream& stream) const {
     getVariableCameraExtrinsics(camIdx, &extrinsicValues);
     stream << " " << extrinsicValues.transpose().format(swift_vio::kSpaceInitFmt);
   }
-  Eigen::MatrixXd covariance;
-  computeCovariance(&covariance);
-  Eigen::VectorXd stateStd = covariance.diagonal().cwiseSqrt();
+  Eigen::VectorXd stateStd;
+  if (cov) {
+    stateStd = cov->diagonal().cwiseSqrt();
+  } else {
+    Eigen::MatrixXd covariance;
+    computeCovariance(&covariance);
+    stateStd = covariance.diagonal().cwiseSqrt();
+  }
   stream << " " << stateStd.transpose().format(swift_vio::kSpaceInitFmt);
   return true;
 }

@@ -903,6 +903,8 @@ bool Map::computeNavStateCovariance(uint64_t poseId, const std::vector<uint64_t>
   Map::ResidualBlockCollection poseResiduals = residuals(poseId);
   // Add a residual for the pose first to ensure that the pose precedes
   // speed and biases in the covariance matrix.
+  // No, The block ordering in covariance is still not fixed to [pose, velocity, bias].
+  // TODO(jhuai): make the order of marginal covariance blocks deterministic.
   const ::ceres::ResidualBlockId& priorityResidualId = poseResiduals.begin()->residualBlockId;
   marginalizer.addResidualBlock(priorityResidualId, true);
   for (auto residualIdToSpec : residualBlockId2ResidualBlockSpec_Map_) {

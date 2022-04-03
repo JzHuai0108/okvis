@@ -197,7 +197,7 @@ class VioBackendInterface {
    * @param stream
    * @return true
    */
-  virtual bool printStatesAndStdevs(std::ostream& /*stream*/) const {
+  virtual bool printStatesAndStdevs(std::ostream& /*stream*/, const Eigen::MatrixXd */*cov*/) const {
     return false;
   }
 

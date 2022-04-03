@@ -388,7 +388,7 @@ class EstimatorBase : public VioBackendInterface
     return false;
   }
 
-  bool printStatesAndStdevs(std::ostream& stream) const override;
+  bool printStatesAndStdevs(std::ostream& stream, const Eigen::MatrixXd *cov) const override;
 
   std::vector<std::string> variableLabels() const override {
     return std::vector<std::string>();
