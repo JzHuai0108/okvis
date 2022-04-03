@@ -277,7 +277,7 @@ void Estimator::addPriorAndRelativeTerms(const okvis::ImuMeasurementDeque &imuMe
       const double sigma_ba = imuParametersVec_.at(0)->sigma_ba;
       std::shared_ptr<ceres::SpeedAndBiasError > speedAndBiasError(
             new ceres::SpeedAndBiasError(
-                speedAndBias, initialNavState_.std_v_WS[0]*initialNavState_.std_v_WS[0],
+                speedAndBias, initialNavState_.sigma_v_WS[0]*initialNavState_.sigma_v_WS[0],
                 sigma_bg*sigma_bg, sigma_ba*sigma_ba));
       // add to map
       mapPtr_->addResidualBlock(

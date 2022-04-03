@@ -23,6 +23,23 @@ CameraNoiseParameters::CameraNoiseParameters(
       sigma_c_relative_orientation(sigma_c_relative_orientation) {
 }
 
+std::string CameraNoiseParameters::toString() const {
+  std::stringstream ss;
+  ss << "sigma_absolute_translation " << sigma_absolute_translation
+     << ", sigma_absolute_orientation " << sigma_absolute_orientation
+     << ", sigma_c_relative_translation " << sigma_c_relative_translation
+     << ", sigma_c_relative_orientation " << sigma_c_relative_orientation
+     << ".\nsigma_focal_length " << sigma_focal_length
+     << ", sigma_principal_point " << sigma_principal_point;
+  ss << ".\nsigma_distortion [" << sigma_distortion[0];
+  for (size_t i = 1; i < sigma_distortion.size(); ++i) {
+    ss << ", " << sigma_distortion[i];
+  }
+  ss << "]. sigma_td " << sigma_td << ", sigma_tr " << sigma_tr
+     << ", sigma_observaiton " << sigma_observation << ".\n";
+  return ss.str();
+}
+
 ImuParameters::ImuParameters()
     : T_BS(),
       a_max(200.0),
@@ -64,6 +81,23 @@ Eigen::Vector3d ImuParameters::gravity() const {
 void ImuParameters::setGravityDirection(
     const Eigen::Vector3d &gravityDirection) {
   normalGravity = gravityDirection;
+}
+
+std::string ImuParameters::toString() const {
+  std::stringstream ss;
+  ss << "a max " << a_max << ", g max " << g_max << ", sigma_g_c " << sigma_g_c
+            << ", sigma_a_c " << sigma_a_c << ", sigma_gw_c " << sigma_gw_c << ", sigma_aw_c "
+            << sigma_aw_c << ".\n";
+  ss << "sigma_bg " << sigma_bg << ", sigma ba " << sigma_ba << ", g " << g << " unit gravity "
+     << normalGravity.transpose() << ",\nsigma gravity direction " << sigmaGravityDirection
+     << ", estimate gravity direction? " << estimateGravityDirection << ".\n";
+
+  ss << "rate " << rate << ", imu idx " << imuIdx << ", imu model " << model_type << ".\n";
+  ss << "sigma_Mg_element " << sigma_Mg_element << ", sigma_Ts_element " << sigma_Ts_element
+     << ", sigma_Ma_element " << sigma_Ma_element << ".\n";
+  ss << "g0 " << g0.transpose() << ", a0 " << a0.transpose() << ".\nMg0 " << Mg0.transpose()
+     << ".\nTs0 " << Ts0.transpose() << ".\nMa0 " << Ma0.transpose() << ".\n";
+  return ss.str();
 }
 
 EstimatorOptions::EstimatorOptions(int _max_iterations, int _min_iterations,

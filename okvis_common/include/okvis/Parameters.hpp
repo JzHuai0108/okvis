@@ -81,6 +81,8 @@ struct CameraNoiseParameters {
                         double sigma_c_relative_translation,
                         double sigma_c_relative_orientation);
 
+  std::string toString() const;
+
 public:
   // absolute (prior) w.r.t frame S
   double sigma_absolute_translation; ///< Absolute translation stdev. [m]
@@ -167,6 +169,9 @@ struct ImuParameters{
   void setAccelCorrectionMatrix(const Eigen::Matrix<double, 6, 1> &Ma) {
     Ma0 = Ma;
   }
+
+  std::string toString() const;
+
 private:
   /// prior knowledge of IMU intrinsic parameters.
   Eigen::Vector3d g0;  ///< Mean of the prior gyroscope bias.

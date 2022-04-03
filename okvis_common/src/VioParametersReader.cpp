@@ -143,18 +143,18 @@ void parseInitialState(cv::FileNode initialStateNode,
     initializeToCustomPose = false;
   }
 
-  cv::FileNode stdvsNode = initialStateNode["std_v_WS"];
+  cv::FileNode stdvsNode = initialStateNode["sigma_v_WS"];
   if (stdvsNode.isSeq()) {
     Eigen::Vector3d stdvs;
     stdvs << stdvsNode[0], stdvsNode[1], stdvsNode[2];
-    initialState->std_v_WS = stdvs;
+    initialState->sigma_v_WS = stdvs;
   }
 
-  cv::FileNode stdpsNode = initialStateNode["std_p_WS"];
+  cv::FileNode stdpsNode = initialStateNode["sigma_p_WS"];
   if (stdpsNode.isSeq()) {
     Eigen::Vector3d stdps;
     stdps << stdpsNode[0], stdpsNode[1], stdpsNode[2];
-    initialState->std_p_WS = stdps;
+    initialState->sigma_p_WS = stdps;
   }
 
   cv::FileNode qsNode = initialStateNode["q_WS"];
@@ -164,11 +164,11 @@ void parseInitialState(cv::FileNode initialStateNode,
     initialState->q_WS = Eigen::Quaterniond(qs[3], qs[0], qs[1], qs[2]);
   }
 
-  cv::FileNode stdqsNode = initialStateNode["std_q_WS"];
+  cv::FileNode stdqsNode = initialStateNode["sigma_q_WS"];
   if (stdqsNode.isSeq()) {
     Eigen::Vector3d stdqs;
     stdqs << stdqsNode[0], stdqsNode[1], stdqsNode[2];
-    initialState->std_q_WS = stdqs;
+    initialState->sigma_q_WS = stdqs;
   }
 
   initialState->initializeToCustomPose = initializeToCustomPose;

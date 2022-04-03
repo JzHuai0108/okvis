@@ -17,10 +17,10 @@ struct InitialNavState {
   Eigen::Vector3d p_WS;
   Eigen::Quaterniond q_WS;
   Eigen::Vector3d v_WS;
-  Eigen::Vector3d std_p_WS;
+  Eigen::Vector3d sigma_p_WS;
   Eigen::Vector3d
-      std_q_WS;  // std of $\delta \theta$ which is expressed in the world frame
-  Eigen::Vector3d std_v_WS;
+      sigma_q_WS;  // std of $\delta \theta$ which is expressed in the world frame
+  Eigen::Vector3d sigma_v_WS;
 
   InitialNavState();
 
