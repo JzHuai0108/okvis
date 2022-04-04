@@ -89,12 +89,8 @@ void EstimatorBase::addCameraSystem(const okvis::cameras::NCameraSystem& cameras
   for (size_t i = 0; i < cameras.numCameras(); ++i) {
     cameraRig_.addCameraDeep(cameras.T_SC(i), cameras.cameraGeometry(i),
                              cameras.projectionIntrinsicRep(i), cameras.extrinsicRep(i));
-    bool fixProjectionIntrinsics = false;
-    swift_vio::ProjIntrinsicRepNameToId(cameras.projectionIntrinsicRep(i), &fixProjectionIntrinsics);
-    fixCameraIntrinsicParams_.push_back(fixProjectionIntrinsics);
-    bool fixExtrinsics = false;
-    swift_vio::ExtrinsicRepNameToId(cameras.extrinsicRep(i), &fixExtrinsics);
-    fixCameraExtrinsicParams_.push_back(fixExtrinsics);
+    swift_vio::ProjIntrinsicRepNameToId(cameras.projectionIntrinsicRep(i));
+    swift_vio::ExtrinsicRepNameToId(cameras.extrinsicRep(i));
   }
 }
 
@@ -814,7 +810,7 @@ void EstimatorBase::getVariableCameraExtrinsics(
     size_t camIdx,
     Eigen::Matrix<double, Eigen::Dynamic, 1> *extrinsicParams) const {
   const States &currentState = statesMap_.rbegin()->second;
-  if (!fixCameraExtrinsicParams_[camIdx]) {
+  if (!cameraNoiseParametersVec_.at(camIdx).isExtrinsicsFixed()) {
     uint64_t extrinsicId = currentState.sensors.at(SensorStates::Camera)
                                .at(camIdx)
                                .at(okvis::EstimatorBase::CameraSensorStates::T_XCi)

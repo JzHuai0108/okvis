@@ -450,8 +450,8 @@ class EstimatorBase : public VioBackendInterface
    * @return minimal dim
    */
   size_t cameraParamsMinimalDim(size_t camIdx = 0) const {
-    return (fixCameraExtrinsicParams_[camIdx] ? 0 : cameraRig_.getMinimalExtrinsicDim(camIdx)) +
-           (fixCameraIntrinsicParams_[camIdx] ? 0 : cameraRig_.getMinimalProjectionIntrinsicDim(camIdx) +
+    return (cameraNoiseParametersVec_.at(camIdx).isExtrinsicsFixed() ? 0 : cameraRig_.getMinimalExtrinsicDim(camIdx)) +
+           (cameraNoiseParametersVec_.at(camIdx).isIntrinsicsFixed() ? 0 : cameraRig_.getMinimalProjectionIntrinsicDim(camIdx) +
            cameraRig_.getDistortionDim(camIdx)) + 2u;  // 2 for td and tr
   }
 
@@ -804,15 +804,6 @@ class EstimatorBase : public VioBackendInterface
   swift_vio::InitialNavState initialNavState_;
 
   std::vector<std::shared_ptr<swift_vio::LoopFrameAndMatches>> loopFrameAndMatchesList_;
-
-  // whether camera intrinsic parameters will be estimated? If true,
-  // the camera intrinsic parameter blocks (including distortion) will not be updated.
-  std::vector<bool> fixCameraIntrinsicParams_;
-
-  // whether camera extrinsic parameters will be estimated? If true,
-  // the camera extrinsic parameter block will be set fixed just as
-  // when the extrinsic noise is zero.
-  std::vector<bool> fixCameraExtrinsicParams_;
 
   EstimatorOptions estimatorOptions_;
 

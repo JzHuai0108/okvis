@@ -120,6 +120,7 @@ static void parseExpandedCameraParamSigmas(
     LOG(WARNING) << "camera_params: sigma_tr parameter not provided. "
                  << "Setting to default 0.0";
   }
+  camera_noise->updateParameterStatus();
 }
 
 void parseInitialState(cv::FileNode initialStateNode,
@@ -775,10 +776,10 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
     direction << gravityDirection[0], gravityDirection[1], gravityDirection[2];
     imuParams->setGravityDirection(direction.normalized());
   }
-  if (node["sigmaGravityDirection"].isReal()) {
-    node["sigmaGravityDirection"] >> imuParams->sigmaGravityDirection;
+  if (node["sigma_gravity_direction"].isReal()) {
+    node["sigma_gravity_direction"] >> imuParams->sigma_gravity_direction;
   }
-  parseBoolean(node["estimateGravityDirection"], imuParams->estimateGravityDirection);
+  parseBoolean(node["estimate_gravity_direction"], imuParams->estimate_gravity_direction);
 
   imuParams->setInitialAccelBias(Eigen::Vector3d((double) (node["a0"][0]),
                                           (double) (node["a0"][1]),

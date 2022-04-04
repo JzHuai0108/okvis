@@ -152,13 +152,10 @@ inline int ProjIntrinsicRepGetMinimalDim(int model_id) {
   return 0;
 }
 
-inline int ProjIntrinsicRepNameToId(std::string rep_name, bool* isFixed=nullptr) {
+inline int ProjIntrinsicRepNameToId(std::string rep_name) {
   std::transform(rep_name.begin(), rep_name.end(),
                  rep_name.begin(),
                  [](unsigned char c) { return std::toupper(c); });
-  if (isFixed) {
-      *isFixed = false;
-  }
   if (rep_name.compare("FXY_CXY") == 0) {
     return ProjIntrinsic_FXY_CXY::kModelId;
   } else if (rep_name.compare("FX_CXY") == 0) {
@@ -166,10 +163,7 @@ inline int ProjIntrinsicRepNameToId(std::string rep_name, bool* isFixed=nullptr)
   } else if (rep_name.compare("FX") == 0) {
     return ProjIntrinsic_FX::kModelId;
   } else {
-    if (isFixed) {
-        *isFixed = true;
-    }
-    return ProjIntrinsic_FXY_CXY::kModelId;
+    return -1;
   }
 }
 

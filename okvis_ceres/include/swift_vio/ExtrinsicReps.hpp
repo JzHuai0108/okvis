@@ -509,31 +509,18 @@ inline Eigen::MatrixXd ExtrinsicRepInitCov(int model_id,
   }
 }
 
-inline int ExtrinsicRepNameToId(std::string extrinsicRepName,
-                                  bool *isFixed = nullptr) {
+inline int ExtrinsicRepNameToId(std::string extrinsicRepName) {
   std::transform(extrinsicRepName.begin(), extrinsicRepName.end(),
                  extrinsicRepName.begin(),
                  [](unsigned char c) { return std::toupper(c); });
   if (extrinsicRepName.compare("P_BC_Q_BC") == 0) {
-    if (isFixed) {
-      *isFixed = false;
-    }
     return Extrinsic_p_BC_q_BC::kModelId;
   } else if (extrinsicRepName.compare("P_C0C_Q_C0C") == 0) {
-    if (isFixed) {
-      *isFixed = false;
-    }
     return Extrinsic_p_C0C_q_C0C::kModelId;
   } else if (extrinsicRepName.compare("P_CB") == 0) {
-    if (isFixed) {
-      *isFixed = false;
-    }
     return Extrinsic_p_CB::kModelId;
   } else {
-    if (isFixed) {
-      *isFixed = true;
-    }
-    return Extrinsic_p_BC_q_BC::kModelId;
+    return -1;
   }
 }
 

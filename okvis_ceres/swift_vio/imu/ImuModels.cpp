@@ -597,14 +597,14 @@ void Imu_BG_BA_MG_TS_MA::computeDeltaState(double dt,
 void Imu_BG_BA_MG_TS_MA::computeFdelta(double Delta_t, double dt,
                                        const NormalVectorElement &normalGravity,
                                        double gravityNorm,
-                                       bool estimateGravityDirection) {
+                                       bool estimate_gravity_direction) {
   posVelLinPoint_1_.head<3>() = T_WS0_.r() + v_WS0_ * Delta_t +
                                 T_WS0_.C() * acc_doubleintegral_ +
                                 0.5 * g_W_ * Delta_t * Delta_t;
   posVelLinPoint_1_.tail<3>() =
       v_WS0_ + T_WS0_.C() * acc_integral_1_ + g_W_ * Delta_t;
 
-  const int Frows = 9 + kBgBaDim + kAugmentedMinDim + (estimateGravityDirection ? 2 : 0);
+  const int Frows = 9 + kBgBaDim + kAugmentedMinDim + (estimate_gravity_direction ? 2 : 0);
   OKVIS_ASSERT_EQ(std::runtime_error, Frows, P_.rows(), "F and P have incompatible sizes!");
   F_delta_.conservativeResize(Frows, Frows);
   F_delta_.setIdentity();
@@ -667,7 +667,7 @@ void Imu_BG_BA_MG_TS_MA::computeFdelta(double Delta_t, double dt,
   F_delta_.block<3, 9>(0, 24) = 0.5 * dt * F_delta_.block<3, 9>(6, 24);
   F_delta_.block<3, 6>(0, 33) = 0.5 * dt * F_delta_.block<3, 6>(6, 33);
 
-  if (estimateGravityDirection) {
+  if (estimate_gravity_direction) {
     int gravityErrorStartIndex = 9 + kBgBaDim + kAugmentedMinDim;
     Eigen::Matrix<double, 3, 2> dgS0_dunitgW =
         gravityNorm * T_WS0_.C().transpose() * normalGravity.getM();
@@ -813,7 +813,7 @@ void Imu_BG_BA_MG_TS_MA::getFinalJacobian(
     Eigen::MatrixXd *jacobian, double Delta_t,
     const Eigen::Matrix<double, 6, 1> &posVelLinPoint,
     const NormalVectorElement &normalGravity, double gravityNorm,
-    bool estimateGravityDirection) {
+    bool estimate_gravity_direction) {
   Eigen::MatrixXd &F = *jacobian;
   OKVIS_ASSERT_EQ(std::runtime_error, jacobian->rows(), P_.rows(), "Jacobian and P have incompatible sizes!");
   F.setIdentity(); // holds for all states, including d/dalpha, d/db_g, d/db_a
@@ -857,7 +857,7 @@ void Imu_BG_BA_MG_TS_MA::getFinalJacobian(
   F.block<3, 9>(6, 24) = T_WS0_.C() * dv_dT_s_;
   F.block<3, 6>(6, 33) = T_WS0_.C() * dv_dM_a_;
 
-  if (estimateGravityDirection) {
+  if (estimate_gravity_direction) {
     int gravityErrorStartIndex = 9 + kBgBaDim + kAugmentedMinDim;
     F.block<3, 2>(0, gravityErrorStartIndex) =
         0.5 * Delta_t * Delta_t * gravityNorm * normalGravity.getM();

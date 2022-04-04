@@ -83,6 +83,12 @@ struct CameraNoiseParameters {
 
   std::string toString() const;
 
+  bool isIntrinsicsFixed() const;
+
+  bool isExtrinsicsFixed() const;
+
+  void updateParameterStatus();
+
 public:
   // absolute (prior) w.r.t frame S
   double sigma_absolute_translation; ///< Absolute translation stdev. [m]
@@ -100,6 +106,10 @@ public:
   double sigma_td;                      ///< camera time delay stdev. [sec]
   double sigma_tr;                      ///< frame readout time stdev. [sec]
   double sigma_observation;             ///< camera observation noise std. dev. [px]
+
+private:
+  bool intrinsics_fixed_;
+  bool extrinsics_fixed_;
 };
 
 typedef std::vector<CameraNoiseParameters,
@@ -133,8 +143,8 @@ struct ImuParameters{
 
   size_t imuIdx;
   std::string model_type;
-  bool estimateGravityDirection;
-  double sigmaGravityDirection; // The uncertainty in both roll and pitch of the gravity direction.
+  bool estimate_gravity_direction;
+  double sigma_gravity_direction; // The uncertainty in both roll and pitch of the gravity direction.
 
   ImuParameters();
 

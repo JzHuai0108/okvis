@@ -3,7 +3,7 @@
 namespace swift_vio {
 bool doesExtrinsicRepFitImuModel(const std::string& extrinsicRepName,
                                    const std::string& imuModel) {
-  int extrinsicRepId = ExtrinsicRepNameToId(extrinsicRepName, nullptr);
+  int extrinsicRepId = ExtrinsicRepNameToId(extrinsicRepName);
   int imuModelId = ImuModelNameToId(imuModel);
   switch (imuModelId) {
     case Imu_BG_BA_TG_TS_TA::kModelId:
@@ -37,7 +37,7 @@ bool doesExtrinsicRepFitOkvisBackend(
     for (size_t index = 1u; index < numCameras; ++index) {
       std::string extrinsicRepName = cameraSystem.extrinsicRep(index);
       int extrinsicRepId =
-          ExtrinsicRepNameToId(extrinsicRepName, nullptr);
+          ExtrinsicRepNameToId(extrinsicRepName);
       if (extrinsicRepId == Extrinsic_p_C0C_q_C0C::kModelId) {
         LOG(FATAL) << "When the OKVIS backend is used, the second camera's "
                       "extrinsic model should be P_BC_Q_BC instead of "

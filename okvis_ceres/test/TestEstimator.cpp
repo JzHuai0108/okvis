@@ -100,15 +100,8 @@ TEST(okvisTestSuite, Estimator) {
         new okvis::kinematics::Transformation(Eigen::Vector3d(0,0.1,0),Eigen::Quaterniond(1,0,0,0)));
 
     // some parameters on how to do the online estimation:
-    okvis::CameraNoiseParameters cameraNoiseParameters;
-    cameraNoiseParameters.sigma_absolute_translation = 1.0e-3
-        * (c % 2);
-    cameraNoiseParameters.sigma_absolute_orientation = 1.0e-4
-        * (c % 2);
-    cameraNoiseParameters.sigma_c_relative_translation = 1e-8
-        * (c / 2);
-    cameraNoiseParameters.sigma_c_relative_orientation = 1e-7
-        * (c / 2);
+    okvis::CameraNoiseParameters cameraNoiseParameters(
+        1.0e-3 * (c % 2), 1.0e-4 * (c % 2), 1e-8 * (c / 2), 1e-7 * (c / 2));
 
     // set up camera with intrinsics
     std::shared_ptr<okvis::cameras::CameraBase> cameraGeometry0(

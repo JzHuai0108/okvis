@@ -760,7 +760,7 @@ public:
 
  void computeFdelta(double Delta_t, double dt,
                     const NormalVectorElement &normalGravity, double gravityNorm,
-                    bool estimateGravityDirection);
+                    bool estimate_gravity_direction);
 
  void updatePdelta(double dt, double sigma_g_c, double sigma_a_c, double sigma_gw_c, double sigma_aw_c);
 
@@ -770,7 +770,7 @@ public:
 
  void getFinalJacobian(Eigen::MatrixXd *jacobian, double Delta_t, const Eigen::Matrix<double, 6, 1> &posVelLinPoint,
                        const NormalVectorElement &normalGravity, double gravityNorm,
-                       bool estimateGravityDirection);
+                       bool estimate_gravity_direction);
 
  void getFinalCovariance(Eigen::MatrixXd *covariance, const Eigen::Matrix3d &C_WS0);
 

@@ -11,7 +11,8 @@ CameraNoiseParameters::CameraNoiseParameters()
       sigma_principal_point(0.0),
       sigma_td(0.0),
       sigma_tr(0.0),
-      sigma_observation(1.0) {
+      sigma_observation(1.0),
+      intrinsics_fixed_(true), extrinsics_fixed_(true) {
 }
 
 CameraNoiseParameters::CameraNoiseParameters(
@@ -20,7 +21,8 @@ CameraNoiseParameters::CameraNoiseParameters(
     : sigma_absolute_translation(sigma_absolute_translation),
       sigma_absolute_orientation(sigma_absolute_orientation),
       sigma_c_relative_translation(sigma_c_relative_translation),
-      sigma_c_relative_orientation(sigma_c_relative_orientation) {
+      sigma_c_relative_orientation(sigma_c_relative_orientation), intrinsics_fixed_(true) {
+  extrinsics_fixed_ = isExtrinsicsFixed();
 }
 
 std::string CameraNoiseParameters::toString() const {
@@ -38,6 +40,28 @@ std::string CameraNoiseParameters::toString() const {
   ss << "]. sigma_td " << sigma_td << ", sigma_tr " << sigma_tr
      << ", sigma_observaiton " << sigma_observation << ".\n";
   return ss.str();
+}
+
+bool CameraNoiseParameters::isIntrinsicsFixed() const {
+  bool projIntrinsicsFixed = sigma_focal_length == 0.0 && sigma_principal_point == 0.0;
+  bool distortionIntrinsicsFixed = true;
+  for (size_t i = 0; i < sigma_distortion.size(); ++i) {
+    if (sigma_distortion[i] > 0) {
+      distortionIntrinsicsFixed = false;
+      break;
+    }
+  }
+  return projIntrinsicsFixed && distortionIntrinsicsFixed;
+}
+
+bool CameraNoiseParameters::isExtrinsicsFixed() const {
+  return sigma_absolute_translation == 0.0 &&
+      sigma_absolute_orientation == 0.0;
+}
+
+void CameraNoiseParameters::updateParameterStatus() {
+  intrinsics_fixed_ = isIntrinsicsFixed();
+  extrinsics_fixed_ = isExtrinsicsFixed();
 }
 
 ImuParameters::ImuParameters()
@@ -58,8 +82,8 @@ ImuParameters::ImuParameters()
       sigma_Ma_element(5e-3),
       imuIdx(0u),
       model_type("BG_BA_MG_TS_MA"),
-      estimateGravityDirection(false),
-      sigmaGravityDirection(0.0),
+      estimate_gravity_direction(false),
+      sigma_gravity_direction(0.0),
       g0(0, 0, 0),
       a0(0, 0, 0),
       normalGravity(0, 0, -1) {
@@ -89,8 +113,8 @@ std::string ImuParameters::toString() const {
             << ", sigma_a_c " << sigma_a_c << ", sigma_gw_c " << sigma_gw_c << ", sigma_aw_c "
             << sigma_aw_c << ".\n";
   ss << "sigma_bg " << sigma_bg << ", sigma ba " << sigma_ba << ", g " << g << " unit gravity "
-     << normalGravity.transpose() << ",\nsigma gravity direction " << sigmaGravityDirection
-     << ", estimate gravity direction? " << estimateGravityDirection << ".\n";
+     << normalGravity.transpose() << ",\nsigma gravity direction " << sigma_gravity_direction
+     << ", estimate gravity direction? " << estimate_gravity_direction << ".\n";
 
   ss << "rate " << rate << ", imu idx " << imuIdx << ", imu model " << model_type << ".\n";
   ss << "sigma_Mg_element " << sigma_Mg_element << ", sigma_Ts_element " << sigma_Ts_element

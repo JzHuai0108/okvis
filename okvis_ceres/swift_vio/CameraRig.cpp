@@ -100,8 +100,6 @@ void CameraRig::clear() {
   distortionTypes_.clear();
   extrinsicRepIds_.clear();
   projectionIntrinsicRepIds_.clear();
-  fixCameraIntrinsicParams_.clear();
-  fixCameraExtrinsicParams_.clear();
   overlaps_.clear();
 }
 
@@ -121,22 +119,18 @@ void CameraRig::setCameraIntrinsics(int camera_id,
 
 int CameraRig::addCamera(std::shared_ptr<okvis::kinematics::Transformation> T_SC,
           std::shared_ptr<okvis::cameras::CameraBase> cameraGeometry,
-          int projIntrinsicRepId, int extrinsicRepId,
-          bool fixIntrinsics, bool fixExtrinsics) {
+          int projIntrinsicRepId, int extrinsicRepId) {
   T_SC_.emplace_back(T_SC);
   cameraGeometries_.emplace_back(cameraGeometry);
   distortionTypes_.emplace_back(DistortionNameToTypeId(cameraGeometry->distortionType()));
   projectionIntrinsicRepIds_.emplace_back(projIntrinsicRepId);
   extrinsicRepIds_.emplace_back(extrinsicRepId);
-  fixCameraIntrinsicParams_.push_back(fixIntrinsics);
-  fixCameraExtrinsicParams_.push_back(fixExtrinsics);
   return static_cast<int>(T_SC_.size()) - 1;
 }
 
 int CameraRig::addCameraDeep(std::shared_ptr<const okvis::kinematics::Transformation> T_SC,
           std::shared_ptr<const okvis::cameras::CameraBase> cameraGeometry,
-          int projIntrinsicRepId, int extrinsicRepId,
-          bool fixIntrinsics, bool fixExtrinsics) {
+          int projIntrinsicRepId, int extrinsicRepId) {
   T_SC_.emplace_back(
       std::make_shared<okvis::kinematics::Transformation>(*T_SC));
   cameraGeometries_.emplace_back(okvis::cameras::cloneCameraGeometry(cameraGeometry));
@@ -144,8 +138,6 @@ int CameraRig::addCameraDeep(std::shared_ptr<const okvis::kinematics::Transforma
       DistortionNameToTypeId(cameraGeometry->distortionType()));
   projectionIntrinsicRepIds_.emplace_back(projIntrinsicRepId);
   extrinsicRepIds_.emplace_back(extrinsicRepId);
-  fixCameraIntrinsicParams_.push_back(fixIntrinsics);
-  fixCameraExtrinsicParams_.push_back(fixExtrinsics);
   return static_cast<int>(T_SC_.size()) - 1;
 }
 
@@ -153,7 +145,7 @@ CameraRig CameraRig::deepCopy() const {
   CameraRig rig;
   for (size_t i = 0u; i < T_SC_.size(); ++i) {
     rig.addCamera(T_SC_[i], cameraGeometries_[i], projectionIntrinsicRepIds_[i],
-                   extrinsicRepIds_[i], fixCameraIntrinsicParams_[i], fixCameraExtrinsicParams_[i]);
+                   extrinsicRepIds_[i]);
   }
   rig.setOverlaps(overlaps_);
   return rig;
@@ -163,7 +155,7 @@ std::shared_ptr<CameraRig> CameraRig::deepCopyPtr() const {
   std::shared_ptr<CameraRig> rig(new CameraRig());
   for (size_t i = 0u; i < T_SC_.size(); ++i) {
     rig->addCamera(T_SC_[i], cameraGeometries_[i], projectionIntrinsicRepIds_[i],
-                   extrinsicRepIds_[i], fixCameraIntrinsicParams_[i], fixCameraExtrinsicParams_[i]);
+                   extrinsicRepIds_[i]);
   }
   rig->setOverlaps(overlaps_);
   return rig;

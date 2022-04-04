@@ -353,7 +353,8 @@ class Map {
    * @param parameterBlockId
    * @param problem
    * @param param_covariance Row Major covariance block for the parameter block.
-   * @param covAlgorithm SPARSE_QR or DENSE_SVD. DENSE_SVD is slow but handles rank deficient hessians.
+   * @param covAlgorithm SPARSE_QR or DENSE_SVD. DENSE_SVD handles rank
+   * deficient hessians, and is about 50 times slower than SPARSE_QR.
    * @return true if covariance is computed successfully, false otherwise.
    */
   bool getParameterBlockMinimalCovariance(
@@ -368,7 +369,8 @@ class Map {
    * @param problem
    * @param covList list of Row Major covariance blocks for parameter block index pairs,
    * (0, 0), (0, 1), ... (0, n-1), (1, 1), (1, 2), ....
-   * @param covAlgorithm SPARSE_QR or DENSE_SVD. DENSE_SVD is slow but handles rank deficient hessians.
+   * @param covAlgorithm SPARSE_QR or DENSE_SVD. DENSE_SVD handles rank
+   * deficient hessians, and is about 50 times slower than SPARSE_QR.
    * @return true if covariance is computed successfully, false otherwise.
    */
   bool getParameterBlockMinimalCovariance(

@@ -752,7 +752,7 @@ std::vector<std::string> Estimator::variableLabels() const {
 
   size_t numCameras = cameraNoiseParametersVec_.size();
   for (size_t j = 0u; j < numCameras; ++j) {
-    if (!fixCameraExtrinsicParams_[j]) {
+    if (!cameraNoiseParametersVec_.at(j).isExtrinsicsFixed()) {
       std::vector<std::string> camExtrinsicLabels;
       swift_vio::ExtrinsicRepToDimensionLabels(
           cameraRig_.getExtrinsicRepId(j), &camExtrinsicLabels);
