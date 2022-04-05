@@ -349,7 +349,7 @@ int ImuOdometry::propagation(
         F_delta.block<3, 9>(0, 24) = 0.5 * dt * F_delta.block<3, 9>(6, 24);
         F_delta.block<3, 9>(0, 33) = 0.5 * dt * F_delta.block<3, 9>(6, 33);
       }
-      if (imuParams.estimate_gravity_direction) {
+      if (imuParams.isGravityDirectionVariable()) {
         Eigen::Matrix<double, 3, 2> dgS0_dunitgW =
             imuParams.g * C_WS_0.transpose() * normalGravity.getM();
         F_delta.block<3, 2>(0, gravityErrorStartIndex) =
@@ -476,7 +476,7 @@ int ImuOdometry::propagation(
       F.block<3, 9>(6, 24) = C_WS_0 * dv_dT_s;
       F.block<3, 9>(6, 33) = -C_WS_0 * dv_dT_a;
     }
-    if (imuParams.estimate_gravity_direction) {
+    if (imuParams.isGravityDirectionVariable()) {
       F.block<3, 2>(0, gravityErrorStartIndex) =
           0.5 * Delta_t * Delta_t * imuParams.g * normalGravity.getM();
       F.block<3, 2>(6, gravityErrorStartIndex) =
@@ -614,7 +614,7 @@ int ImuOdometry::propagation(
 
     if (computeCovariance) {
       iem.computeFdelta(Delta_t, dt, normalGravity, imuParams.g,
-                        imuParams.estimate_gravity_direction);
+                        imuParams.isGravityDirectionVariable());
 
       iem.updatePdelta(dt, sigma_g_c, sigma_a_c, imuParams.sigma_gw_c,
                        imuParams.sigma_aw_c);
@@ -632,7 +632,7 @@ int ImuOdometry::propagation(
   if (computeCovariance) {
     iem.getFinalJacobian(jacobian, Delta_t, posVelLinPointAtStart,
                          normalGravity, imuParams.g,
-                         imuParams.estimate_gravity_direction);
+                         imuParams.isGravityDirectionVariable());
 
     iem.getFinalCovariance(covariance, C_WS_0);
   }

@@ -779,7 +779,6 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
   if (node["sigma_gravity_direction"].isReal()) {
     node["sigma_gravity_direction"] >> imuParams->sigma_gravity_direction;
   }
-  parseBoolean(node["estimate_gravity_direction"], imuParams->estimate_gravity_direction);
 
   imuParams->setInitialAccelBias(Eigen::Vector3d((double) (node["a0"][0]),
                                           (double) (node["a0"][1]),
@@ -794,13 +793,13 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
     imuParams->setInitialGyroBias(Eigen::Vector3d::Zero());
   }
 
-  if (node["model_type"].isString()) {
-    node["model_type"] >> imuParams->model_type;
+  if (node["model_name"].isString()) {
+    node["model_name"] >> imuParams->model_name;
   } else {
-    imuParams->model_type = "BG_BA_MG_TS_MA";
-    LOG(WARNING) << "'imu_params: model_type' parameter missing in "
+    imuParams->model_name = "BG_BA_MG_TS_MA";
+    LOG(WARNING) << "'imu_params: model_name' parameter missing in "
                     "configuration file. Setting to "
-                 << imuParams->model_type;
+                 << imuParams->model_name;
   }
 
   if (node["sigma_Mg_element"].isReal()) {

@@ -2,7 +2,7 @@
 
 namespace swift_vio {
 int ImuRig::addImu(const okvis::ImuParameters& imuParams) {
-  int modelId = ImuModelNameToId(imuParams.model_type);
+  int modelId = ImuModelNameToId(imuParams.model_name);
   Eigen::Matrix<double, Eigen::Dynamic, 1> extraParams;
   std::stringstream ss;
   switch (modelId) {

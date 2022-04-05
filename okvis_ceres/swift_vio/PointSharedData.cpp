@@ -12,7 +12,7 @@ namespace swift_vio {
 void PointSharedData::computePoseAndVelocityAtObservation() {
   CHECK(status_ >= PointSharedDataState::ImuInfoReady)
       << "Set IMU data, params, camera time params before calling this method.";
-  int imuModelId = ImuModelNameToId(imuParameters_->model_type);
+  int imuModelId = ImuModelNameToId(imuParameters_->model_name);
   CHECK(imuModelId != Imu_BG_BA_TG_TS_TA::kModelId) << "Imu_BG_BA_TG_TS_TA deprecated!";
   Eigen::Matrix<double, -1, 1> imuAugmentedParams;
   getImuAugmentedStatesEstimate(imuAugmentedParamBlockPtrs_,
@@ -62,7 +62,7 @@ void PointSharedData::computePoseAndVelocityAtObservation() {
 void PointSharedData::computePoseAndVelocityForJacobians() {
   CHECK(status_ == PointSharedDataState::NavStateReady);
   Eigen::Matrix<double, -1, 1> imuAugmentedParams;
-  int imuModelId = ImuModelNameToId(imuParameters_->model_type);
+  int imuModelId = ImuModelNameToId(imuParameters_->model_name);
   getImuAugmentedStatesEstimate(
       imuAugmentedParamBlockPtrs_, &imuAugmentedParams,
       imuModelId);

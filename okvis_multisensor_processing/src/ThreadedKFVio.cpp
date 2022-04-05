@@ -955,7 +955,7 @@ void ThreadedKFVio::saveStatistics(const std::string &filename) {
 
 void ThreadedKFVio::configureBackend(okvis::VioParameters& parameters) {
   swift_vio::doesExtrinsicRepFitImuModel(parameters.nCameraSystem.extrinsicRep(0u),
-                                parameters.imu.model_type);
+                                parameters.imu.model_name);
   swift_vio::doesExtrinsicRepFitOkvisBackend(parameters.nCameraSystem,
                                     parameters.optimization.algorithm);
 

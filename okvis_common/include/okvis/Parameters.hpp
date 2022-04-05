@@ -87,6 +87,10 @@ struct CameraNoiseParameters {
 
   bool isExtrinsicsFixed() const;
 
+  bool isTimeDelayFixed() const { return sigma_td == 0.0; }
+
+  bool isReadoutTimeFixed() const { return sigma_tr == 0.0; }
+
   void updateParameterStatus();
 
 public:
@@ -137,13 +141,16 @@ struct ImuParameters{
   double g;  ///< Earth acceleration.
   int rate;  ///< IMU rate in Hz.
 
-  double sigma_Mg_element;  /// std for every element in matrix M_g
+  double sigma_Mg_element;  /// sigma for every element in the gyro correction matrix M_g.
   double sigma_Ts_element;
   double sigma_Ma_element;
+  // In contrast to gravity direction and camera parameters, whether an IMU
+  // parameter is included in the state vector (as a state variable) or not
+  // depends on the IMU model (model_name) and does not depend on the sigma of
+  // the parameter. This choice I think simplifies the IMU covariance propagation.
 
   size_t imuIdx;
-  std::string model_type;
-  bool estimate_gravity_direction;
+  std::string model_name;
   double sigma_gravity_direction; // The uncertainty in both roll and pitch of the gravity direction.
 
   ImuParameters();
@@ -151,6 +158,10 @@ struct ImuParameters{
   const Eigen::Vector3d &gravityDirection() const;
 
   Eigen::Vector3d gravity() const;
+
+  bool isGravityDirectionFixed() const { return sigma_gravity_direction > 0.0; }
+
+  bool isGravityDirectionVariable() const { return sigma_gravity_direction == 0.0; }
 
   const Eigen::Vector3d &initialGyroBias() const { return g0; }
 
@@ -172,9 +183,7 @@ struct ImuParameters{
     Mg0 = Mg;
   }
 
-  void setGyroGSensitivity(const Eigen::Matrix<double, 9, 1> &Ts) {
-    Ts0 = Ts;
-  }
+  void setGyroGSensitivity(const Eigen::Matrix<double, 9, 1> &Ts) { Ts0 = Ts; }
 
   void setAccelCorrectionMatrix(const Eigen::Matrix<double, 6, 1> &Ma) {
     Ma0 = Ma;

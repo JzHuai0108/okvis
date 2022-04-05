@@ -154,11 +154,15 @@ class CameraRig {
     return ProjIntrinsicRepGetMinimalDim(projectionIntrinsicRepIds_[camera_id]);
   }
 
-  inline int getCameraParamsMinimalDim(int camera_id, const okvis::CameraNoiseParameters &camNoise) const {
+  inline int getCameraParamsVariableDim(
+      int camera_id, const okvis::CameraNoiseParameters &camNoise) const {
     std::shared_ptr<okvis::cameras::CameraBase> camera =
         cameraGeometries_[camera_id];
-    return (camNoise.isExtrinsicsFixed() ? 0 : getMinimalExtrinsicDim(camera_id)) +
-           (camNoise.isIntrinsicsFixed() ? 0 : getIntrinsicDim(camera_id)) + 2;  // 2 for td and tr
+    return (camNoise.isExtrinsicsFixed() ? 0
+                                         : getMinimalExtrinsicDim(camera_id)) +
+           (camNoise.isIntrinsicsFixed() ? 0 : getIntrinsicDim(camera_id)) +
+           (camNoise.isTimeDelayFixed() ? 0 : 1) +
+           (camNoise.isReadoutTimeFixed() ? 0 : 1);
   }
 
   inline void setImageDelay(int camera_id, double td) {

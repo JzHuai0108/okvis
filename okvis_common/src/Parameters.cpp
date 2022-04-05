@@ -32,12 +32,15 @@ std::string CameraNoiseParameters::toString() const {
      << ", sigma_c_relative_translation " << sigma_c_relative_translation
      << ", sigma_c_relative_orientation " << sigma_c_relative_orientation
      << ".\nsigma_focal_length " << sigma_focal_length
-     << ", sigma_principal_point " << sigma_principal_point;
-  ss << ".\nsigma_distortion [" << sigma_distortion[0];
-  for (size_t i = 1; i < sigma_distortion.size(); ++i) {
-    ss << ", " << sigma_distortion[i];
+     << ", sigma_principal_point " << sigma_principal_point << ".\n";
+  if (sigma_distortion.size()) {
+    ss << "sigma_distortion [" << sigma_distortion[0];
+    for (size_t i = 1; i < sigma_distortion.size(); ++i) {
+      ss << ", " << sigma_distortion[i];
+    }
+    ss << "].\n";
   }
-  ss << "]. sigma_td " << sigma_td << ", sigma_tr " << sigma_tr
+  ss << "sigma_td " << sigma_td << ", sigma_tr " << sigma_tr
      << ", sigma_observaiton " << sigma_observation << ".\n";
   return ss.str();
 }
@@ -77,12 +80,11 @@ ImuParameters::ImuParameters()
       tau(3600.0),
       g(9.80665),
       rate(100),
-      sigma_Mg_element(5e-3),
-      sigma_Ts_element(1e-3),
-      sigma_Ma_element(5e-3),
+      sigma_Mg_element(0.0),
+      sigma_Ts_element(0.0),
+      sigma_Ma_element(0.0),
       imuIdx(0u),
-      model_type("BG_BA_MG_TS_MA"),
-      estimate_gravity_direction(false),
+      model_name("BG_BA_MG_TS_MA"),
       sigma_gravity_direction(0.0),
       g0(0, 0, 0),
       a0(0, 0, 0),
@@ -114,9 +116,9 @@ std::string ImuParameters::toString() const {
             << sigma_aw_c << ".\n";
   ss << "sigma_bg " << sigma_bg << ", sigma ba " << sigma_ba << ", g " << g << " unit gravity "
      << normalGravity.transpose() << ",\nsigma gravity direction " << sigma_gravity_direction
-     << ", estimate gravity direction? " << estimate_gravity_direction << ".\n";
+     << ".\n";
 
-  ss << "rate " << rate << ", imu idx " << imuIdx << ", imu model " << model_type << ".\n";
+  ss << "rate " << rate << ", imu idx " << imuIdx << ", imu model " << model_name << ".\n";
   ss << "sigma_Mg_element " << sigma_Mg_element << ", sigma_Ts_element " << sigma_Ts_element
      << ", sigma_Ma_element " << sigma_Ma_element << ".\n";
   ss << "g0 " << g0.transpose() << ", a0 " << a0.transpose() << ".\nMg0 " << Mg0.transpose()

@@ -96,7 +96,7 @@ class ImuRig {
     return imus_.size();
   }
 
-  inline int getImuParamsMinimalDim(int imu_id=0) const {
+  inline int getImuParamsMinimalDim(int imu_id) const {
     return ImuModelGetMinimalDim(imus_[imu_id].modelId());
   }
 
