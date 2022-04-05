@@ -1,4 +1,6 @@
-
+/**
+ * @file TestMatrixUtilities.cpp
+ */
 #include "swift_vio/matrixUtilities.h"
 #include "gtest/gtest.h"
 #include <Eigen/Core>
@@ -35,5 +37,28 @@ TEST(MatrixUtilities, scaleBlockRows) {
 
     std::cout << "Product transform takes " << duration.count() << " usec. Scale transform takes "
               << duration2.count() << " usec for covariance matrix of rows " << covRows << ".\n";
-    OKVIS_ASSERT_LT(std::runtime_error, (P - P2).lpNorm<Eigen::Infinity>(), 1e-8, "Scale block wrong!");
+    EXPECT_LT((P - P2).lpNorm<Eigen::Infinity>(), 1e-8) << "Scale block wrong!";
+}
+
+TEST(MatrixUtilities, upperTriangularBlocksToSymmMatrix) {
+  std::vector<
+      Eigen::Matrix<double, -1, -1, Eigen::RowMajor>,
+      Eigen::aligned_allocator<Eigen::Matrix<double, -1, -1, Eigen::RowMajor>>>
+      covBlockList;
+  std::vector<std::pair<int, int>> rows{
+      {0, 2}, {2, 1}, {3, 3}}; // index in cov to param block size
+
+  Eigen::Matrix<double, 6, 6> cov0;
+  cov0.setRandom();
+  cov0 = (cov0 * cov0.transpose()).eval();
+  for (size_t i = 0; i < rows.size(); ++i) {
+    for (size_t j = i; j < rows.size(); ++j) {
+      covBlockList.emplace_back(cov0.block(rows[i].first, rows[j].first,
+                                           rows[i].second, rows[j].second));
+    }
+  }
+  Eigen::Matrix<double, -1, -1> cov;
+  swift_vio::upperTriangularBlocksToSymmMatrix(covBlockList, &cov);
+  EXPECT_LT((cov - cov0).lpNorm<Eigen::Infinity>(), 1e-7)
+      << "cov0\n" << cov0 << "\ncov\n" << cov;
 }

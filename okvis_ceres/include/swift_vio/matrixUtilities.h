@@ -130,6 +130,46 @@ void scaleBlockCols(const Eigen::Matrix<typename Eigen::internal::traits<Derived
   }
 }
 
+template <typename Scalar>
+void upperTriangularBlocksToSymmMatrix(
+    const std::vector<Eigen::Matrix<Scalar, -1, -1, Eigen::RowMajor>,
+                      Eigen::aligned_allocator<
+                          Eigen::Matrix<Scalar, -1, -1, Eigen::RowMajor>>>
+        &covarianceBlockList,
+    Eigen::Matrix<Scalar, -1, -1> *cov) {
+  int numBlocks = (int)std::round(
+      (std::sqrt(8 * covarianceBlockList.size() + 1) - 1) * 0.5);
+  int numRows = 0;
+  std::vector<std::pair<int, int>> covindices;
+  covindices.reserve(numBlocks);
+  for (int i = 0; i < numBlocks; ++i) {
+    covindices.emplace_back(numRows, covarianceBlockList.at(i).cols());
+    numRows += covarianceBlockList.at(i).cols();
+  }
+  cov->resize(numRows, numRows);
+  // fill the upper triangular part
+  int blockIndex = 0;
+
+  for (int i = 0; i < numBlocks; ++i) {
+    for (int j = i; j < numBlocks; ++j) {
+      const auto &block = covarianceBlockList.at(blockIndex);
+      cov->block(covindices[i].first, covindices[j].first, block.rows(),
+                 block.cols()) = block;
+      ++blockIndex;
+    }
+  }
+  // fill the lower triangular part
+  for (int i = 1; i < numBlocks; ++i) {
+    for (int j = 0; j < i; ++j) {
+      cov->block(covindices[i].first, covindices[j].first, covindices[i].second,
+                 covindices[j].second) =
+          cov->block(covindices[j].first, covindices[i].first,
+                     covindices[j].second, covindices[i].second)
+              .transpose();
+    }
+  }
+}
+
 }  // namespace swift_vio
 
 #endif // MATRIXUTILITIES_H
