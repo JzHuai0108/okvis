@@ -159,9 +159,9 @@ struct ImuParameters{
 
   Eigen::Vector3d gravity() const;
 
-  bool isGravityDirectionFixed() const { return sigma_gravity_direction > 0.0; }
+  bool isGravityDirectionFixed() const { return sigma_gravity_direction == 0.0; }
 
-  bool isGravityDirectionVariable() const { return sigma_gravity_direction == 0.0; }
+  bool isGravityDirectionVariable() const { return sigma_gravity_direction > 0.0; }
 
   const Eigen::Vector3d &initialGyroBias() const { return g0; }
 
