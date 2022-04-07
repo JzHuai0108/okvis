@@ -149,7 +149,7 @@ struct ImuParameters{
   // depends on the IMU model (model_name) and does not depend on the sigma of
   // the parameter. This choice I think simplifies the IMU covariance propagation.
 
-  size_t imuIdx;
+  int imuIdx;
   std::string model_name;
   double sigma_gravity_direction; // The uncertainty in both roll and pitch of the gravity direction.
 

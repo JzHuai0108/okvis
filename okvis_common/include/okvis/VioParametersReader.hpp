@@ -87,7 +87,7 @@ class VioParametersReader{
    * @return True if parameters have been read from a configuration file. If it
    *         returns false then the variable \e parameters has not been changed.
    */
-  bool getParameters(okvis::VioParameters& parameters) const{
+  bool getParameters(okvis::VioParameters& parameters) const {
     if(readConfigFile_)
       parameters = vioParameters_;
     return readConfigFile_;
@@ -113,19 +113,44 @@ class VioParametersReader{
     double readoutTimeSecs;
     std::string projectionIntrinsicRepName;
     std::string extrinsicRepName;
+    std::vector<int> overlapCameraIds;
     CameraCalibration() {}
     std::string toString() const {
       std::stringstream ss;
       ss << "T_SC\n"
          << T_SC.T3x4() << "\nimage dimension " << imageDimension.transpose()
-         << " distortion type " << distortionType.c_str() << " ["
+         << ", distortion type " << distortionType.c_str() << ", ["
          << distortionCoefficients.transpose() << "]\n(fx, fy) "
          << focalLength.transpose() << ", (cx, cy) "
-         << principalPoint.transpose() << " imageDelay " << imageDelaySecs
+         << principalPoint.transpose() << ", imageDelay " << imageDelaySecs
          << " secs, readoutTime " << readoutTimeSecs << " secs\n"
-         << "projectionIntrinsicRep " << projectionIntrinsicRepName << " extrinsicRep "
-         << extrinsicRepName;
+         << "projectionIntrinsicRep " << projectionIntrinsicRepName
+         << ", extrinsicRep " << extrinsicRepName;
+      if (overlapCameraIds.size()) {
+        ss << ", overlap cameras:";
+        for (auto id : overlapCameraIds) {
+          ss << " " << id;
+        }
+        ss << "\n";
+      }
       return ss.str();
+    }
+    /**
+     * @brief getOverlapCameraIds of this camera
+     * @param id index of this camera
+     * @param numCameras number of cameras in the NCameraSystem
+     * @return ids of cameras of views overlapping this camera.
+     */
+    std::vector<bool> getOverlapCameraIds(size_t id, size_t numCameras) const {
+      std::vector<bool> overlapStatus(numCameras, false);
+      overlapStatus[id] = true; // self
+      for (auto camId : overlapCameraIds)
+        overlapStatus[camId] = true;
+      return overlapStatus;
+    }
+
+    const std::vector<int> &getOverlapCameraIds() const {
+      return overlapCameraIds;
     }
   };
 
@@ -164,6 +189,17 @@ class VioParametersReader{
    */
   bool getCalibrationViaVisensorAPI(
       std::vector<CameraCalibration,Eigen::aligned_allocator<CameraCalibration>> & calibrations) const;
+
+  /**
+   * @brief build CameraSystem from CameraCalibration.
+   * @param calibrations
+   * @param nCameraSystem
+   */
+  static void buildCameraSystem(
+      const std::vector<CameraCalibration,
+                        Eigen::aligned_allocator<CameraCalibration>>
+          &calibrations,
+      okvis::cameras::NCameraSystem *nCameraSystem);
 };
 
 /**
@@ -177,6 +213,8 @@ bool parseBoolean(cv::FileNode node, bool& val);
 
 void parseImuParameters(cv::FileNode node, ImuParameters *imuParams);
 
+void parseCameraNoises(cv::FileNode cameraParamNode,
+                       CameraNoiseParameters *camera_noise);
 /**
  * @brief parseMatrixInYaml
  * For a matrix attribute say T_cam_imu, two forms are supported.

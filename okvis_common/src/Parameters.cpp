@@ -21,7 +21,9 @@ CameraNoiseParameters::CameraNoiseParameters(
     : sigma_absolute_translation(sigma_absolute_translation),
       sigma_absolute_orientation(sigma_absolute_orientation),
       sigma_c_relative_translation(sigma_c_relative_translation),
-      sigma_c_relative_orientation(sigma_c_relative_orientation), intrinsics_fixed_(true) {
+      sigma_c_relative_orientation(sigma_c_relative_orientation),
+      sigma_focal_length(0.0), sigma_principal_point(0.0), sigma_td(0.0),
+      sigma_tr(0.0), sigma_observation(1.0), intrinsics_fixed_(true) {
   extrinsics_fixed_ = isExtrinsicsFixed();
 }
 
@@ -83,7 +85,7 @@ ImuParameters::ImuParameters()
       sigma_Mg_element(0.0),
       sigma_Ts_element(0.0),
       sigma_Ma_element(0.0),
-      imuIdx(0u),
+      imuIdx(0),
       model_name("BG_BA_MG_TS_MA"),
       sigma_gravity_direction(0.0),
       g0(0, 0, 0),

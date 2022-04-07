@@ -10,6 +10,8 @@ namespace swift_vio {
  * @brief Different parameterizations of the projection intrinsic parameters.
  * @deprecated These parameterizations are redundant wrt the camera geometry model,
  * and tend to scatter everywhere.
+ * To achieve adaptive parameterization of the projection intrinsics,
+ * a better approach is to create an adapter that decorates the camera geometry model.
  */
 class ProjIntrinsic_FXY_CXY {
  public:
