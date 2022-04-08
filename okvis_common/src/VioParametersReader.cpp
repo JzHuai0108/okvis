@@ -101,13 +101,13 @@ void parseCameraNoises(cv::FileNode cameraParamNode,
     cameraParamNode["sigma_principal_point"] >>
         camera_noise->sigma_principal_point;
   }
-  cv::FileNode a0Node = cameraParamNode["sigma_distortion"];
+  cv::FileNode distortionNode = cameraParamNode["sigma_distortion"];
   camera_noise->sigma_distortion.clear();
   camera_noise->sigma_distortion.reserve(5);
-  if (a0Node.isSeq()) {
-    for (size_t jack = 0; jack < a0Node.size(); ++jack)
+  if (distortionNode.isSeq()) {
+    for (size_t jack = 0; jack < distortionNode.size(); ++jack)
       camera_noise->sigma_distortion.push_back(
-          static_cast<double>(a0Node[jack]));
+          static_cast<double>(distortionNode[jack]));
   }
   if (cameraParamNode["sigma_td"].isReal()) {
     cameraParamNode["sigma_td"] >> camera_noise->sigma_td;
@@ -555,7 +555,7 @@ void VioParametersReader::buildCameraSystem(
                   calibrations[i].imageDelaySecs,
                   calibrations[i].readoutTimeSecs
                   /*, id ?*/)),
-          okvis::cameras::NCameraSystem::Equidistant,
+          okvis::cameras::DistortionType::Equidistant,
           calibrations[i].projectionIntrinsicRepName,
           calibrations[i].extrinsicRepName, computeOverlaps);
       std::stringstream s;
@@ -583,7 +583,7 @@ void VioParametersReader::buildCameraSystem(
                   calibrations[i].imageDelaySecs,
                   calibrations[i].readoutTimeSecs
                   /*, id ?*/)),
-          okvis::cameras::NCameraSystem::RadialTangential,
+          okvis::cameras::DistortionType::RadialTangential,
           calibrations[i].projectionIntrinsicRepName,
           calibrations[i].extrinsicRepName, computeOverlaps);
       std::stringstream s;
@@ -616,7 +616,7 @@ void VioParametersReader::buildCameraSystem(
                   calibrations[i].imageDelaySecs,
                   calibrations[i].readoutTimeSecs
                   /*, id ?*/)),
-          okvis::cameras::NCameraSystem::RadialTangential8,
+          okvis::cameras::DistortionType::RadialTangential8,
           calibrations[i].projectionIntrinsicRepName,
           calibrations[i].extrinsicRepName, computeOverlaps);
       std::stringstream s;
@@ -643,7 +643,7 @@ void VioParametersReader::buildCameraSystem(
       intrin[4] = calibrations[i].distortionCoefficients[0];
       camPtr->setIntrinsics(intrin);
       nCameraSystem->addCamera(
-          T_SC_okvis_ptr, camPtr, okvis::cameras::NCameraSystem::FOV,
+          T_SC_okvis_ptr, camPtr, okvis::cameras::DistortionType::Fov,
           calibrations[i].projectionIntrinsicRepName,
           calibrations[i].extrinsicRepName, computeOverlaps);
       std::stringstream s;
@@ -664,7 +664,7 @@ void VioParametersReader::buildCameraSystem(
               calibrations[i].imageDelaySecs, calibrations[i].readoutTimeSecs
               /*, id ?*/));
       nCameraSystem->addCamera(
-          T_SC_okvis_ptr, camPtr, okvis::cameras::NCameraSystem::EUCM,
+          T_SC_okvis_ptr, camPtr, okvis::cameras::DistortionType::Eucm,
           calibrations[i].projectionIntrinsicRepName,
           calibrations[i].extrinsicRepName, computeOverlaps);
       std::stringstream s;

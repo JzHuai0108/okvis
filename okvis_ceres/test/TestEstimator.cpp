@@ -113,9 +113,9 @@ TEST(okvisTestSuite, Estimator) {
     std::shared_ptr<okvis::cameras::NCameraSystem> cameraSystem(
         new okvis::cameras::NCameraSystem);
     cameraSystem->addCamera(T_SC_0, cameraGeometry0,
-                            okvis::cameras::NCameraSystem::DistortionType::Equidistant);
+                            okvis::cameras::DistortionType::Equidistant);
     cameraSystem->addCamera(T_SC_1, cameraGeometry1,
-                            okvis::cameras::NCameraSystem::DistortionType::Equidistant);
+                            okvis::cameras::DistortionType::Equidistant);
 
     // create an Estimator
     okvis::Estimator estimator(mapPtr);

@@ -105,7 +105,7 @@ cv::Mat VioVisualizer::drawMatches(VisualizationData::Ptr& data,
       .T_SC(image_number)->inverse() * data->T_WS_keyFrame.inverse();
 
   // find distortion type
-  okvis::cameras::NCameraSystem::DistortionType distortionType = parameters_.nCameraSystem
+  okvis::cameras::DistortionType distortionType = parameters_.nCameraSystem
       .distortionType(0);
   for (size_t i = 1; i < parameters_.nCameraSystem.numCameras(); ++i) {
     OKVIS_ASSERT_TRUE(Exception,

@@ -298,7 +298,7 @@ class MultiFrame
     return cameraSystem_;
   }
 
-  okvis::cameras::NCameraSystem::DistortionType distortionType(size_t cameraIdx) const {
+  okvis::cameras::DistortionType distortionType(size_t cameraIdx) const {
     return cameraSystem_.distortionType(cameraIdx);
   }
 

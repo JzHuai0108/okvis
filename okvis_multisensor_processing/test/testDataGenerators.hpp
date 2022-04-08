@@ -30,7 +30,7 @@ class TestDataGenerator {
                   okvis::cameras::RadialTangentialDistortion(
                     -0.40675345816443564, 0.1685454248925922, -0.00046944024734783504,
                     0.00026638950478762756))),
-            okvis::cameras::NCameraSystem::RadialTangential);
+            okvis::cameras::DistortionType::RadialTangential);
     }
     return nCameraSystem;
   }

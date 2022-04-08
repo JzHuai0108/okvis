@@ -131,7 +131,7 @@ bool Frontend::dataAssociationAndInitialization(
   // left-right stereo match & init
 
   // find distortion type
-  okvis::cameras::NCameraSystem::DistortionType distortionType = params.nCameraSystem
+  okvis::cameras::DistortionType distortionType = params.nCameraSystem
       .distortionType(0);
   for (size_t i = 1; i < params.nCameraSystem.numCameras(); ++i) {
     OKVIS_ASSERT_TRUE(Exception,
@@ -205,7 +205,7 @@ bool Frontend::dataAssociationAndInitialization(
 }
 
 void Frontend::matchStereoSwitch(
-    okvis::cameras::NCameraSystem::DistortionType distortionType,
+    okvis::cameras::DistortionType distortionType,
     okvis::EstimatorBase& estimator,
     std::shared_ptr<okvis::MultiFrame> framesInOut) {
   TimerSwitchable matchStereoTimer("2.4.3 matchStereo");
@@ -812,7 +812,7 @@ void Frontend::initialiseBriskFeatureDetectors() {
 }
 
 void Frontend::matchStereoWithEpipolarCheckSwitch(
-    okvis::cameras::NCameraSystem::DistortionType distortionType,
+    okvis::cameras::DistortionType distortionType,
     okvis::EstimatorBase& estimator,
     std::shared_ptr<okvis::MultiFrame> framesInOut) {
   // do stereo match to get new landmarks

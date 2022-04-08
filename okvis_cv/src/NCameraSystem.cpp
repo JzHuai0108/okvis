@@ -54,24 +54,6 @@
 namespace okvis {
 /// \brief cameras Namespace for camera-related functionality.
 namespace cameras {
-std::string NCameraSystem::DistortionTypeToKalibrModel(DistortionType dt) {
-  switch (dt) {
-  case Equidistant:
-    return "equidistant";
-  case RadialTangential:
-    return "radtan";
-  case RadialTangential8:
-    return "radtan8";
-  case FOV:
-    return "fov";
-  case EUCM:
-    return "eucm";
-  case NoDistortion:
-    return "no";
-  default:
-    return "no";
-  }
-}
 
 /// \brief compute all the overlaps of fields of view. Attention: can be expensive.
 void NCameraSystem::computeOverlaps()

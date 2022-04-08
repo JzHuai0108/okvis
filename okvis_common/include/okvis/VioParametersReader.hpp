@@ -114,7 +114,7 @@ class VioParametersReader{
     std::string projectionIntrinsicRepName;
     std::string extrinsicRepName;
     std::vector<int> overlapCameraIds;
-    CameraCalibration() {}
+    CameraCalibration() : projectionIntrinsicRepName("FXY_CXY"), extrinsicRepName("P_BC_Q_BC") {}
     std::string toString() const {
       std::stringstream ss;
       ss << "T_SC\n"

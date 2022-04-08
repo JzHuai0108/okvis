@@ -286,7 +286,7 @@ class Frontend : public VioFrontendInterface {
   void initialiseBriskFeatureDetectors();
 
   void matchStereoSwitch(
-      okvis::cameras::NCameraSystem::DistortionType distortionType,
+      okvis::cameras::DistortionType distortionType,
       okvis::EstimatorBase& estimator,
       std::shared_ptr<okvis::MultiFrame> framesInOut);
 
@@ -296,7 +296,7 @@ class Frontend : public VioFrontendInterface {
       std::shared_ptr<okvis::MultiFrame> multiFrame);
 
   void matchStereoWithEpipolarCheckSwitch(
-      okvis::cameras::NCameraSystem::DistortionType distortionType,
+      okvis::cameras::DistortionType distortionType,
       okvis::EstimatorBase& estimator,
       std::shared_ptr<okvis::MultiFrame> framesInOut);
 };

@@ -869,7 +869,7 @@ bool Estimator::setOptimizationTimeLimit(double timeLimit, int minIterations) {
 }
 
 bool Estimator::addReprojectionFactors() {
-  okvis::cameras::NCameraSystem::DistortionType distortionType =
+  okvis::cameras::DistortionType distortionType =
       cameraRig_.distortionType(0);
 
   for (PointMap::iterator pit = landmarksMap_.begin();

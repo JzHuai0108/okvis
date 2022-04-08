@@ -24,15 +24,17 @@
 namespace swift_vio {
 
 void DistortionTypeToDimensionLabels(
-    const okvis::cameras::NCameraSystem::DistortionType dtype,
+    const okvis::cameras::DistortionType dtype,
     std::vector<std::string> *dimensionLabels);
 
 void DistortionTypeToDesiredStdevs(
-    const okvis::cameras::NCameraSystem::DistortionType dtype,
+    const okvis::cameras::DistortionType dtype,
     Eigen::VectorXd *desiredStdevs);
 
-okvis::cameras::NCameraSystem::DistortionType
+okvis::cameras::DistortionType
 DistortionNameToTypeId(const std::string& distortionName);
+
+std::string DistortionTypeToKalibrModel(okvis::cameras::DistortionType dt);
 
 class CameraRig {
  private:
@@ -41,7 +43,7 @@ class CameraRig {
   ///< Camera geometries
   std::vector<std::shared_ptr<okvis::cameras::CameraBase>> cameraGeometries_;
 
-  std::vector<okvis::cameras::NCameraSystem::DistortionType> distortionTypes_;
+  std::vector<okvis::cameras::DistortionType> distortionTypes_;
 
   ///< This indicates for each camera which subset of the extrinsic parameters are variable in estimation.
   std::vector<int> extrinsicRepIds_;
@@ -141,7 +143,7 @@ class CameraRig {
     return cameraGeometries_[camera_id]->noDistortionParameters();
   }
 
-  inline okvis::cameras::NCameraSystem::DistortionType
+  inline okvis::cameras::DistortionType
       distortionType(int camera_id) const {
     return distortionTypes_[camera_id];
   }

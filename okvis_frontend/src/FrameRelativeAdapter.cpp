@@ -64,8 +64,8 @@ opengv::relative_pose::FrameRelativeAdapter::FrameRelativeAdapter(
       multiFrameIdB);
 
   // determine type
-  okvis::cameras::NCameraSystem::DistortionType distortionTypeA = nCameraSystem.distortionType(camIdA);
-  okvis::cameras::NCameraSystem::DistortionType distortionTypeB = nCameraSystem.distortionType(camIdB);
+  okvis::cameras::DistortionType distortionTypeA = nCameraSystem.distortionType(camIdA);
+  okvis::cameras::DistortionType distortionTypeB = nCameraSystem.distortionType(camIdB);
 
   double fu1 = 0;
   size_t numKeypointsA = frameAPtr->numKeypoints(camIdA);

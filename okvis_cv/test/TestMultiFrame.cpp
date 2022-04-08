@@ -49,16 +49,16 @@ TEST(MulitFrame, functions)
 
   // instantiate all possible versions of test cameras
   std::vector<std::shared_ptr<okvis::cameras::CameraBase> > cameras;
-  std::vector<okvis::cameras::NCameraSystem::DistortionType> distortions;
+  std::vector<okvis::cameras::DistortionType> distortions;
   cameras.push_back(
       okvis::cameras::PinholeCamera<okvis::cameras::NoDistortion>::createTestObject());
-  distortions.push_back(okvis::cameras::NCameraSystem::NoDistortion);
+  distortions.push_back(okvis::cameras::DistortionType::No);
   cameras.push_back(
       okvis::cameras::PinholeCamera<okvis::cameras::RadialTangentialDistortion>::createTestObject());
-  distortions.push_back(okvis::cameras::NCameraSystem::RadialTangential);
+  distortions.push_back(okvis::cameras::DistortionType::RadialTangential);
   cameras.push_back(
       okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion>::createTestObject());
-  distortions.push_back(okvis::cameras::NCameraSystem::Equidistant);
+  distortions.push_back(okvis::cameras::DistortionType::Equidistant);
 
   // the mounting transformations. The third one is opposite direction
   std::vector<std::shared_ptr<okvis::kinematics::Transformation>> T_SC;

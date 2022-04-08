@@ -5,23 +5,23 @@
 
 #ifndef DISTORTION_MODEL_COMMON_SWITCH_CASES
 #define DISTORTION_MODEL_COMMON_SWITCH_CASES                                   \
-  case okvis::cameras::NCameraSystem::Equidistant:                             \
+  case okvis::cameras::DistortionType::Equidistant:                             \
     DISTORTION_MODEL_CASE(                                                     \
         okvis::cameras::PinholeCamera<okvis::cameras::EquidistantDistortion>)  \
     break;                                                                     \
-  case okvis::cameras::NCameraSystem::RadialTangential:                        \
+  case okvis::cameras::DistortionType::RadialTangential:                        \
     DISTORTION_MODEL_CASE(okvis::cameras::PinholeCamera<                       \
                           okvis::cameras::RadialTangentialDistortion>)         \
     break;                                                                     \
-  case okvis::cameras::NCameraSystem::RadialTangential8:                       \
+  case okvis::cameras::DistortionType::RadialTangential8:                       \
     DISTORTION_MODEL_CASE(okvis::cameras::PinholeCamera<                       \
                           okvis::cameras::RadialTangentialDistortion8>)        \
     break;                                                                     \
-  case okvis::cameras::NCameraSystem::FOV:                                     \
+  case okvis::cameras::DistortionType::Fov:                                     \
     DISTORTION_MODEL_CASE(                                                     \
         okvis::cameras::PinholeCamera<okvis::cameras::FovDistortion>)          \
     break;                                                                     \
-  case okvis::cameras::NCameraSystem::EUCM:                                    \
+  case okvis::cameras::DistortionType::Eucm:                                    \
     DISTORTION_MODEL_CASE(okvis::cameras::EUCM)                                \
     break;
 #endif
@@ -37,7 +37,7 @@
 #ifndef DISTORTION_MODEL_SWITCH_CASES
 #define DISTORTION_MODEL_SWITCH_CASES                                          \
   DISTORTION_MODEL_COMMON_SWITCH_CASES                                         \
-  case okvis::cameras::NCameraSystem::NoDistortion:                            \
+  case okvis::cameras::DistortionType::No:                            \
     DISTORTION_MODEL_CASE(                                                     \
         okvis::cameras::PinholeCamera<okvis::cameras::NoDistortion>)           \
     break;                                                                     \

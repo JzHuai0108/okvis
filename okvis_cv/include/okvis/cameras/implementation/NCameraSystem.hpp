@@ -120,6 +120,27 @@ void NCameraSystem::addCamera(
   }
 }
 
+void NCameraSystem::removeCamera(size_t camId) {
+  T_SC_.erase(T_SC_.begin() + camId);
+  cameraGeometries_.erase(cameraGeometries_.begin() + camId);
+  distortionTypes_.erase(distortionTypes_.begin() + camId);
+  if (overlapMats_.size()) {
+    overlapMats_.erase(overlapMats_.begin() + camId);
+    for (std::vector<cv::Mat> &matlist : overlapMats_) {
+      matlist.erase(matlist.begin() + camId);
+    }
+  }
+  if (overlaps_.size()) {
+    overlaps_.erase(overlaps_.begin() + camId);
+    for (std::vector<bool> &overlaplist : overlaps_) {
+      overlaplist.erase(overlaplist.begin() + camId);
+    }
+  }
+  projectionIntrinsicRepNames_.erase(projectionIntrinsicRepNames_.begin() +
+                                     camId);
+  extrinsicRepNames_.erase(extrinsicRepNames_.begin() + camId);
+}
+
 // get the pose of the IMU frame S with respect to the camera cameraIndex
 std::shared_ptr<const okvis::kinematics::Transformation> NCameraSystem::T_SC(
     size_t cameraIndex) const
@@ -147,7 +168,7 @@ std::shared_ptr<cameras::CameraBase> NCameraSystem::cameraGeometryMutable(
 }
 
 // get the distortion type of cmaera cameraIndex
-inline NCameraSystem::DistortionType NCameraSystem::distortionType(size_t cameraIndex) const
+inline DistortionType NCameraSystem::distortionType(size_t cameraIndex) const
 {
   OKVIS_ASSERT_TRUE_DBG(Exception, cameraIndex < cameraGeometries_.size(),
                         "Camera index " << cameraIndex << "out of range.");

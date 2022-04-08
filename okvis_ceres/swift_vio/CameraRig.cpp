@@ -2,27 +2,27 @@
 
 namespace swift_vio {
 void DistortionTypeToDimensionLabels(
-    const okvis::cameras::NCameraSystem::DistortionType dtype,
+    const okvis::cameras::DistortionType dtype,
     std::vector<std::string> *dimensionLabels) {
-  std::map<okvis::cameras::NCameraSystem::DistortionType,
+  std::map<okvis::cameras::DistortionType,
            std::vector<std::string>>
       distortionNameList{
-          {okvis::cameras::NCameraSystem::Equidistant,
+          {okvis::cameras::DistortionType::Equidistant,
            {"k1", "k2", "k3", "k4"}},
-          {okvis::cameras::NCameraSystem::RadialTangential,
+          {okvis::cameras::DistortionType::RadialTangential,
            {"k1", "k2", "p1", "p2"}},
-          {okvis::cameras::NCameraSystem::NoDistortion, {}},
-          {okvis::cameras::NCameraSystem::RadialTangential8,
+          {okvis::cameras::DistortionType::No, {}},
+          {okvis::cameras::DistortionType::RadialTangential8,
            {"k1", "k2", "p1", "p2", "k3", "k4", "k5", "k6"}},
-          {okvis::cameras::NCameraSystem::FOV, {"omega"}},
-          {okvis::cameras::NCameraSystem::EUCM, {"alpha", "beta"}}};
+          {okvis::cameras::DistortionType::Fov, {"omega"}},
+          {okvis::cameras::DistortionType::Eucm, {"alpha", "beta"}}};
 
-  std::map<okvis::cameras::NCameraSystem::DistortionType,
+  std::map<okvis::cameras::DistortionType,
            std::vector<std::string>>::iterator it =
       std::find_if(
           distortionNameList.begin(), distortionNameList.end(),
           [&dtype](
-              const std::pair<okvis::cameras::NCameraSystem::DistortionType,
+              const std::pair<okvis::cameras::DistortionType,
                               std::vector<std::string>> &val) {
             if (val.first == dtype)
               return true;
@@ -36,61 +36,80 @@ void DistortionTypeToDimensionLabels(
 }
 
 void DistortionTypeToDesiredStdevs(
-    const okvis::cameras::NCameraSystem::DistortionType dtype,
+    const okvis::cameras::DistortionType dtype,
     Eigen::VectorXd *desiredStdevs) {
   switch (dtype) {
-  case okvis::cameras::NCameraSystem::Equidistant:
+  case okvis::cameras::DistortionType::Equidistant:
     desiredStdevs->resize(4);
     desiredStdevs->setConstant(0.002);
     break;
-  case okvis::cameras::NCameraSystem::RadialTangential:
+  case okvis::cameras::DistortionType::RadialTangential:
     desiredStdevs->resize(4);
     desiredStdevs->setConstant(0.002);
     break;
-  case okvis::cameras::NCameraSystem::NoDistortion:
+  case okvis::cameras::DistortionType::No:
     desiredStdevs->resize(0);
     break;
-  case okvis::cameras::NCameraSystem::RadialTangential8:
+  case okvis::cameras::DistortionType::RadialTangential8:
     desiredStdevs->resize(8);
     desiredStdevs->head<4>().setConstant(0.002);
     desiredStdevs->tail<4>().setConstant(0.0002);
     break;
-  case okvis::cameras::NCameraSystem::FOV:
+  case okvis::cameras::DistortionType::Fov:
     desiredStdevs->resize(1);
     desiredStdevs->setConstant(0.002);
     break;
-  case okvis::cameras::NCameraSystem::EUCM:
+  case okvis::cameras::DistortionType::Eucm:
     desiredStdevs->resize(2);
     desiredStdevs->setConstant(0.01);
     break;
   }
 }
 
-okvis::cameras::NCameraSystem::DistortionType
+okvis::cameras::DistortionType
 DistortionNameToTypeId(const std::string& distortionName) {
-  std::map<std::string, okvis::cameras::NCameraSystem::DistortionType> distortionNameList{
+  std::map<std::string, okvis::cameras::DistortionType> distortionNameList{
       {okvis::cameras::EquidistantDistortion().type(),
-       okvis::cameras::NCameraSystem::Equidistant},
+       okvis::cameras::DistortionType::Equidistant},
       {okvis::cameras::RadialTangentialDistortion().type(),
-       okvis::cameras::NCameraSystem::RadialTangential},
+       okvis::cameras::DistortionType::RadialTangential},
       {okvis::cameras::NoDistortion().type(),
-       okvis::cameras::NCameraSystem::NoDistortion},
+       okvis::cameras::DistortionType::No},
       {okvis::cameras::RadialTangentialDistortion8().type(),
-       okvis::cameras::NCameraSystem::RadialTangential8},
-      {okvis::cameras::FovDistortion().type(), okvis::cameras::NCameraSystem::FOV},
-      {okvis::cameras::EUCM().type(), okvis::cameras::NCameraSystem::EUCM}};
+       okvis::cameras::DistortionType::RadialTangential8},
+      {okvis::cameras::FovDistortion().type(), okvis::cameras::DistortionType::Fov},
+      {okvis::cameras::EUCM().type(), okvis::cameras::DistortionType::Eucm}};
 
-  std::map<std::string, okvis::cameras::NCameraSystem::DistortionType>::iterator
+  std::map<std::string, okvis::cameras::DistortionType>::iterator
       it = std::find_if(
       distortionNameList.begin(), distortionNameList.end(),
-      [&distortionName](const std::pair<std::string, okvis::cameras::NCameraSystem::DistortionType>& val) {
+      [&distortionName](const std::pair<std::string, okvis::cameras::DistortionType>& val) {
         if (val.first.compare(distortionName) == 0) return true;
         return false;
       });
   if (it == distortionNameList.end()) {
-    return okvis::cameras::NCameraSystem::NoDistortion;
+    return okvis::cameras::DistortionType::No;
   } else {
     return it->second;
+  }
+}
+
+std::string DistortionTypeToKalibrModel(okvis::cameras::DistortionType dt) {
+  switch (dt) {
+  case okvis::cameras::Equidistant:
+    return "equidistant";
+  case okvis::cameras::RadialTangential:
+    return "radtan";
+  case okvis::cameras::RadialTangential8:
+    return "radtan8";
+  case okvis::cameras::Fov:
+    return "fov";
+  case okvis::cameras::Eucm:
+    return "eucm";
+  case okvis::cameras::No:
+    return "no";
+  default:
+    return "no";
   }
 }
 

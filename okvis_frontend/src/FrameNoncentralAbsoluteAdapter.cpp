@@ -58,7 +58,7 @@ opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::FrameNoncentralAbsoluteAd
   size_t numCameras = nCameraSystem.numCameras();
 
   // find distortion type
-  okvis::cameras::NCameraSystem::DistortionType distortionType= nCameraSystem.distortionType(0);
+  okvis::cameras::DistortionType distortionType= nCameraSystem.distortionType(0);
   for (size_t i = 1; i < nCameraSystem.numCameras(); ++i) {
     OKVIS_ASSERT_TRUE(Exception, distortionType == nCameraSystem.distortionType(i),
                             "mixed frame types are not supported yet");
@@ -138,7 +138,7 @@ opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::FrameNoncentralAbsoluteAd
     const std::vector<size_t>& matchedPointIndices,
     const std::vector<size_t>& matchedKeypointIndices, const size_t im,
     std::shared_ptr<const okvis::MultiFrame> frame) {
-  okvis::cameras::NCameraSystem::DistortionType distortionType =
+  okvis::cameras::DistortionType distortionType =
       frame->distortionType(im);
 
   // store transformation. note: the T_SC estimates might actually slightly

@@ -55,6 +55,16 @@ namespace okvis {
 /// \brief cameras Namespace for camera-related functionality.
 namespace cameras {
 
+/// The enumeration of the currently supported distortion types.
+enum DistortionType  {
+  Equidistant = 0, ///< Use with okvis::cameras::EquidistantDistortion.
+  RadialTangential = 1, ///< Use with okvis::cameras::RadialTangentialDistortion.
+  No = 2,
+  RadialTangential8 = 3, ///< Use with okvis::cameras::RadialTangentialDistortion.
+  Fov,
+  Eucm
+};
+
 /// \class NCameraSystem
 /// \brief A class that assembles multiple cameras into a system of
 /// (potentially different) cameras.
@@ -63,18 +73,6 @@ class NCameraSystem
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
-
-  /// The enumeration of the currently supported distortion types.
-  enum DistortionType  {
-    Equidistant = 0, ///< Use with okvis::cameras::EquidistantDistortion.
-    RadialTangential = 1, ///< Use with okvis::cameras::RadialTangentialDistortion.
-    NoDistortion = 2,
-    RadialTangential8 = 3, ///< Use with okvis::cameras::RadialTangentialDistortion.
-    FOV,
-    EUCM
-  };
-
-  static std::string DistortionTypeToKalibrModel(DistortionType dt);
 
   /// \brief Default constructor
   inline NCameraSystem();
@@ -112,6 +110,8 @@ class NCameraSystem
                         std::string projectionIntrinsicRepName = "",
                         std::string extrinsicRepName = "",
                         bool computeOverlaps = true);
+
+  inline void removeCamera(size_t camId);
 
   /// \brief Obtatin the number of cameras currently added.
   /// @return The number of cameras.
@@ -173,6 +173,10 @@ class NCameraSystem
   inline void setExtrinsicRepName(int camera_id, const std::string& rep_name);
 
   inline void setOverlaps(const std::vector<std::vector<bool>> &overlaps);
+
+  inline const std::vector<std::string> &extrinsicRepNames() const {
+    return extrinsicRepNames_;
+  }
 
   std::shared_ptr<NCameraSystem> deepCopyPtr() const;
 

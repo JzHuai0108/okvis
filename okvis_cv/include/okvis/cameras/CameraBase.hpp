@@ -369,7 +369,7 @@ class CameraBase
   /// \brief Obtain the type
   virtual std::string type() const = 0;
 
-  /// \brief Obtain the projection type
+  /// \brief Obtain the distortion type
   virtual const std::string distortionType() const = 0;
 
  protected:
