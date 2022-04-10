@@ -61,6 +61,6 @@ struct AnchorFrameIdentifier {
 };
 
 static const size_t kMainCameraIndex = 0u;
-}  // namespace okvis
+}  // namespace swift_vio
 
 #endif /* INCLUDE_SWIFT_VIO_FRAMETYPEDEFS_HPP_ */

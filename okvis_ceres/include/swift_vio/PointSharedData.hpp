@@ -5,14 +5,15 @@
 #include <unordered_map>
 #include <Eigen/StdVector>
 
-#include <swift_vio/VectorOperations.hpp>
 #include <okvis/FrameTypedefs.hpp>
-
 #include <okvis/Measurements.hpp>
 #include <okvis/Parameters.hpp>
 #include <okvis/ceres/PoseParameterBlock.hpp>
+
+#include <swift_vio/CameraIdentifier.h>
 #include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSizedLin.hpp>
+#include <swift_vio/VectorOperations.hpp>
 
 namespace swift_vio {
 // The state info for one keypoint relevant to computing the pose (T_WB) and
@@ -159,6 +160,11 @@ class PointSharedData {
 
   const std::vector<AnchorFrameIdentifier>& anchorIds() const {
     return anchorIds_;
+  }
+
+  const CameraIdentifier anchorCameraId(size_t anchorId) const {
+    return CameraIdentifier(anchorIds_.at(anchorId).frameId_,
+                            anchorIds_.at(anchorId).cameraIndex_);
   }
 
   /**

@@ -29,7 +29,6 @@ enum class FeatureTrackingScheme {
   KeyframeDescriptorMatching = 0,   ///< default, keyframe and back-to-back frame matching
   FramewiseKLT,  ///< KLT back-to-back frame matching,
   FramewiseDescriptorMatching, ///< back-to-back descriptor-based frame matching
-  SingleThreadKeyframeDescMatching
 };
 
 std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s);
@@ -103,8 +102,8 @@ struct FrontendOptions {
                   float keyframeInsertionMatchingRatioThreshold = 0.2,
                   bool stereoWithEpipolarCheck = true,
                   double epipolarDistanceThreshold = 2.5,
-                  size_t numOldKeyframesToMatch = 2,
-                  size_t numKeyframesToMatch = 3,
+                  size_t numOldKeyframesToMatch = 1,
+                  size_t numKeyframesToMatch = 2,
                   int numThreads = 4);
 
   std::string toString(std::string hint) const;
