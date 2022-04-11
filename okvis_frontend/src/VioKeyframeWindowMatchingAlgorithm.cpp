@@ -95,8 +95,8 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::setFrames(
 
   // calculate the relative transformations and uncertainties
   // TODO donno, if and what we need here - I'll see
-  estimator_->getCameraSensorExtrinsics(mfIdA_, camIdA, T_SaCa_);
-  estimator_->getCameraSensorExtrinsics(mfIdB_, camIdB, T_SbCb_);
+  estimator_->getCameraSensorExtrinsics(camIdA, T_SaCa_);
+  estimator_->getCameraSensorExtrinsics(camIdB, T_SbCb_);
   estimator_->get_T_WS(mfIdA_, T_WSa_);
   estimator_->get_T_WS(mfIdB_, T_WSb_);
   T_SaW_ = T_WSa_.inverse();

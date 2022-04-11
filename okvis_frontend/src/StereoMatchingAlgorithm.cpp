@@ -94,8 +94,8 @@ void StereoMatchingAlgorithm<CAMERA_GEOMETRY_T>::setFrames(
   fA_ = frameA_->geometryAs<CAMERA_GEOMETRY_T>(camIdA_)->focalLengthU();
   fB_ = frameB_->geometryAs<CAMERA_GEOMETRY_T>(camIdB_)->focalLengthU();
 
-  estimator_->getCameraSensorExtrinsics(mfIdA_, camIdA, T_SaCa_);
-  estimator_->getCameraSensorExtrinsics(mfIdB_, camIdB, T_SbCb_);
+  estimator_->getCameraSensorExtrinsics(camIdA, T_SaCa_);
+  estimator_->getCameraSensorExtrinsics(camIdB, T_SbCb_);
   estimator_->get_T_WS(mfIdA_, T_WSa_);
   estimator_->get_T_WS(mfIdB_, T_WSb_);
   T_SaW_ = T_WSa_.inverse();

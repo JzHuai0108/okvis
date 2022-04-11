@@ -205,7 +205,7 @@ bool EstimatorBase::printStatesAndStdevs(std::ostream& stream, const Eigen::Matr
   size_t numCameras = cameraNoiseParametersVec_.size();
   for (size_t camIdx = 0u; camIdx < numCameras; ++camIdx) {
     Eigen::VectorXd extrinsicValues;
-    getVariableCameraExtrinsics(camIdx, &extrinsicValues);
+    getVariableCameraExtrinsics(poseId, camIdx, &extrinsicValues);
     stream << " " << extrinsicValues.transpose().format(swift_vio::kSpaceInitFmt);
   }
   Eigen::VectorXd stateStd;
@@ -216,7 +216,7 @@ bool EstimatorBase::printStatesAndStdevs(std::ostream& stream, const Eigen::Matr
     computeCovariance(&covariance);
     stateStd = covariance.diagonal().cwiseSqrt();
   }
-  stream << " " << stateStd.transpose().format(swift_vio::kSpaceInitFmt);
+  stream << " " << stateStd.transpose().format(swift_vio::kSpaceInitFmt) << "\n";
   return true;
 }
 
@@ -258,6 +258,18 @@ bool EstimatorBase::getLandmark(uint64_t landmarkId,
   return true;
 }
 
+bool EstimatorBase::getLandmark(uint64_t landmarkId,
+                                swift_vio::MapPoint& mapPoint) const
+{
+  std::lock_guard<std::mutex> l(statesMutex_);
+  if (landmarksMap_.find(landmarkId) == landmarksMap_.end()) {
+    OKVIS_THROW_DBG(Exception,"landmark with id = "<<landmarkId<<" does not exist.")
+    return false;
+  }
+  mapPoint = swift_vio::MapPoint(landmarksMap_.at(landmarkId));
+  return true;
+}
+
 // Checks whether the landmark is initialized.
 bool EstimatorBase::isLandmarkInitialized(uint64_t landmarkId) const {
   OKVIS_ASSERT_TRUE_DBG(Exception, isLandmarkAdded(landmarkId),
@@ -287,6 +299,25 @@ size_t EstimatorBase::getLandmarks(MapPointVector & landmarks) const
   return landmarksMap_.size();
 }
 
+size_t EstimatorBase::getCurrentlyObservedLandmarks(swift_vio::MapPointVector *landmarks) const {
+  std::lock_guard<std::mutex> l(statesMutex_);
+  landmarks->clear();
+  landmarks->reserve(landmarksMap_.size());
+  for(PointMap::const_iterator it=landmarksMap_.begin(); it!=landmarksMap_.end(); ++it){
+    landmarks->emplace_back(it->second);
+  }
+  return landmarksMap_.size();
+}
+
+size_t EstimatorBase::getMarginalizedLandmarks(
+    swift_vio::MapPointVector *landmarks) const {
+  landmarks->clear();
+  for (const auto &p : marginalizedLandmarks_) {
+    landmarks->emplace_back(p);
+  }
+  return marginalizedLandmarks_.size();
+}
+
 // Get pose for a given pose ID.
 bool EstimatorBase::get_T_WS(uint64_t poseId,
                                  okvis::kinematics::Transformation & T_WS) const
@@ -308,6 +339,18 @@ bool EstimatorBase::getSpeedAndBias(uint64_t poseId, uint64_t imuIdx,
   if (!getSensorStateEstimateAs<ceres::SpeedAndBiasParameterBlock>(
       poseId, imuIdx, SensorStates::Imu, ImuSensorStates::SpeedAndBias,
       speedAndBias)) {
+    return false;
+  }
+  return true;
+}
+
+bool EstimatorBase::getSpeed(uint64_t poseId, Eigen::Vector3d &speed) const
+{
+  Eigen::Matrix<double, 9, 1> speedAndBias;
+  if (!getSensorStateEstimateAs<ceres::SpeedAndBiasParameterBlock>(
+      poseId, 0, SensorStates::Imu, ImuSensorStates::SpeedAndBias,
+      speedAndBias)) {
+    speed = speedAndBias.head<3>();
     return false;
   }
   return true;
@@ -713,7 +756,7 @@ bool EstimatorBase::computeErrors(
     const okvis::kinematics::Transformation &ref_T_WS,
     const Eigen::Vector3d &ref_v_WS, const Eigen::Matrix<double, 6, 1> &biasRef,
     const okvis::ImuParameters &/*refImuParams*/,
-    std::shared_ptr<const okvis::cameras::NCameraSystem> /*refCameraSystem*/,
+    std::shared_ptr<const swift_vio::CameraRig> /*refCameraSystem*/,
     Eigen::VectorXd *errors) const {
   errors->resize(15);
   okvis::kinematics::Transformation est_T_WS;
@@ -800,16 +843,15 @@ size_t EstimatorBase::gatherMapPointObservations(
 }
 
 bool EstimatorBase::getCameraSensorExtrinsics(
-    uint64_t /*poseId*/, size_t cameraIdx,
-    okvis::kinematics::Transformation& T_BCi) const {
+    size_t cameraIdx, okvis::kinematics::Transformation &T_BCi) const {
   T_BCi = cameraRig_.getCameraExtrinsic(cameraIdx);
   return true;
 }
 
 void EstimatorBase::getVariableCameraExtrinsics(
-    size_t camIdx,
+    uint64_t poseId, size_t camIdx,
     Eigen::Matrix<double, Eigen::Dynamic, 1> *extrinsicParams) const {
-  const States &currentState = statesMap_.rbegin()->second;
+  const States &currentState = statesMap_.at(poseId);
   if (!cameraNoiseParametersVec_.at(camIdx).isExtrinsicsFixed()) {
     uint64_t extrinsicId = currentState.sensors.at(SensorStates::Camera)
                                .at(camIdx)
@@ -827,12 +869,14 @@ void EstimatorBase::getVariableCameraExtrinsics(
 }
 
 void EstimatorBase::getVariableCameraIntrinsics(
+    uint64_t /*poseId*/,
     size_t /*camIdx*/,
     Eigen::Matrix<double, Eigen::Dynamic, 1>* intrinsicParams) const {
   intrinsicParams->resize(0);
 }
 
 void EstimatorBase::getImuAugmentedStatesEstimate(
+    uint64_t /*poseId*/,
     size_t /*imuId*/,
     Eigen::Matrix<double, Eigen::Dynamic, 1>* extraParams) const {
   extraParams->resize(0);

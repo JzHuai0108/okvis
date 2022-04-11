@@ -16,6 +16,7 @@ enum class EstimatorAlgorithm {
   SlidingWindowSmoother = 0,  ///< keyframe-based smoother.
   FixedLagSmoother, ///< Gtsam::FixedLagSmoother.
   RiFixedLagSmoother, ///< Gtsam::FixedLagSmoother with right invariant errors.
+  OkvisEstimator,  ///< The original okvis Estimator, a sliding window estimator.
   SlidingWindowFilter, ///< keyframe-based filter.
 };
 

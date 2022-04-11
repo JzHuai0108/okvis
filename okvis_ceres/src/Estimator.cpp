@@ -368,6 +368,7 @@ bool Estimator::removeObservationAndResidual(::ceres::ResidualBlockId residualBl
 // Applies the dropping/marginalization strategy according to the RSS'13/IJRR'14 paper.
 // The new number of frames in the window will be numKeyframes+numImuFrames.
 bool Estimator::applyMarginalizationStrategy(okvis::MapPointVector& removedLandmarks) {
+  marginalizedLandmarks_.clear();
   size_t numKeyframes = estimatorOptions_.numKeyframes;
   size_t numImuFrames = estimatorOptions_.numImuFrames;
   // keep the newest numImuFrames
@@ -667,7 +668,7 @@ bool Estimator::applyMarginalizationStrategy(okvis::MapPointVector& removedLandm
       statesMap_.erase(it->second.id);
     }
   }
-
+  marginalizedLandmarks_ = removedLandmarks;
   // now apply the actual marginalization
   if(paremeterBlocksToBeMarginalized.size()>0){
     std::vector< ::ceres::ResidualBlockId> addedPriors;

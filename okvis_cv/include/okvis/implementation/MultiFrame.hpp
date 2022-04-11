@@ -42,6 +42,14 @@ namespace okvis {
 // Default constructor
 MultiFrame::MultiFrame() : id_(0) {}
 
+MultiFrame::MultiFrame(int numCameras, const okvis::Time & timestamp, uint64_t id)
+    : timestamp_(timestamp),
+      id_(id)
+{
+  frames_.clear();  // erase -- for safety
+  frames_.resize(numCameras);
+}
+
 // Construct from NCameraSystem
 MultiFrame::MultiFrame(const cameras::NCameraSystem & cameraSystem,
                        const okvis::Time & timestamp, uint64_t id)

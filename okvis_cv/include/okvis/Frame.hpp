@@ -222,6 +222,10 @@ class Frame
   inline std::vector<KeypointReduced, Eigen::aligned_allocator<KeypointReduced>>
   copyKeypoints() const;
 
+  void createTestImage(int rows, int cols, int type) {
+    image_ = cv::Mat(rows, cols, type, cv::Scalar(168));
+  }
+
  protected:
   cv::Mat image_;  ///< the image as OpenCV's matrix
   std::shared_ptr<const cameras::CameraBase> cameraGeometry_;  ///< the camera geometry

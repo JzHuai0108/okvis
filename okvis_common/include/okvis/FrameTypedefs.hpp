@@ -247,6 +247,10 @@ struct MapPoint
     initialized = inited;
   }
 
+  swift_vio::FeatureTrackStatus getStatus() const {
+    return status;
+  }
+
   bool inState() const {
     return status.inState;
   }

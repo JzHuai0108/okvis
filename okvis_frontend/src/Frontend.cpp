@@ -735,9 +735,9 @@ int Frontend::runRansac2d2d(okvis::EstimatorBase& estimator,
       okvis::kinematics::Transformation T_SCA, T_WSA, T_SC0, T_WS0;
       uint64_t idA = olderFrameId;
       uint64_t id0 = currentFrameId;
-      estimator.getCameraSensorExtrinsics(idA, im, T_SCA);
+      estimator.getCameraSensorExtrinsics(im, T_SCA);
       estimator.get_T_WS(idA, T_WSA);
-      estimator.getCameraSensorExtrinsics(id0, im, T_SC0);
+      estimator.getCameraSensorExtrinsics(im, T_SC0);
       estimator.get_T_WS(id0, T_WS0);
       if (rel_pose_success) {
         // update pose

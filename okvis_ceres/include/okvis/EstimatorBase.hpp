@@ -68,6 +68,7 @@
 #include <swift_vio/CameraRig.hpp>
 #include <swift_vio/imu/ImuRig.hpp>
 #include <swift_vio/InitialNavState.hpp>
+#include <swift_vio/MapPoint.h>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -244,6 +245,8 @@ class EstimatorBase : public VioBackendInterface
    */
   bool getLandmark(uint64_t landmarkId, okvis::MapPoint& mapPoint) const final;
 
+  bool getLandmark(uint64_t landmarkId, swift_vio::MapPoint& mapPoint) const;
+
   /**
    * @brief Get a copy of all the landmarks as a PointMap.
    * @param[out] landmarks The landmarks.
@@ -260,6 +263,10 @@ class EstimatorBase : public VioBackendInterface
    */
   size_t getLandmarks(okvis::MapPointVector & landmarks) const override;
 
+  size_t getCurrentlyObservedLandmarks(swift_vio::MapPointVector *landmarks) const;
+
+  size_t getMarginalizedLandmarks(swift_vio::MapPointVector *landmarks) const;
+
   /// @brief Get the number of landmarks in the estimator
   /// \return The number of landmarks.
   size_t numLandmarks() const final {
@@ -270,6 +277,11 @@ class EstimatorBase : public VioBackendInterface
   size_t numObservations(uint64_t landmarkId) const;
 
   const okvis::MapPoint &getLandmarkUnsafe(uint64_t landmarkId) const;
+
+  void frameLandmarkIds(uint64_t nframeId, size_t camId, std::vector<uint64_t> *landmarkIds) const {
+    *landmarkIds = multiFramePtrMap_.at(nframeId)->getLandmarkIds(camId);
+  }
+
   ///@}
 
   /// @name Operations on landmarks.
@@ -327,6 +339,8 @@ class EstimatorBase : public VioBackendInterface
    */
   bool getSpeedAndBias(uint64_t poseId, uint64_t imuIdx, okvis::SpeedAndBias & speedAndBias) const final;
 
+  bool getSpeed(uint64_t poseId, Eigen::Vector3d &speed) const;
+
   /**
    * @brief Get camera states for a given pose ID.
    * @warning This accesses the optimization graph, so not very fast.
@@ -375,7 +389,7 @@ class EstimatorBase : public VioBackendInterface
       const okvis::kinematics::Transformation &ref_T_WS,
       const Eigen::Vector3d &ref_v_WS, const Eigen::Matrix<double, 6, 1> &biasRef,
       const okvis::ImuParameters &refImuParams,
-      std::shared_ptr<const okvis::cameras::NCameraSystem> refCameraSystem,
+      std::shared_ptr<const swift_vio::CameraRig> refCameraSystem,
       Eigen::VectorXd *errors) const;
 
   /**
@@ -476,14 +490,13 @@ class EstimatorBase : public VioBackendInterface
 
   /**
    * @brief getCameraSensorExtrinsics get extrinsic parameters T_BC for a camera.
-   * @param poseId
    * @param cameraIdx
    * @param T_BCi
    * @return
    */
-  bool getCameraSensorExtrinsics(
-      uint64_t poseId, size_t cameraIdx,
-      okvis::kinematics::Transformation& T_BCi) const;
+  bool
+  getCameraSensorExtrinsics(size_t cameraIdx,
+                            okvis::kinematics::Transformation &T_BCi) const;
 
   /**
    * @brief get variable extrinsic parameters of camIdx.
@@ -492,7 +505,7 @@ class EstimatorBase : public VioBackendInterface
    * @return
    */
   void getVariableCameraExtrinsics(
-      size_t camIdx,
+      uint64_t poseId, size_t camIdx,
       Eigen::Matrix<double, Eigen::Dynamic, 1> *extrinsicParams) const;
 
   /**
@@ -502,7 +515,7 @@ class EstimatorBase : public VioBackendInterface
    * @param camIdx
    * @return
    */
-  virtual void getVariableCameraIntrinsics(size_t camIdx,
+  virtual void getVariableCameraIntrinsics(uint64_t poseId, size_t camIdx,
       Eigen::Matrix<double, Eigen::Dynamic, 1> *cameraParams) const;
 
   /**
@@ -510,7 +523,7 @@ class EstimatorBase : public VioBackendInterface
    * @param extraParams excluding biases.
    * @return
    */
-  virtual void getImuAugmentedStatesEstimate(size_t imuIdx,
+  virtual void getImuAugmentedStatesEstimate(uint64_t poseId, size_t imuIdx,
       Eigen::Matrix<double, Eigen::Dynamic, 1>* extraParams) const;
 
   /**
@@ -812,6 +825,8 @@ class EstimatorBase : public VioBackendInterface
   swift_vio::PoseGraphOptions poseGraphOptions_;
 
   InitializationStatus initStatus_;
+
+  okvis::MapPointVector marginalizedLandmarks_;
 };
 }  // namespace okvis
 #include "okvis/implementation/EstimatorBase.hpp"

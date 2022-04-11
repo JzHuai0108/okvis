@@ -16,9 +16,10 @@ add_library(${PROJECT_NAME} STATIC
   src/FrameTypedefs.cpp
   src/FullStateWithExtrinsicsAsCallback.cpp
   src/InitialNavState.cpp
+  src/MapPoint.cpp
   src/Parameters.cpp
-  src/SwiftParameters.cpp
   src/PipelineParams.cpp
+  src/SwiftParameters.cpp
   src/VioInterface.cpp
   src/VioParametersReader.cpp
   include/okvis/FrameTypedefs.hpp

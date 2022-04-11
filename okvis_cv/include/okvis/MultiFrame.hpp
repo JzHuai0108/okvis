@@ -61,6 +61,8 @@ class MultiFrame
   /// \brief Default constructor
   inline MultiFrame();
 
+  inline MultiFrame(int numCameras, const okvis::Time & timestamp, uint64_t id = 0);
+
   /// \brief Construct from NCameraSystem
   /// @param[in] cameraSystem The camera system for which this is a multi-frame.
   /// @param[in] timestamp The time this frame was recorded.
@@ -306,6 +308,13 @@ class MultiFrame
     cameraSystem_ = cameraSystem;
   }
 
+  void createTestImages(int rows, int cols, int type = CV_8UC1) {
+    for (std::vector<Frame, Eigen::aligned_allocator<Frame>>::iterator it =
+             frames_.begin();
+         it != frames_.end(); ++it) {
+      it->createTestImage(rows, cols, type);
+    }
+  }
  protected:
   okvis::Time timestamp_;  ///< the frame timestamp
   uint64_t id_;  ///< the frame id
