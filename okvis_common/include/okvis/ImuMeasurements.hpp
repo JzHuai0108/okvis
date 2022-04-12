@@ -105,6 +105,13 @@ struct ImuSensorReadings {
       : gyroscopes(gyroscopes_),
         accelerometers(accelerometers_) {
   }
+
+  Eigen::Matrix<double, 6, 1> toVector() {
+    Eigen::Matrix<double, 6, 1> res;
+    res << gyroscopes, accelerometers;
+    return res;
+  }
+
   Eigen::Vector3d gyroscopes;     ///< Gyroscope measurement.
   Eigen::Vector3d accelerometers; ///< Accelerometer measurement.
 };
