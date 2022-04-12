@@ -279,5 +279,9 @@ void NCameraSystem::setExtrinsicRepName(int camera_id, const std::string& rep_na
 void NCameraSystem::setOverlaps(const std::vector<std::vector<bool>> &overlaps) {
   overlaps_ = overlaps;
 }
+
+void NCameraSystem::setOverlapMats(const std::vector<std::vector<cv::Mat>> &overlapMats) {
+  overlapMats_ = overlapMats;
+}
 }  // namespace cameras
 }  // namespace okvis

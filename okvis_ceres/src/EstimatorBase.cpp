@@ -85,13 +85,7 @@ int EstimatorBase::addCameraParameterStds(
 }
 
 void EstimatorBase::addCameraSystem(const okvis::cameras::NCameraSystem& cameras) {
-  cameraRig_.clear();
-  for (size_t i = 0; i < cameras.numCameras(); ++i) {
-    cameraRig_.addCameraDeep(cameras.T_SC(i), cameras.cameraGeometry(i),
-                             cameras.projectionIntrinsicRep(i), cameras.extrinsicRep(i));
-    swift_vio::ProjIntrinsicRepNameToId(cameras.projectionIntrinsicRep(i));
-    swift_vio::ExtrinsicRepNameToId(cameras.extrinsicRep(i));
-  }
+  cameraRig_ = swift_vio::CameraRig::deepCopy(cameras);
 }
 
 // Add an IMU to the configuration.

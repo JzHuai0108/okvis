@@ -139,6 +139,7 @@ std::shared_ptr<NCameraSystem> NCameraSystem::deepCopyPtr() const {
                   extrinsicRepNames_[i], false);
   }
   rig->setOverlaps(overlaps());
+  rig->setOverlapMats(overlapMats_);
   return rig;
 }
 

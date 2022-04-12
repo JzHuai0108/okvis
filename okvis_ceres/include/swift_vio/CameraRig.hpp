@@ -226,14 +226,6 @@ class CameraRig {
             std::shared_ptr<okvis::cameras::CameraBase> cameraGeometry,
             int projIntrinsicRepId, int extrinsicRepId);
 
-  inline int
-  addCameraDeep(std::shared_ptr<const okvis::kinematics::Transformation> T_SC,
-            std::shared_ptr<const okvis::cameras::CameraBase> cameraGeometry,
-            std::string projectionIntrinsicRepName, std::string extrinsicRepName) {
-    int projIntrinsicRepId = ProjIntrinsicRepNameToId(projectionIntrinsicRepName);
-    int extrinsicRepId = ExtrinsicRepNameToId(extrinsicRepName);
-    return addCameraDeep(T_SC, cameraGeometry, projIntrinsicRepId, extrinsicRepId);
-  }
 
   CameraRig deepCopy() const;
 
@@ -243,15 +235,36 @@ class CameraRig {
 
   static std::shared_ptr<CameraRig> deepCopyPtr(const okvis::cameras::NCameraSystem &ncameraSystem);
 
+  /**
+   * @brief initialize rig to this CameraRig
+   * @param rig
+   */
   void initializeTo(okvis::cameras::NCameraSystem *rig) const;
 
+  /**
+   * @brief sync rig to this CameraRig
+   * @param rig
+   */
   void assignTo(CameraRig *rig) const;
 
+  /**
+   * @brief sync rig to this CameraRig
+   * @param rig
+   */
   void assignTo(okvis::cameras::NCameraSystem *rig) const;
 
   void computeOverlaps();
 
 private:
+  inline int
+  addCameraDeep(std::shared_ptr<const okvis::kinematics::Transformation> T_SC,
+            std::shared_ptr<const okvis::cameras::CameraBase> cameraGeometry,
+            std::string projectionIntrinsicRepName, std::string extrinsicRepName) {
+    int projIntrinsicRepId = ProjIntrinsicRepNameToId(projectionIntrinsicRepName);
+    int extrinsicRepId = ExtrinsicRepNameToId(extrinsicRepName);
+    return addCameraDeep(T_SC, cameraGeometry, projIntrinsicRepId, extrinsicRepId);
+  }
+
   int addCameraDeep(std::shared_ptr<const okvis::kinematics::Transformation> T_SC,
             std::shared_ptr<const okvis::cameras::CameraBase> cameraGeometry,
             int projIntrinsicRepId, int extrinsicRepId);

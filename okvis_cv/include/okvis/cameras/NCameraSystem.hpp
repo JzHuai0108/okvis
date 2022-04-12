@@ -174,6 +174,8 @@ class NCameraSystem
 
   inline void setOverlaps(const std::vector<std::vector<bool>> &overlaps);
 
+  inline void setOverlapMats(const std::vector<std::vector<cv::Mat>> &overlapMats);
+
   inline const std::vector<std::string> &extrinsicRepNames() const {
     return extrinsicRepNames_;
   }
