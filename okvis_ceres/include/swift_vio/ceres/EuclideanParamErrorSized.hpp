@@ -1,12 +1,12 @@
 
 /**
- * @file EuclideanParamError.hpp
- * @brief Header file for the EuclideanParamError class.
+ * @file EuclideanParamErrorSized.hpp
+ * @brief Header file for the EuclideanParamErrorSized class.
  * @author Jianzhu Huai
  */
 
-#ifndef INCLUDE_OKVIS_CERES_EUCLIDEANPARAMERROR_HPP_
-#define INCLUDE_OKVIS_CERES_EUCLIDEANPARAMERROR_HPP_
+#ifndef INCLUDE_OKVIS_CERES_EUCLIDEANPARAMERRORSIZED_HPP_
+#define INCLUDE_OKVIS_CERES_EUCLIDEANPARAMERRORSIZED_HPP_
 
 #include <vector>
 #include <Eigen/Core>
@@ -18,7 +18,10 @@
 namespace okvis {
 /// \brief ceres Namespace for ceres-related functionality implemented in okvis.
 namespace ceres {
-class EuclideanParamError : public ::ceres::DynamicCostFunction,
+template<int kParamDim>
+class EuclideanParamErrorSized : public ::ceres::SizedCostFunction<
+    kParamDim /* number of residuals */,
+    kParamDim /* size of first parameter */>,
     public ErrorInterface {
  public:
 
@@ -26,56 +29,66 @@ class EuclideanParamError : public ::ceres::DynamicCostFunction,
   OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
 
   /// \brief The base class type.
-  typedef ::ceres::DynamicCostFunction base_t;
+  typedef ::ceres::SizedCostFunction<kParamDim, kParamDim> base_t;
+
+  /// \brief Number of residuals (kParamDim)
+  static const int kNumResiduals = kParamDim;
+
+  /// \brief The information matrix type.
+  typedef Eigen::Matrix<double, kParamDim, kParamDim> information_t;
+
+  /// \brief The covariance matrix type (same as information).
+  typedef Eigen::Matrix<double, kParamDim, kParamDim> covariance_t;
 
   /// \brief Default constructor.
-  EuclideanParamError();
+  EuclideanParamErrorSized();
+
+  /// \brief Construct with measurement and information matrix
+  /// @param[in] measurement The measurement.
+  /// @param[in] information The information (weight) matrix.
+  EuclideanParamErrorSized(const Eigen::Matrix<double, kParamDim, 1> & measurement,
+                      const information_t & information);
 
   /// \brief Construct with measurement and variance.
   /// @param[in] measurement The measurement.
   /// @param[in] variance The variance of each dim of the measurement, i.e. information_ has 1/variance in its diagonal.
-  EuclideanParamError(const Eigen::Matrix<double, -1, 1>& measurement,
-                      const Eigen::Matrix<double, -1, 1>& variance);
+  EuclideanParamErrorSized(const Eigen::Matrix<double, kParamDim, 1>& measurement,
+                      const Eigen::Matrix<double, kParamDim, 1>& variance);
 
-  EuclideanParamError(const Eigen::Matrix<double, -1, 1>& measurement,
-                      double varforall);
-
-  void setParameterBlockAndResidualSizes() {
-    AddParameterBlock(measurement_.size());
-    SetNumResiduals(measurement_.size());
-  }
+  EuclideanParamErrorSized(const Eigen::Matrix<double, kParamDim, 1>& measurement,
+                           double varforall);
 
   /// \brief Trivial destructor.
-  virtual ~EuclideanParamError() {
+  virtual ~EuclideanParamErrorSized() {
   }
 
   // setters
   /// \brief Set the measurement.
   /// @param[in] measurement The measurement.
-  void setMeasurement(const Eigen::Matrix<double, -1, 1> & measurement) {
+  void setMeasurement(const Eigen::Matrix<double, kParamDim, 1> & measurement) {
     measurement_ = measurement;
   }
 
   /// \brief Set the information.
   /// @param[in] information The information (weight) matrix.
-  void setInformation(const Eigen::MatrixXd & information);
+  void setInformation(const information_t & information);
 
   // getters
   /// \brief Get the measurement.
   /// \return The measurement vector.
-  const Eigen::Matrix<double, -1, 1>& measurement() const {
+  const Eigen::Matrix<double, kParamDim, 1>& measurement() const {
     return measurement_;
   }
 
   /// \brief Get the information matrix.
   /// \return The information (weight) matrix.
-  const Eigen::MatrixXd &information() const {
+  const information_t& information() const {
     return information_;
   }
 
   /// \brief Get the covariance matrix.
   /// \return The inverse information (covariance) matrix.
-  const Eigen::MatrixXd &covariance() const {
+  const covariance_t& covariance() const {
     return covariance_;
   }
 
@@ -107,39 +120,43 @@ class EuclideanParamError : public ::ceres::DynamicCostFunction,
   // sizes
   /// \brief Residual dimension.
   size_t residualDim() const {
-    return measurement_.size();
+    return kNumResiduals;
   }
 
   /// \brief Number of parameter blocks.
-  size_t parameterBlocks() const final {
-    return parameter_block_sizes().size();
+  size_t parameterBlocks() const {
+    return base_t::parameter_block_sizes().size();
   }
 
   /// \brief Dimension of an individual parameter block.
   /// @param[in] parameterBlockId ID of the parameter block of interest.
   /// \return The dimension.
-  size_t parameterBlockDim(size_t parameterBlockId) const final {
+  size_t parameterBlockDim(size_t parameterBlockId) const {
     return base_t::parameter_block_sizes().at(parameterBlockId);
   }
 
   /// @brief Residual block type as string
   virtual std::string typeInfo() const {
-    return "EuclideanParamError";
+    return "EuclideanParamErrorSized";
   }
 
  protected:
 
   // the measurement
-  Eigen::Matrix<double, -1, 1> measurement_; ///< The measurement.
+  Eigen::Matrix<double, kParamDim, 1> measurement_; ///< The measurement.
 
   // weighting related
-  Eigen::MatrixXd information_; ///< The information matrix.
-  Eigen::MatrixXd squareRootInformation_; ///< The square root information matrix.
-  Eigen::MatrixXd covariance_; ///< The covariance matrix.
+  information_t information_; ///< The information matrix.
+  information_t squareRootInformation_; ///< The square root information matrix.
+  covariance_t covariance_; ///< The covariance matrix.
 
 };
+
+typedef EuclideanParamErrorSized<3> SpeedParameterError;
+typedef EuclideanParamErrorSized<6> BiasParameterError;
+
 }  // namespace ceres
 }  // namespace okvis
 
-#include "implementation/EuclideanParamError.hpp"
-#endif /* INCLUDE_OKVIS_CERES_EUCLIDEANPARAMERROR_HPP_ */
+#include "implementation/EuclideanParamErrorSized.hpp"
+#endif /* INCLUDE_OKVIS_CERES_EUCLIDEANPARAMERRORSIZED_HPP_ */

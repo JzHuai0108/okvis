@@ -56,7 +56,7 @@ PoseParameterBlock::~PoseParameterBlock() {
 // Constructor with estimate and time.
 PoseParameterBlock::PoseParameterBlock(
     const okvis::kinematics::Transformation& T_WS, uint64_t id,
-    const okvis::Time& timestamp) : plinPointFixed_(false) {
+    const okvis::Time& /*timestamp*/) : plinPointFixed_(false) {
   setEstimate(T_WS);
   setId(id);
   // setTimestamp(timestamp);

@@ -8,7 +8,7 @@
 #include <swift_vio/ceres/NormalVectorParameterBlock.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSized.hpp>
 #include <swift_vio/ceres/EuclideanParamBlockSizedLin.hpp>
-#include <swift_vio/ceres/EuclideanParamError.hpp>
+#include <swift_vio/ceres/EuclideanParamErrorSized.hpp>
 #include <swift_vio/ceres/ImuErrorConstBias.hpp>
 #include <swift_vio/ExtrinsicReps.hpp>
 #include <swift_vio/ParallaxAnglePoint.hpp>
@@ -320,7 +320,7 @@ public:
     Eigen::Vector3d variance;
     variance << 1e-12, 1e-12, 1e-12;
     ::ceres::CostFunction *prior_speed =
-        new okvis::ceres::EuclideanParamError<3>(speedAndBias_0.head<3>(),
+        new okvis::ceres::EuclideanParamErrorSized<3>(speedAndBias_0.head<3>(),
                                                  variance);
     problem.AddResidualBlock(prior_speed, NULL,
                              speedParameterBlock_0.parameters());
@@ -328,7 +328,7 @@ public:
     Eigen::Matrix<double, 6, 1> bvariances;
     bvariances << 1e-12, 1e-12, 1e-12, 1e-12, 1e-12, 1e-12;
     ::ceres::CostFunction *prior_bias =
-        new okvis::ceres::EuclideanParamError<6>(speedAndBias_0.tail<6>(),
+        new okvis::ceres::EuclideanParamErrorSized<6>(speedAndBias_0.tail<6>(),
                                                  bvariances);
     problem.AddResidualBlock(prior_bias, NULL,
                              biasParameterBlock_0.parameters());

@@ -1,12 +1,12 @@
 
 /**
- * @file EuclideanParamError.hpp
- * @brief Header file for the EuclideanParamError class.
+ * @file ScalarError.hpp
+ * @brief Header file for the ScalarError class.
  * @author Jianzhu Huai
  */
 
-#ifndef INCLUDE_OKVIS_CERES_EUCLIDEANPARAMERROR_HPP_
-#define INCLUDE_OKVIS_CERES_EUCLIDEANPARAMERROR_HPP_
+#ifndef INCLUDE_OKVIS_CERES_SCALARERROR_HPP_
+#define INCLUDE_OKVIS_CERES_SCALARERROR_HPP_
 
 #include <vector>
 #include <Eigen/Core>
@@ -18,7 +18,10 @@
 namespace okvis {
 /// \brief ceres Namespace for ceres-related functionality implemented in okvis.
 namespace ceres {
-class EuclideanParamError : public ::ceres::DynamicCostFunction,
+
+class ScalarError : public ::ceres::SizedCostFunction<
+    1 /* number of residuals */,
+    1 /* size of first parameter */>,
     public ErrorInterface {
  public:
 
@@ -26,56 +29,57 @@ class EuclideanParamError : public ::ceres::DynamicCostFunction,
   OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
 
   /// \brief The base class type.
-  typedef ::ceres::DynamicCostFunction base_t;
+  typedef ::ceres::SizedCostFunction<1, 1> base_t;
+
+  /// \brief Number of residuals (1)
+  static const int kNumResiduals = 1;
+
+  /// \brief The information matrix type.
+  typedef double information_t;
+
+  /// \brief The covariance matrix type (same as information).
+  typedef double covariance_t;
 
   /// \brief Default constructor.
-  EuclideanParamError();
+  ScalarError();
 
   /// \brief Construct with measurement and variance.
   /// @param[in] measurement The measurement.
   /// @param[in] variance The variance of each dim of the measurement, i.e. information_ has 1/variance in its diagonal.
-  EuclideanParamError(const Eigen::Matrix<double, -1, 1>& measurement,
-                      const Eigen::Matrix<double, -1, 1>& variance);
-
-  EuclideanParamError(const Eigen::Matrix<double, -1, 1>& measurement,
-                      double varforall);
-
-  void setParameterBlockAndResidualSizes() {
-    AddParameterBlock(measurement_.size());
-    SetNumResiduals(measurement_.size());
-  }
+  ScalarError(const double& measurement,
+                      const double& variance);
 
   /// \brief Trivial destructor.
-  virtual ~EuclideanParamError() {
+  virtual ~ScalarError() {
   }
 
   // setters
   /// \brief Set the measurement.
   /// @param[in] measurement The measurement.
-  void setMeasurement(const Eigen::Matrix<double, -1, 1> & measurement) {
+  void setMeasurement(const double & measurement) {
     measurement_ = measurement;
   }
 
   /// \brief Set the information.
   /// @param[in] information The information (weight) matrix.
-  void setInformation(const Eigen::MatrixXd & information);
+  void setInformation(const information_t & information);
 
   // getters
   /// \brief Get the measurement.
   /// \return The measurement vector.
-  const Eigen::Matrix<double, -1, 1>& measurement() const {
+  const double& measurement() const {
     return measurement_;
   }
 
   /// \brief Get the information matrix.
   /// \return The information (weight) matrix.
-  const Eigen::MatrixXd &information() const {
+  const information_t& information() const {
     return information_;
   }
 
   /// \brief Get the covariance matrix.
   /// \return The inverse information (covariance) matrix.
-  const Eigen::MatrixXd &covariance() const {
+  const covariance_t& covariance() const {
     return covariance_;
   }
 
@@ -107,39 +111,40 @@ class EuclideanParamError : public ::ceres::DynamicCostFunction,
   // sizes
   /// \brief Residual dimension.
   size_t residualDim() const {
-    return measurement_.size();
+    return kNumResiduals;
   }
 
   /// \brief Number of parameter blocks.
-  size_t parameterBlocks() const final {
-    return parameter_block_sizes().size();
+  size_t parameterBlocks() const {
+    return base_t::parameter_block_sizes().size();
   }
 
   /// \brief Dimension of an individual parameter block.
   /// @param[in] parameterBlockId ID of the parameter block of interest.
   /// \return The dimension.
-  size_t parameterBlockDim(size_t parameterBlockId) const final {
+  size_t parameterBlockDim(size_t parameterBlockId) const {
     return base_t::parameter_block_sizes().at(parameterBlockId);
   }
 
   /// @brief Residual block type as string
   virtual std::string typeInfo() const {
-    return "EuclideanParamError";
+    return "ScalarError";
   }
 
  protected:
 
   // the measurement
-  Eigen::Matrix<double, -1, 1> measurement_; ///< The measurement.
+  double measurement_; ///< The measurement.
 
   // weighting related
-  Eigen::MatrixXd information_; ///< The information matrix.
-  Eigen::MatrixXd squareRootInformation_; ///< The square root information matrix.
-  Eigen::MatrixXd covariance_; ///< The covariance matrix.
+  information_t information_; ///< The information matrix.
+  information_t squareRootInformation_; ///< The square root information matrix.
+  covariance_t covariance_; ///< The covariance matrix.
 
 };
+
 }  // namespace ceres
 }  // namespace okvis
 
-#include "implementation/EuclideanParamError.hpp"
-#endif /* INCLUDE_OKVIS_CERES_EUCLIDEANPARAMERROR_HPP_ */
+#include "implementation/ScalarError.hpp"
+#endif /* INCLUDE_OKVIS_CERES_SCALARERROR_HPP_ */
