@@ -186,7 +186,6 @@ class ImuErrorWithGravity :
   okvis::Time t1_; ///< The end time (i.e. time of the sedond set of states).
 
   // preintegration stuff. the mutable is a TERRIBLE HACK, but what can I do.
-  mutable std::mutex preintegrationMutex_; //< Protect access of intermediate results.
   // increments (initialise with identity)
   mutable Eigen::Quaterniond Delta_q_ = Eigen::Quaterniond(1,0,0,0); ///< Intermediate result
   mutable Eigen::Matrix3d C_integral_ = Eigen::Matrix3d::Zero(); ///< Intermediate result

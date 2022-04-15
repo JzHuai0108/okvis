@@ -145,6 +145,30 @@ bool checkJacobians(const DynamicImuError<ImuModelT> &costFunction,
       parameters, residualsNumeric.data(), jacobiansNumeric,
       jacobiansMinimalNumeric);
 
+  // compare residuals evaluated with Imu param lin point and
+  // residuals evaluated with actual Imu params.
+//  const double eps = 1e-5;
+//  for (size_t j = 0; j < ImuModelT::kXBlockDims.size(); ++j) {
+//    for (int i = 0; i < ImuModelT::kXBlockDims[j]; ++i) {
+//      std::cout << "xblock " << j << " dim " << i << "\n";
+//      costFunction.setRedo(false);
+//      Eigen::Matrix<double, 15, 1> errorLin;
+//      parameters[ImuErrorT::Index::unitgW + j + 1][i] += eps;
+//      costFunction.Evaluate(parameters, errorLin.data(), nullptr);
+//      Eigen::Matrix<double, 15, 1> dlin = errorLin - residuals;
+//      std::cout << "redo for " << j << " " << i << "\n";
+//      costFunction.setRedo(true);
+//      Eigen::Matrix<double, 15, 1> errorNonlin;
+//      costFunction.Evaluate(parameters, errorNonlin.data(), nullptr);
+//      Eigen::Matrix<double, 15, 1> dnonlin = errorNonlin - residuals;
+//      parameters[ImuErrorT::Index::unitgW + j + 1][i] -= eps;
+//      std::cout << "dlin " << dlin.transpose() << "\n";
+//      std::cout << "dnonlin " << dnonlin.transpose() << "\n";
+//      std::cout << "lin-nonlin " << (dlin - dnonlin).transpose() << "\n";
+//      EXPECT_LT((dlin - dnonlin).lpNorm<Eigen::Infinity>(), eps * 0.5);
+//    }
+//  }
+
   constexpr double jacobianTolerance = ImuModelT::kJacobianTolerance;
   EXPECT_LT((Jp0min - Jp0minNumeric).norm(), jacobianTolerance) <<
       "diff " << (Jp0min - Jp0minNumeric).norm() << " >= tol "
@@ -355,6 +379,30 @@ bool checkJacobians(const ImuErrorConstBias<ImuModelT> &costFunction,
     jacNumericPtrs.push_back(jacPtr);
     jacMinNumericPtrs.push_back(jacMinPtr);
   }
+
+  // compare residuals evaluated with Imu param lin point and
+  // residuals evaluated with actual Imu params.
+//  const double eps = 1e-5;
+//  for (size_t j = 0; j < ImuModelT::kXBlockDims.size(); ++j) {
+//    for (int i = 0; i < ImuModelT::kXBlockDims[j]; ++i) {
+//      std::cout << "xblock " << j << " dim " << i << "\n";
+//      costFunction.setRedo(false);
+//      Eigen::Matrix<double, 9, 1> errorLin;
+//      parameters[ImuErrorT::Index::unitgW + j + 1][i] += eps;
+//      costFunction.Evaluate(parameters, errorLin.data(), nullptr);
+//      Eigen::Matrix<double, 9, 1> dlin = errorLin - residuals;
+//      std::cout << "redo for " << j << " " << i << "\n";
+//      costFunction.setRedo(true);
+//      Eigen::Matrix<double, 9, 1> errorNonlin;
+//      costFunction.Evaluate(parameters, errorNonlin.data(), nullptr);
+//      Eigen::Matrix<double, 9, 1> dnonlin = errorNonlin - residuals;
+//      parameters[ImuErrorT::Index::unitgW + j + 1][i] -= eps;
+//      std::cout << "dlin " << dlin.transpose() << "\n";
+//      std::cout << "dnonlin " << dnonlin.transpose() << "\n";
+//      std::cout << "lin-nonlin " << (dlin - dnonlin).transpose() << "\n";
+//      EXPECT_LT((dlin - dnonlin).lpNorm<Eigen::Infinity>(), eps * 0.5);
+//    }
+//  }
 
   costFunction.setReweight(false); // disable weighting update.
   Eigen::Matrix<double, ImuErrorT::kNumResiduals, 1> residualsNumeric;

@@ -49,14 +49,9 @@ void ImuErrorConstBias<ImuModelT>::setParameterBlockAndResidualSizes() {
   SetNumResiduals(kNumResiduals);
 }
 
-// Propagates pose, speeds and biases with given IMU measurements.
 template <typename ImuModelT>
-int ImuErrorConstBias<ImuModelT>::redoPreintegration(const Eigen::Matrix<double, 6, 1> &biases) const {
+int ImuErrorConstBias<ImuModelT>::redoPreintegration() const {
 //  auto start = std::chrono::high_resolution_clock::now();
-  // ensure unique access
-  std::lock_guard<std::mutex> lock(preintegrationMutex_);
-
-  // now the propagation
   okvis::Time time = t0_;
   okvis::Time end = t1_;
 
@@ -147,9 +142,6 @@ int ImuErrorConstBias<ImuModelT>::redoPreintegration(const Eigen::Matrix<double,
 
   }
 
-  // store the reference (linearisation) point
-  biases_ref_ = biases;
-
   if (reweight_) {
     imuModel_.getWeight(&information_, &squareRootInformation_);
   }
@@ -209,8 +201,6 @@ bool ImuErrorConstBias<ImuModelT>::EvaluateWithMinimalJacobians(double const* co
                                             double* residuals,
                                             double** jacobians,
                                             double** jacobiansMinimal) const {
-
-  // get poses
   const okvis::kinematics::Transformation T_WS_0(
       Eigen::Vector3d(parameters[0][0], parameters[0][1], parameters[0][2]),
       Eigen::Quaterniond(parameters[0][6], parameters[0][3], parameters[0][4], parameters[0][5]));
@@ -219,40 +209,44 @@ bool ImuErrorConstBias<ImuModelT>::EvaluateWithMinimalJacobians(double const* co
       Eigen::Vector3d(parameters[Index::T_WB1][0], parameters[Index::T_WB1][1], parameters[Index::T_WB1][2]),
       Eigen::Quaterniond(parameters[Index::T_WB1][6], parameters[Index::T_WB1][3], parameters[Index::T_WB1][4], parameters[Index::T_WB1][5]));
 
-  // get speed and bias
   Eigen::Vector3d v_WS0 = Eigen::Map<const Eigen::Vector3d>(parameters[Index::v_WB0]);
-  Eigen::Matrix<double, 6, 1> biases0 = Eigen::Map<const Eigen::Matrix<double, 6, 1>>(parameters[Index::bgBa0]);
   Eigen::Vector3d v_WS1 = Eigen::Map<const Eigen::Vector3d>(parameters[Index::v_WB1]);
 
-  imuModel_.updateParameters(parameters[Index::bgBa0], parameters + Index::extra);
-
-  // this will NOT be changed:
   const Eigen::Matrix3d C_WS_0 = T_WS_0.C();
   const Eigen::Matrix3d C_S0_W = C_WS_0.transpose();
 
-  // call the propagation
   const double Delta_t = (t1_ - t0_).toSec();
-  Eigen::Matrix<double, 6, 1> Delta_b;
-  // ensure unique access
-  {
-    std::lock_guard<std::mutex> lock(preintegrationMutex_);
-    Delta_b = biases0 - biases_ref_;
-  }
-  redo_ = redo_ || (Delta_b.head<3>().norm() * Delta_t > 0.0001);
+  Eigen::AlignedVector<Eigen::VectorXd> deltaParams;
+
   if (redo_) {
-    redoPreintegration(biases0);
+    imuModel_.updateParameters(parameters[Index::bgBa0],
+                               parameters + Index::extra);
+    redoPreintegration();
     redoCounter_++;
-    Delta_b.setZero();
+    deltaParams =
+        imuModel_.minus(parameters[Index::bgBa0], parameters + Index::extra);
     redo_ = false;
-    /*if (redoCounter_ > 1) {
-      std::cout << "pre-integration no. " << redoCounter_ << std::endl;
-    }*/
+//    std::cout << "pre-integration no. " << redoCounter_ << std::endl;
+  } else {
+    bool largeChange = false;
+    deltaParams =
+        imuModel_.minus(parameters[Index::bgBa0], parameters + Index::extra);
+    largeChange =
+        imuModel_.hasParamsChangedMuch(deltaParams, Delta_t, 1e-4, 1e-3);
+    redo_ = largeChange;
+    if (redo_) {
+      imuModel_.updateParameters(parameters[Index::bgBa0],
+                                 parameters + Index::extra);
+      redoPreintegration();
+      redoCounter_++;
+      swift_vio::setZero(deltaParams);
+      redo_ = false;
+//      std::cout << "pre-integration no. " << redoCounter_ << std::endl;
+    }
   }
 
   // actual propagation output:
   {
-    std::lock_guard<std::mutex> lock(preintegrationMutex_); // this is a bit stupid, but shared read-locks only come in C++14
-
     Eigen::Map<const Eigen::Vector3d> gravityDirection(parameters[Index::unitgW]);
     const Eigen::Vector3d g_W = imuParameters_.g * gravityDirection;
 
@@ -270,7 +264,8 @@ bool ImuErrorConstBias<ImuModelT>::EvaluateWithMinimalJacobians(double const* co
         T_WS_0.r() - T_WS_1.r() + v_WS0*Delta_t + 0.5*g_W*Delta_t*Delta_t;
     const Eigen::Vector3d delta_v_est_W =
         v_WS0 - v_WS1 + g_W*Delta_t;
-    const Eigen::Quaterniond Dq = okvis::kinematics::deltaQ(dDrot_dbg*Delta_b.head<3>())*imuModel_.Delta_q();
+    Eigen::Vector3d rotCorrection = imuModel_.rotationCorrection(deltaParams);
+    const Eigen::Quaterniond Dq = okvis::kinematics::deltaQ(rotCorrection)*imuModel_.Delta_q();
     F0.block<3,3>(0,0) = C_S0_W;
     F0.block<3,3>(0,3) = C_S0_W * okvis::kinematics::crossMx(delta_p_est_W);
     F0.block<3,3>(0,6) = C_S0_W * Eigen::Matrix3d::Identity()*Delta_t;
@@ -296,9 +291,11 @@ bool ImuErrorConstBias<ImuModelT>::EvaluateWithMinimalJacobians(double const* co
 
     // the overall error vector
     Eigen::Matrix<double, kNumResiduals, 1> error;
-    error.segment<3>(0) =  C_S0_W * delta_p_est_W + imuModel_.Delta_p() + F0.block<3,6>(0,9)*Delta_b;
-    error.segment<3>(3) = 2*(Dq*(T_WS_1.q().inverse()*T_WS_0.q())).vec(); //2*T_WS_0.q()*Dq*T_WS_1.q().inverse();//
-    error.segment<3>(6) = C_S0_W * delta_v_est_W + imuModel_.Delta_v() + F0.block<3,6>(6,9)*Delta_b;
+    Eigen::Vector3d positionCorrection = imuModel_.positionCorrection(deltaParams);
+    Eigen::Vector3d speedCorrection = imuModel_.speedCorrection(deltaParams);
+    error.segment<3>(0) =  C_S0_W * delta_p_est_W + imuModel_.Delta_p() + positionCorrection;
+    error.segment<3>(3) = 2*(Dq*(T_WS_1.q().inverse()*T_WS_0.q())).vec();
+    error.segment<3>(6) = C_S0_W * delta_v_est_W + imuModel_.Delta_v() + speedCorrection;
 
     // error weighting
     Eigen::Map<Eigen::Matrix<double, kNumResiduals, 1> > weighted_error(residuals);

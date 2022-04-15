@@ -83,10 +83,9 @@ class ImuErrorConstBias :
   /**
    * @brief Propagates pose, speeds and biases with given IMU measurements.
    * @warning This is not actually const, since the re-propagation must somehow be stored...
-   * @param[in] biases Start biases.
    * @return Number of integration steps.
    */
-  int redoPreintegration(const Eigen::Matrix<double, 6, 1> &biases) const;
+  int redoPreintegration() const;
 
   // setters
 
@@ -201,6 +200,11 @@ class ImuErrorConstBias :
   void setReweight(bool reweight) const {
     reweight_ = reweight;
   }
+
+  void setRedo(bool redo) const {
+    redo_ = redo;
+  }
+
  protected:
   // parameters
   okvis::ImuParameters imuParameters_; ///< The IMU parameters.
@@ -213,12 +217,7 @@ class ImuErrorConstBias :
   okvis::Time t1_; ///< The end time (i.e. time of the sedond set of states).
 
   // preintegration stuff. the mutable is a TERRIBLE HACK, but what can I do.
-  mutable std::mutex preintegrationMutex_; //< Protect access of intermediate results.
-
   mutable ImuModelT imuModel_;
-
-  /// \brief Reference biases that are updated when called redoPreintegration.
-  mutable Eigen::Matrix<double, 6, 1> biases_ref_ = Eigen::Matrix<double, 6, 1>::Zero();
 
   mutable bool redo_ = true; ///< Keeps track of whether or not this redoPreintegration() needs to be called.
   mutable int redoCounter_ = 0; ///< Counts the number of preintegrations for statistics.

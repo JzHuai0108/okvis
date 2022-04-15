@@ -2,6 +2,7 @@
 #define MATRIXUTILITIES_H
 
 #include <Eigen/Core>
+#include <swift_vio/memory.h>
 
 namespace swift_vio {
 template <typename T>
@@ -28,6 +29,13 @@ void lowerTriangularMatrixToVector(const Eigen::Matrix<T, 3, 3> &mat33, T *data,
 }
 
 template <typename T>
+Eigen::Matrix<T, 6, 1> lowerTriangularMatrixToVector(const Eigen::Matrix<T, 3, 3> &mat33) {
+  Eigen::Matrix<T, 6, 1> vec;
+  lowerTriangularMatrixToVector(mat33, vec.data(), 0);
+  return vec;
+}
+
+template <typename T>
 void vectorToMatrix(const T* data, int startIndex, Eigen::Matrix<T, 3, 3>* mat33) {
   (*mat33)(0, 0) = data[startIndex];
   (*mat33)(0, 1) = data[startIndex + 1];
@@ -42,15 +50,22 @@ void vectorToMatrix(const T* data, int startIndex, Eigen::Matrix<T, 3, 3>* mat33
 
 template <typename T>
 void matrixToVector(const Eigen::Matrix<T, 3, 3> &mat33, T* data, int startIndex) {
-  data[startIndex] = (*mat33)(0, 0);
-  data[startIndex + 1] = (*mat33)(0, 1);
-  data[startIndex + 2] = (*mat33)(0, 2);
-  data[startIndex + 3] = (*mat33)(1, 0);
-  data[startIndex + 4] = (*mat33)(1, 1);
-  data[startIndex + 5] = (*mat33)(1, 2);
-  data[startIndex + 6] = (*mat33)(2, 0);
-  data[startIndex + 7] = (*mat33)(2, 1);
-  data[startIndex + 8] = (*mat33)(2, 2);
+  data[startIndex] = mat33(0, 0);
+  data[startIndex + 1] = mat33(0, 1);
+  data[startIndex + 2] = mat33(0, 2);
+  data[startIndex + 3] = mat33(1, 0);
+  data[startIndex + 4] = mat33(1, 1);
+  data[startIndex + 5] = mat33(1, 2);
+  data[startIndex + 6] = mat33(2, 0);
+  data[startIndex + 7] = mat33(2, 1);
+  data[startIndex + 8] = mat33(2, 2);
+}
+
+template <typename T>
+Eigen::Matrix<T, 9, 1> matrixToVector(const Eigen::Matrix<T, 3, 3> &mat33) {
+  Eigen::Matrix<T, 9, 1> vec;
+  matrixToVector(mat33, vec.data(), 0);
+  return vec;
 }
 
 template <typename T>
@@ -170,6 +185,12 @@ void upperTriangularBlocksToSymmMatrix(
   }
 }
 
+template <typename T>
+void setZero(Eigen::AlignedVector<Eigen::Matrix<T, -1, 1>> &vectors) {
+  for (auto &v : vectors) {
+    v.setZero();
+  }
+}
 }  // namespace swift_vio
 
 #endif // MATRIXUTILITIES_H

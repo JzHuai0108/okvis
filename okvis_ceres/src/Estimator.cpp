@@ -381,7 +381,8 @@ bool Estimator::applyMarginalizationStrategy(okvis::MapPointVector& removedLandm
     }
   }
 
-  // remove linear marginalizationError, if existing
+  // remove linear marginalizationError, if existing.
+  // Note that the marg factor info is intact in marginalizationErrorPtr_.
   if (marginalizationErrorPtr_ && marginalizationResidualId_) {
     bool success = mapPtr_->removeResidualBlock(marginalizationResidualId_);
     OKVIS_ASSERT_TRUE_DBG(Exception, success,

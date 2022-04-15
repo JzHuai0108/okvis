@@ -38,10 +38,6 @@ ImuErrorWithGravity::ImuErrorWithGravity(const okvis::ImuMeasurementDeque & imuM
 // Propagates pose, speeds and biases with given IMU measurements.
 int ImuErrorWithGravity::redoPreintegration(const okvis::kinematics::Transformation& /*T_WS*/,
                                  const okvis::SpeedAndBias & speedAndBiases) const {
-
-  // ensure unique access
-  std::lock_guard<std::mutex> lock(preintegrationMutex_);
-
   // now the propagation
   okvis::Time time = t0_;
   okvis::Time end = t1_;
@@ -307,13 +303,9 @@ bool ImuErrorWithGravity::EvaluateWithMinimalJacobians(double const* const * par
 
   // call the propagation
   const double Delta_t = (t1_ - t0_).toSec();
-  Eigen::Matrix<double, 6, 1> Delta_b;
-  // ensure unique access
-  {
-    std::lock_guard<std::mutex> lock(preintegrationMutex_);
-    Delta_b = speedAndBiases_0.tail<6>()
-          - speedAndBiases_ref_.tail<6>();
-  }
+  Eigen::Matrix<double, 6, 1> Delta_b =
+      speedAndBiases_0.tail<6>() - speedAndBiases_ref_.tail<6>();
+
   redo_ = redo_ || (Delta_b.head<3>().norm() * Delta_t > 0.0001);
   if (redo_) {
     redoPreintegration(T_WS_0, speedAndBiases_0);
@@ -327,7 +319,6 @@ bool ImuErrorWithGravity::EvaluateWithMinimalJacobians(double const* const * par
 
   // actual propagation output:
   {
-    std::lock_guard<std::mutex> lock(preintegrationMutex_); // this is a bit stupid, but shared read-locks only come in C++14
     const Eigen::Vector3d g_W = imuParameters_.g * gravityDirection;
 
     // assign Jacobian w.r.t. x0

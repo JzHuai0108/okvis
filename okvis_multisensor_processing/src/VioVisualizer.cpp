@@ -253,7 +253,7 @@ void VioVisualizer::showDebugImages(VisualizationData::Ptr& data) {
     std::stringstream windowname;
     windowname << viewerNamePrefix_ << " " << im;
     cv::imshow(windowname.str(), out_images[im]);
-	cv::waitKey(1);
+    cv::waitKey(1);
   }
 }
 
