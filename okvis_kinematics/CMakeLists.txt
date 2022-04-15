@@ -33,6 +33,7 @@ if(BUILD_TESTS)
   add_executable(${PROJECT_TEST_NAME}
     test/runTests.cpp
     test/TestTransformation.cpp
+    test/TestOperators.cpp
   )
   target_link_libraries(${PROJECT_TEST_NAME} 
     ${PROJECT_NAME} 
