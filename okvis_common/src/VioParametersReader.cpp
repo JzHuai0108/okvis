@@ -252,6 +252,7 @@ void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams) {
   } else {
     optParams->algorithm = swift_vio::EstimatorAlgorithm::SlidingWindowSmoother;
   }
+  parseBoolean(optNode["constantBias"], optParams->constantBias);
 
   parseBoolean(optNode["useEpipolarConstraint"], optParams->useEpipolarConstraint);
 
@@ -467,12 +468,12 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
                     "'displayImages' parameter missing in configuration file.");
 
   // image delay
-  success = file["imageDelay"].isReal();
-  OKVIS_ASSERT_TRUE(Exception, success,
-                    "'imageDelay' parameter missing in configuration file.");
-  file["imageDelay"] >> vioParameters_.sensors_information.imageDelay;
-  VLOG(2) << "imageDelay = " << std::setprecision(15)
-            << vioParameters_.sensors_information.imageDelay;
+//  success = file["imageDelay"].isReal();
+//  OKVIS_ASSERT_TRUE(Exception, success,
+//                    "'imageDelay' parameter missing in configuration file.");
+//  file["imageDelay"] >> vioParameters_.sensors_information.imageDelay;
+//  VLOG(2) << "imageDelay = " << std::setprecision(15)
+//            << vioParameters_.sensors_information.imageDelay;
 
   // camera rate
   success = file["camera_params"]["camera_rate"].isInt();

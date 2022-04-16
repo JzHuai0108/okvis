@@ -318,6 +318,7 @@ struct WindParameters{
  * @brief Parameters for optimization and related things (detection).
  */
 struct EstimatorOptions {
+  swift_vio::EstimatorAlgorithm algorithm;
   int max_iterations; ///< Maximum iterations the optimization should perform.
   int min_iterations; ///< Minimum iterations the optimization should perform.
   double timeLimitForMatchingAndOptimization; ///< The time limit for both matching and optimization. [s]
@@ -326,8 +327,7 @@ struct EstimatorOptions {
   int numKeyframes; ///< Number of keyframes.
   int numImuFrames; ///< Number of IMU frames.
 
-  swift_vio::EstimatorAlgorithm algorithm;
-
+  bool constantBias; ///< estimate only one copy of biases.
   bool useEpipolarConstraint;
   int cameraObservationModelId;
 
@@ -346,17 +346,17 @@ struct EstimatorOptions {
   int numThreads;
   bool verbose;
 
-  EstimatorOptions(int _max_iterations = 10, int _min_iterations = 3,
-               double _timeLimitForMatchingAndOptimization = 0.035,
-               okvis::Duration _timeReserve = okvis::Duration(0.005),
-               int _numKeyframes = 5, int _numImuFrames = 3,
-               swift_vio::EstimatorAlgorithm _algorithm =
-                   swift_vio::EstimatorAlgorithm::SlidingWindowSmoother,
-               bool _useEpipolarConstraint = false,
-               int _cameraObservationModelId = 0, bool _computeOkvisNees = false,
-               bool _useMahalanobisGating = true,
-               double _maxProjectionErrorTol = 7, int _delayFilterInitByFrames = 3,
-               int _numThreads = 2, bool _verbose = false);
+  EstimatorOptions(
+      swift_vio::EstimatorAlgorithm _algorithm =
+          swift_vio::EstimatorAlgorithm::SlidingWindowFilter,
+      int _max_iterations = 10, int _min_iterations = 3,
+      double _timeLimitForMatchingAndOptimization = 0.035,
+      okvis::Duration _timeReserve = okvis::Duration(0.005),
+      int _numKeyframes = 5, int _numImuFrames = 3, bool _constantBias = false,
+      bool _useEpipolarConstraint = false, int _cameraObservationModelId = 0,
+      bool _computeOkvisNees = false, bool _useMahalanobisGating = true,
+      double _maxProjectionErrorTol = 7, int _delayFilterInitByFrames = 3,
+      int _numThreads = 2, bool _verbose = false);
 
   std::string toString(std::string lead = "") const;
 };
@@ -366,8 +366,8 @@ struct EstimatorOptions {
  */
 struct SensorsInformation {
   int cameraRate;     ///< Camera rate in Hz.
-  double imageDelay;  ///< Camera image delay. [s]
-  int imuIdx;         ///< IMU index. Anything other than 0 will probably not work.
+//  double imageDelay;  ///< Camera image delay. [s]
+//  int imuIdx;         ///< IMU index. Anything other than 0 will probably not work.
   double frameTimestampTolerance; ///< Time tolerance between frames to accept them as stereo frames. [s]
 };
 

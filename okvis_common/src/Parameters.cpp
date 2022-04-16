@@ -128,35 +128,34 @@ std::string ImuParameters::toString() const {
   return ss.str();
 }
 
-EstimatorOptions::EstimatorOptions(int _max_iterations, int _min_iterations,
-                           double _timeLimitForMatchingAndOptimization,
-                           okvis::Duration _timeReserve, int _numKeyframes,
-                           int _numImuFrames,
-                           swift_vio::EstimatorAlgorithm _algorithm,
-                           bool _useEpipolarConstraint,
-                           int _cameraObservationModelId,
-                           bool _computeOkvisNees, bool _useMahalanobisGating,
-                           double _maxProjectionErrorTol,
-                           int _delayInitByFrames,
-                           int _numThreads, bool _verbose)
-    : max_iterations(_max_iterations), min_iterations(_min_iterations),
+EstimatorOptions::EstimatorOptions(
+    swift_vio::EstimatorAlgorithm _algorithm, int _max_iterations,
+    int _min_iterations, double _timeLimitForMatchingAndOptimization,
+    okvis::Duration _timeReserve, int _numKeyframes, int _numImuFrames,
+    bool _constantBias, bool _useEpipolarConstraint,
+    int _cameraObservationModelId, bool _computeOkvisNees,
+    bool _useMahalanobisGating, double _maxProjectionErrorTol,
+    int _delayInitByFrames, int _numThreads, bool _verbose)
+    : algorithm(_algorithm), max_iterations(_max_iterations),
+      min_iterations(_min_iterations),
       timeLimitForMatchingAndOptimization(_timeLimitForMatchingAndOptimization),
       timeReserve(_timeReserve), numKeyframes(_numKeyframes),
-      numImuFrames(_numImuFrames), algorithm(_algorithm),
+      numImuFrames(_numImuFrames), constantBias(_constantBias),
       useEpipolarConstraint(_useEpipolarConstraint),
       cameraObservationModelId(_cameraObservationModelId),
       computeOkvisNees(_computeOkvisNees),
       useMahalanobisGating(_useMahalanobisGating),
       maxProjectionErrorTol(_maxProjectionErrorTol),
-      delayFilterInitByFrames(_delayInitByFrames),
-      numThreads(_numThreads), verbose(_verbose) {}
+      delayFilterInitByFrames(_delayInitByFrames), numThreads(_numThreads),
+      verbose(_verbose) {}
 
 std::string EstimatorOptions::toString(std::string lead) const {
   std::stringstream ss(lead);
   ss << "Algorithm " << algorithm << ", numKeyframes " << numKeyframes
-     << ", numImuFrames " << numImuFrames << ".\nUse epipolar constraint? "
-     << useEpipolarConstraint << ", camera observation model Id "
-     << cameraObservationModelId << ", compute OKVIS NEES? " << computeOkvisNees
+     << ", numImuFrames " << numImuFrames << ".\nConstant bias? "
+     << constantBias << ", use epipolar constraint? " << useEpipolarConstraint
+     << ", camera observation model Id " << cameraObservationModelId
+     << ", compute OKVIS NEES? " << computeOkvisNees
      << ".\nMahalanobis gating? " << useMahalanobisGating
      << ", max projection error " << maxProjectionErrorTol
      << " (px).\nDelay filter initialization by #frames: "
