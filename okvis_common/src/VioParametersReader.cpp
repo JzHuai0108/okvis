@@ -249,8 +249,10 @@ void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams) {
   if (optNode["algorithm"].isString()) {
     std::string description = (std::string)optNode["algorithm"];
     optParams->algorithm = swift_vio::EstimatorAlgorithmNameToId(description);
-  } else {
-    optParams->algorithm = swift_vio::EstimatorAlgorithm::SlidingWindowSmoother;
+  }
+  if (optNode["initializer"].isString()) {
+    std::string description = (std::string)optNode["initializer"];
+    optParams->initializer = swift_vio::EstimatorAlgorithmNameToId(description);
   }
   parseBoolean(optNode["constantBias"], optParams->constantBias);
 
@@ -286,14 +288,20 @@ void parseFrontendOptions(cv::FileNode frontendNode,
   }
   parseBoolean(frontendNode["stereoMatchWithEpipolarCheck"],
                frontendOptions->stereoMatchWithEpipolarCheck);
-  LOG(INFO) << "Stereo match with epipolar check? "
-            << frontendOptions->stereoMatchWithEpipolarCheck;
+  if (frontendNode["numKeyframesToMatch"].isInt()) {
+    int num;
+    frontendNode["numKeyframesToMatch"] >> num;
+    frontendOptions->numKeyframesToMatch = num;
+  }
+  if (frontendNode["numOldKeyframesToMatch"].isInt()) {
+    int num;
+    frontendNode["numOldKeyframesToMatch"] >> num;
+    frontendOptions->numOldKeyframesToMatch = num;
+  }
   if (frontendNode["epipolarDistanceThreshold"].isReal()) {
     frontendNode["epipolarDistanceThreshold"] >>
         frontendOptions->epipolarDistanceThreshold;
   }
-  LOG(INFO) << "Epipolar distance threshold in stereo matching: "
-            << frontendOptions->epipolarDistanceThreshold;
   if (frontendNode["featureTrackingMethod"].isInt()) {
     int trackingMethod;
     frontendNode["featureTrackingMethod"] >> trackingMethod;
@@ -303,8 +311,7 @@ void parseFrontendOptions(cv::FileNode frontendNode,
   if (frontendNode["numThreads"].isInt()) {
     frontendNode["numThreads"] >> frontendOptions->numThreads;
   }
-  LOG(INFO) << "Feature tracking method in frontend: "
-            << frontendOptions->featureTrackingMethod;
+  LOG(INFO) << frontendOptions->toString("Frontend options: ");
 }
 
 void parseDetectionOptions(cv::FileNode detectionNode,

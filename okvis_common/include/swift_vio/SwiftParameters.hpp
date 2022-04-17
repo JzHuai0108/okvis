@@ -18,6 +18,8 @@ enum class EstimatorAlgorithm {
   RiFixedLagSmoother, ///< Gtsam::FixedLagSmoother with right invariant errors.
   OkvisEstimator,  ///< The original okvis Estimator, a sliding window estimator.
   SlidingWindowFilter, ///< keyframe-based filter.
+  ImuInitializer,
+  VioInitializer,
 };
 
 EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description);

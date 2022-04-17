@@ -319,6 +319,8 @@ struct WindParameters{
  */
 struct EstimatorOptions {
   swift_vio::EstimatorAlgorithm algorithm;
+  swift_vio::EstimatorAlgorithm initializer;
+
   int max_iterations; ///< Maximum iterations the optimization should perform.
   int min_iterations; ///< Minimum iterations the optimization should perform.
   double timeLimitForMatchingAndOptimization; ///< The time limit for both matching and optimization. [s]
@@ -349,6 +351,8 @@ struct EstimatorOptions {
   EstimatorOptions(
       swift_vio::EstimatorAlgorithm _algorithm =
           swift_vio::EstimatorAlgorithm::SlidingWindowFilter,
+      swift_vio::EstimatorAlgorithm _initializer =
+          swift_vio::EstimatorAlgorithm::VioInitializer,
       int _max_iterations = 10, int _min_iterations = 3,
       double _timeLimitForMatchingAndOptimization = 0.035,
       okvis::Duration _timeReserve = okvis::Duration(0.005),

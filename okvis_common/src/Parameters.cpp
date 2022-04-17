@@ -129,14 +129,18 @@ std::string ImuParameters::toString() const {
 }
 
 EstimatorOptions::EstimatorOptions(
-    swift_vio::EstimatorAlgorithm _algorithm, int _max_iterations,
+    swift_vio::EstimatorAlgorithm _algorithm,
+    swift_vio::EstimatorAlgorithm _initializer,
+    int _max_iterations,
     int _min_iterations, double _timeLimitForMatchingAndOptimization,
     okvis::Duration _timeReserve, int _numKeyframes, int _numImuFrames,
     bool _constantBias, bool _useEpipolarConstraint,
     int _cameraObservationModelId, bool _computeOkvisNees,
     bool _useMahalanobisGating, double _maxProjectionErrorTol,
     int _delayInitByFrames, int _numThreads, bool _verbose)
-    : algorithm(_algorithm), max_iterations(_max_iterations),
+    : algorithm(_algorithm),
+      initializer(_initializer),
+      max_iterations(_max_iterations),
       min_iterations(_min_iterations),
       timeLimitForMatchingAndOptimization(_timeLimitForMatchingAndOptimization),
       timeReserve(_timeReserve), numKeyframes(_numKeyframes),
@@ -151,7 +155,8 @@ EstimatorOptions::EstimatorOptions(
 
 std::string EstimatorOptions::toString(std::string lead) const {
   std::stringstream ss(lead);
-  ss << "Algorithm " << algorithm << ", numKeyframes " << numKeyframes
+  ss << "Algorithm " << algorithm << ", initializer " << initializer
+     << ", numKeyframes " << numKeyframes
      << ", numImuFrames " << numImuFrames << ".\nConstant bias? "
      << constantBias << ", use epipolar constraint? " << useEpipolarConstraint
      << ", camera observation model Id " << cameraObservationModelId

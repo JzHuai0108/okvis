@@ -12,7 +12,9 @@ EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description) {
       {"FIXEDLAGSMOOTHER", EstimatorAlgorithm::FixedLagSmoother},
       {"RIFIXEDLAGSMOOTHER", EstimatorAlgorithm::RiFixedLagSmoother},
       {"OKVISESTIMATOR", EstimatorAlgorithm::OkvisEstimator},
-      {"SLIDINGWINDOWFILTER", EstimatorAlgorithm::SlidingWindowFilter}};
+      {"SLIDINGWINDOWFILTER", EstimatorAlgorithm::SlidingWindowFilter},
+      {"IMUINITIALIZER", EstimatorAlgorithm::ImuInitializer},
+      {"VIOINITIALIZER", EstimatorAlgorithm::VioInitializer}};
 
   auto iter = descriptionToId.find(description);
   if (iter == descriptionToId.end()) {
@@ -24,8 +26,9 @@ EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description) {
 
 std::ostream &operator<<(std::ostream &strm, EstimatorAlgorithm a) {
   const std::string names[] = {"SlidingWindowSmoother", "FixedLagSmoother",
-                               "RiFixedLagSmoother", "OkvisEstimator",
-                               "SlidingWindowFilter"};
+                               "RiFixedLagSmoother",    "OkvisEstimator",
+                               "SlidingWindowFilter",   "ImuInitializer",
+                               "VioInitializer"};
   return strm << names[static_cast<int>(a)];
 }
 
@@ -42,7 +45,9 @@ std::string EstimatorAlgorithmIdToName(EstimatorAlgorithm id) {
           {EstimatorAlgorithm::FixedLagSmoother, "FixedLagSmoother"},
           {EstimatorAlgorithm::RiFixedLagSmoother, "RiFixedLagSmoother"},
           {EstimatorAlgorithm::OkvisEstimator, "OkvisEstimator"},
-          {EstimatorAlgorithm::SlidingWindowFilter, "SlidingWindowFilter"}};
+          {EstimatorAlgorithm::SlidingWindowFilter, "SlidingWindowFilter"},
+          {EstimatorAlgorithm::ImuInitializer, "ImuInitializer"},
+          {EstimatorAlgorithm::VioInitializer, "VioInitializer"}};
   auto iter = idToDescription.find(id);
   if (iter == idToDescription.end()) {
     return "SlidingWindowSmoother";
