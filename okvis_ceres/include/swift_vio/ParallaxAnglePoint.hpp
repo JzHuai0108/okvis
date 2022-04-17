@@ -424,6 +424,13 @@ class ParallaxAnglePoint {
     theta_.boxPlus(vecIn.tail<1>(), stateOut.theta_);
   }
 
+  /**
+   * @brief initializePosition
+   * @param observationsxy1 observations of values [x, y, 1].
+   * @param T_WC_list list of T_WC of the same size as observations.
+   * @param anchorIndices: indices of main anchor and associate anchor in observationsxy1.
+   * @return
+   */
   bool initializePosition(
       const std::vector<Eigen::Vector3d,
                         Eigen::aligned_allocator<Eigen::Vector3d>>&

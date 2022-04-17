@@ -99,7 +99,7 @@ class ChordalDistance
       std::shared_ptr<const camera_geometry_t> cameraGeometry,
       const Eigen::Vector2d& imageObservation,
       const Eigen::Matrix2d& observationCovariance,
-      int observationIndex,
+      size_t observationIndex,
       const swift_vio::PointSharedData *pointDataPtr,
       bool R_WCnmf = false);
 
@@ -205,7 +205,7 @@ class ChordalDistance
   mutable Eigen::Matrix3d squareRootInformation_; // updated in Evaluate()
   mutable Eigen::Matrix3d covariance_;
 
-  int observationIndex_; ///< Index of the observation in the map point shared data.
+  size_t observationIndex_; ///< Index of the observation in the map point shared data.
   const swift_vio::PointSharedData *pointDataPtr_;
   ///< use R_WC * (n_i - f_{mi}) or (n_i - f_{mi}) as error term when the
   /// main anchor is the observing frame.

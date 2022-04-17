@@ -418,6 +418,8 @@ bool Estimator::applyMarginalizationStrategy(okvis::MapPointVector& removedLandm
   }
 
   // marginalize everything but pose:
+  // jhuai: This loop marks speedAndBias parameter blocks to be marginalized,
+  // and marks the IMU factors and possibly a speedAndBias prior factor to be marginalized.
   for(size_t k = 0; k<removeAllButPose.size(); ++k){
     std::map<uint64_t, States>::iterator it = statesMap_.find(removeAllButPose[k]);
     for (size_t i = 0; i < it->second.global.size(); ++i) {
@@ -523,6 +525,8 @@ bool Estimator::applyMarginalizationStrategy(okvis::MapPointVector& removedLandm
     }
 
     // add remaining error terms of the sensor states.
+    // jhuai: This loop marks the camera extrinsic parameter block to be marginalized
+    // and marks it relative constraint and possibly prior factor to be marginalized.
     size_t i = SensorStates::Camera;
     for (size_t j = 0; j < it->second.sensors[i].size(); ++j) {
       size_t k = CameraSensorStates::T_XCi;
@@ -556,6 +560,8 @@ bool Estimator::applyMarginalizationStrategy(okvis::MapPointVector& removedLandm
     }
 
     // now finally we treat all the observations.
+    // jhuai: This loop marks the landmarks to be marginalized and
+    // marks their reprojection errors to be marginalized.
     OKVIS_ASSERT_TRUE_DBG(Exception, allLinearizedFrames.size()>0, "bug");
     uint64_t currentKfId = allLinearizedFrames.at(0);
 
@@ -619,6 +625,10 @@ bool Estimator::applyMarginalizationStrategy(okvis::MapPointVector& removedLandm
             uint64_t poseId = mapPtr_->parameters(residuals[r].residualBlockId).at(0).first;
             if((swift_vio::vectorContains(removeFrames,poseId) && hasNewObservations) ||
                 (!swift_vio::vectorContains(allLinearizedFrames,poseId) && marginalize)){
+              // jhuai: 1. If a landmark has new observations since the last linearized keyframe,
+              // we do not marginalize the landmark and simply drop its observations in the removed frames.
+              // jhuai: 2. If the landmark will be marginalized, we will drop its observations
+              // in those frames that are not linearized to maintain sparse hessian.
               // ok, let's ignore the observation.
               removeObservationAndResidual(residuals[r].residualBlockId);
               residuals.erase(residuals.begin() + r);

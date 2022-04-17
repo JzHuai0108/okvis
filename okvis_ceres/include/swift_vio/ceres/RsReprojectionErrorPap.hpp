@@ -99,7 +99,7 @@ class RsReprojectionErrorPap
       std::shared_ptr<const camera_geometry_t> cameraGeometry,
       const Eigen::Vector2d& imageObservation,
       const Eigen::Matrix2d& observationCovariance,
-      int observationIndex,
+      size_t observationIndex,
       const swift_vio::PointSharedData *pointDataPtr);
 
   /// \brief Trivial destructor.
@@ -180,7 +180,7 @@ class RsReprojectionErrorPap
   Eigen::Matrix2d squareRootInformation_; // updated in Evaluate()
   Eigen::Matrix2d covariance_;
 
-  int observationIndex_; ///< Index of the observation in the map point shared data.
+  size_t observationIndex_; ///< Index of the observation in the map point shared data.
   const swift_vio::PointSharedData *pointDataPtr_;
 };
 

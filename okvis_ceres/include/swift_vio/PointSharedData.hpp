@@ -27,12 +27,13 @@ struct StateInfoForOneKeypoint {
     StateInfoForOneKeypoint(
         uint64_t _frameId, size_t _camIdx,
         std::shared_ptr<const okvis::ceres::PoseParameterBlock> T_WB_ptr,
-        double _normalizedRow, okvis::Time imageStamp)
+        double _normalizedRow, okvis::Time imageStamp, bool _isKeyframe = false)
         : frameId(_frameId),
           cameraId(_camIdx),
           T_WBj_ptr(T_WB_ptr),
           normalizedRow(_normalizedRow),
-          imageTimestamp(imageStamp) {}
+          imageTimestamp(imageStamp),
+          isKeyframe(_isKeyframe) {}
 
     uint64_t frameId;
     size_t cameraId;
@@ -44,6 +45,7 @@ struct StateInfoForOneKeypoint {
     okvis::Time stateEpoch;
     double normalizedRow; // v / imageHeight - 0.5.
     okvis::Time imageTimestamp; // raw image frame timestamp may be different for cameras in NFrame.
+    bool isKeyframe;  // is the frame a keyframe? This info will aid deciding anchors.
 
     // Pose of the body frame in the world frame at the feature observation epoch.
     // It should be computed with IMU propagation for RS cameras.
@@ -75,11 +77,12 @@ class PointSharedData {
   PointSharedData() : status_(PointSharedDataState::Barebones) {}
 
   void addKeypointObservation(
-      const okvis::KeypointIdentifier& kpi,
+      const okvis::KeypointIdentifier &kpi,
       std::shared_ptr<const okvis::ceres::PoseParameterBlock> T_WBj_ptr,
       double normalizedRow, okvis::Time imageTimestamp) {
     stateInfoForObservations_.emplace_back(kpi.frameId, kpi.cameraIndex,
-                                           T_WBj_ptr, normalizedRow, imageTimestamp);
+                                           T_WBj_ptr, normalizedRow,
+                                           imageTimestamp);
   }
 
   /// @name Setters for data for IMU propagation.
@@ -102,11 +105,13 @@ class PointSharedData {
     stateInfoForObservations_[index].biasPtr = biasPtr;
   }
 
-  void setImuInfo(
+  void setMotionInfo(
       int index, const okvis::Time stateEpoch,
-      std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasurements) {
-    stateInfoForObservations_[index].stateEpoch = stateEpoch;
-    stateInfoForObservations_[index].imuMeasurementPtr = imuMeasurements;
+      std::shared_ptr<const okvis::ImuMeasurementDeque> imuMeasurements, bool isKeyframe) {
+    StateInfoForOneKeypoint &stateInfo = stateInfoForObservations_[index];
+    stateInfo.stateEpoch = stateEpoch;
+    stateInfo.imuMeasurementPtr = imuMeasurements;
+    stateInfo.isKeyframe = isKeyframe;
   }
 
   void setImuAugmentedParameterPtrs(
@@ -172,7 +177,7 @@ class PointSharedData {
    * @warning This only support a monocular camera.
    * @return
    */
-  std::vector<int> anchorObservationIds() const;
+  std::vector<size_t> anchorObservationIds() const;
 
   okvis::kinematics::Transformation T_WB_mainAnchorStateEpoch() const {
     const StateInfoForOneKeypoint& mainAnchorItem =
@@ -185,6 +190,26 @@ class PointSharedData {
         stateInfoForObservations_.at(anchorIds_[0].observationIndex_);
    return mainAnchorItem.T_WBj_ptr->linPoint();
   }
+
+  /**
+   * @brief decideAnchors from orderedFrameIds
+   * @param orderedFrameIds
+   * @param landmarkModelId
+   * @param anchorInKeyframe: should the anchor frame be a keyframe?
+   * @return true if the anchor frame(s) are chosen successfully, false otherwise.
+   */
+  bool decideAnchors(const std::vector<uint64_t> &orderedFrameIds,
+                     int landmarkModelId, bool anchorInKeyframe);
+
+  /**
+   * @brief decideAnchors from stateInfoForObservations_
+   * @param orderedFrameIds
+   * @param landmarkModelId
+   * @param anchorInKeyframe: should the anchor frame be a keyframe?
+   * @return true if the anchor frame(s) are chosen successfully, false otherwise.
+   */
+  bool decideAnchors(int landmarkModelId, bool anchorInKeyframe);
+
   /// @}
 
   /// @name functions for managing the main stateInfo list.
@@ -201,11 +226,15 @@ class PointSharedData {
       removeUnsetMatrices<StateInfoForOneKeypoint>(&stateInfoForObservations_, projectStatus);
   }
 
+  /**
+   * @brief remove observations not in the selected frames, from the observation list.
+   * @param orderedSelectedFrameIds
+   */
   void removeExtraObservations(const std::vector<uint64_t>& orderedSelectedFrameIds);
 
   /**
-   * @brief removeExtraObservations
-   * @deprecated
+   * @brief remove observations not in the selected frames, from the observation list.
+   * @deprecated because of the extraneous operation on imageNoise2dStdList.
    * @warning orderedSelectedFrameIds must be a subsets of stateInfoForObservations_
    * @param orderedSelectedFrameIds
    * @param imageNoise2dStdList
@@ -213,6 +242,14 @@ class PointSharedData {
   void removeExtraObservations(const std::vector<uint64_t>& orderedSelectedFrameIds,
                                std::vector<double>* imageNoise2dStdList);
 
+  /**
+   * @brief remove observations not in the selected frames, from the observation list.
+   * @deprecated because of extraneous operation on imageNoise2dStdList,
+   * and missing update of the anchor frame indices.
+   * This implementation is also believed to be slow.
+   * @param orderedSelectedFrameIds
+   * @param imageNoise2dStdList
+   */
   void removeExtraObservationsLegacy(
       const std::vector<uint64_t>& orderedSelectedFrameIds,
       std::vector<double>* imageNoise2dStdList);

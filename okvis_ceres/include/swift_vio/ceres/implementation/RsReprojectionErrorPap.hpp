@@ -29,7 +29,7 @@ RsReprojectionErrorPap<GEOMETRY_TYPE>::
         std::shared_ptr<const camera_geometry_t> cameraGeometry,
         const Eigen::Vector2d& imageObservation,
         const Eigen::Matrix2d& observationCovariance,
-        int observationIndex,
+        size_t observationIndex,
         const swift_vio::PointSharedData *pointDataPtr) :
     observationIndex_(observationIndex),
     pointDataPtr_(pointDataPtr) {
@@ -60,7 +60,7 @@ bool RsReprojectionErrorPap<GEOMETRY_TYPE>::
   Eigen::Matrix<double, -1, 1> intrinsics =
       Eigen::Map<const Eigen::Matrix<double, kIntrinsicDim, 1>>(
           parameters[Index::Intrinsics]);
-  std::vector<int> anchorObservationIndices =
+  std::vector<size_t> anchorObservationIndices =
       pointDataPtr_->anchorObservationIds();
   if (anchorObservationIndices[0] == observationIndex_) {
     Eigen::Vector3d unit_fj = pap.n_.getVec();

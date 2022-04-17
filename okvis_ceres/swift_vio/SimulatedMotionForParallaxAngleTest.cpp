@@ -109,6 +109,7 @@ SimulatedMotionForParallaxAngleTest::SimulatedMotionForParallaxAngleTest(
       T_WCj_ = okvis::kinematics::Transformation(
           Eigen::Vector3d(2 * a, 0, 0),
           Eigen::Quaterniond(RotY(-30 * M_PI / 180)));
+      break;
     case Mixed:
     default:
       pW_ << a, -a, root3 * a;

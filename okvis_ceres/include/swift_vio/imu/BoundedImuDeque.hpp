@@ -11,16 +11,31 @@ class BoundedImuDeque {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   BoundedImuDeque();
   ~BoundedImuDeque();
-  // append the imu_segment meas to the end of imu_meas_
-  // assume the imu segment meas have strictly increasing timestamps
-  // though the timestamps in imu_segment and imu_meas_ may be duplicate
+
+  /**
+   * @brief push_back imu_segment meas to the end of imu_meas_.
+   * assume the imu segment meas have strictly increasing timestamps
+   * though the timestamps in imu_segment and imu_meas_ may duplicate.
+   * @param imu_segment
+   * @return
+   */
   int push_back(const okvis::ImuMeasurementDeque& imu_segment);
   int pop_front(const okvis::Time& eraseUtil);
+
+  /**
+   * @brief find imu data covering [begin_time, end_time]
+   * @param begin_time
+   * @param end_time
+   * @param pad should we pad the beginning and/or the end of the output if
+   * the available IMU data does not cover the required span?
+   * @return output IMU data covering [begin_time, end_time]
+   */
   const okvis::ImuMeasurementDeque find(const okvis::Time& begin_time,
                                         const okvis::Time& end_time, bool pad) const;
 
   const okvis::ImuMeasurementDeque findWindow(
       const okvis::Time& center_time, const okvis::Duration& half_window) const;
+
   const okvis::ImuMeasurementDeque& getAllImuMeasurements() const;
 
  private:
@@ -28,9 +43,8 @@ class BoundedImuDeque {
 };
 
 /**
- * @brief getImuMeasurements Get a subset of IMU readings falling into
- *     BeginTime and EndTime. If possible, extend the IMU readings
- *     by one on each side.
+ * @brief getImuMeasurements Get a subset of IMU readings covering
+ *     [BeginTime, EndTime].
  * @param imuDataBeginTime
  * @param imuDataEndTime
  * @param imuMeasurements_

@@ -2,11 +2,13 @@
 #include <iterator>
 #include <glog/logging.h>
 
+#include <okvis/ceres/HomogeneousPointLocalParameterization.hpp>
+
 #include <swift_vio/CameraRig.hpp>
 #include <swift_vio/FrameTypedefs.hpp>
 #include <swift_vio/imu/ImuRig.hpp>
 #include <swift_vio/imu/ImuOdometry.h>
-#include <okvis/ceres/SpeedAndBiasParameterBlock.hpp>
+#include <swift_vio/PointLandmarkModels.hpp>
 
 namespace swift_vio {
 void PointSharedData::computePoseAndVelocityAtObservation() {
@@ -106,7 +108,7 @@ void PointSharedData::removeExtraObservations(
   CHECK_EQ(orderedSelectedFrameIds.size(), foundSize);
   stateInfoForObservations_.resize(keepSize);
 
-  // Also update anchor camera frame.
+  // Also update the anchor frame index.
   for (std::vector<AnchorFrameIdentifier>::iterator anchorIdIter =
            anchorIds_.begin();
        anchorIdIter != anchorIds_.end(); ++anchorIdIter) {
@@ -160,7 +162,7 @@ void PointSharedData::removeExtraObservations(
   stateInfoForObservations_.resize(keepSize);
   imageNoise2dStdList->resize(keepSize * 2);
 
-  // Also update thAnchorFrameIdentifieror frames.
+  // Also update the anchor frame indices.
   for (std::vector<AnchorFrameIdentifier>::iterator anchorIdIter =
            anchorIds_.begin();
        anchorIdIter != anchorIds_.end(); ++anchorIdIter) {
@@ -203,18 +205,11 @@ void PointSharedData::removeExtraObservationsLegacy(
   }
 }
 
-std::vector<int> PointSharedData::anchorObservationIds() const {
-  std::vector<int> anchorObservationIds;
+std::vector<size_t> PointSharedData::anchorObservationIds() const {
+  std::vector<size_t> anchorObservationIds;
   anchorObservationIds.reserve(2);
   for (auto identifier : anchorIds_) {
-    int index = 0;
-    for (auto& stateInfo : stateInfoForObservations_) {
-      if (identifier.frameId_ == stateInfo.frameId) {
-        anchorObservationIds.push_back(index);
-        break;
-      }
-      ++index;
-    }
+    anchorObservationIds.push_back(identifier.observationIndex_);
   }
   return anchorObservationIds;
 }
@@ -223,4 +218,95 @@ std::shared_ptr<const okvis::ceres::PoseParameterBlock> PointSharedData::posePar
     int observationIndex) const {
   return stateInfoForObservations_.at(observationIndex).T_WBj_ptr;
 }
+
+bool PointSharedData::decideAnchors(const std::vector<uint64_t>& orderedFrameIdsToUse,
+                   int landmarkModelId, bool anchorInKeyframe) {
+  bool anchorFound = true;
+  std::vector<uint64_t> anchorFrameIds;
+  anchorFrameIds.reserve(2);
+  switch (landmarkModelId) {
+    case swift_vio::ParallaxAngleParameterization::kModelId:
+      // greedily choose the head and tail frames as main and associated anchors.
+      anchorFrameIds.push_back(orderedFrameIdsToUse.front());
+      [[fallthrough]];
+    case swift_vio::InverseDepthParameterization::kModelId: {
+      auto rit = orderedFrameIdsToUse.rbegin();
+      if (anchorInKeyframe) {
+        for (; rit != orderedFrameIdsToUse.rend(); ++rit) {
+          uint64_t fid = *rit;
+          Eigen::AlignedVector<StateInfoForOneKeypoint>::const_iterator obsIt =
+              std::find_if(stateInfoForObservations_.begin(),
+                           stateInfoForObservations_.end(),
+                           [fid](const StateInfoForOneKeypoint &s) {
+                             return s.frameId == fid;
+                           });
+          if (obsIt->isKeyframe) {
+            break;
+          }
+        }
+        if (rit == orderedFrameIdsToUse.rend()) {
+          return false;
+        }
+      }
+      anchorFrameIds.push_back(*rit);
+    } break;
+    case okvis::ceres::HomogeneousPointLocalParameterization::kModelId:
+    default:
+      break;
+  }
+
+  anchorIds_.clear();
+  anchorIds_.reserve(anchorFrameIds.size());
+  for (auto fid : anchorFrameIds) {
+    Eigen::AlignedVector<StateInfoForOneKeypoint>::const_iterator anchorIter =
+        std::find_if(stateInfoForObservations_.begin(), stateInfoForObservations_.end(),
+                     [fid](const StateInfoForOneKeypoint& s) {
+                       return s.frameId == fid;
+                     });
+    size_t anchorSeqId = std::distance(stateInfoForObservations_.cbegin(), anchorIter);
+    anchorIds_.emplace_back(anchorIter->frameId, anchorIter->cameraId, anchorSeqId);
+  }
+  return anchorFound;
+}
+
+bool PointSharedData::decideAnchors(int landmarkModelId, bool anchorInKeyframe) {
+  bool anchorFound = true;
+  anchorIds_.clear();
+  anchorIds_.reserve(2);
+  switch (landmarkModelId) {
+    case swift_vio::ParallaxAngleParameterization::kModelId:
+      CHECK(!anchorInKeyframe) << "Enforcing keyframe anchors is not implemented for a PAP landmark!";
+      // greedily choose the frames of the head and tail observations as main and associate anchors.
+      anchorIds_.emplace_back(stateInfoForObservations_.front().frameId, stateInfoForObservations_.front().cameraId,
+                              0u);
+      [[fallthrough]];
+    case swift_vio::InverseDepthParameterization::kModelId: {
+      auto rit = stateInfoForObservations_.rbegin();
+      if (anchorInKeyframe) {
+        for (; rit != stateInfoForObservations_.rend(); ++rit) {
+          if (rit->isKeyframe) {
+            break;
+          }
+        }
+        if (rit == stateInfoForObservations_.rend()) {
+          return false;
+        }
+      }
+
+      uint64_t frameId = rit->frameId;
+      do {
+        ++rit;
+      } while (rit->frameId == frameId);
+      --rit;
+      size_t obsIndex = stateInfoForObservations_.size() -
+                     std::distance(stateInfoForObservations_.rbegin(), rit) - 1;
+      anchorIds_.emplace_back(rit->frameId, rit->cameraId, obsIndex);
+    } break;
+    case okvis::ceres::HomogeneousPointLocalParameterization::kModelId:
+    default:
+      break;
+  }
+  return anchorFound;
+}
+
 } // namespace swift_vio

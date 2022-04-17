@@ -35,7 +35,7 @@ ChordalDistance<GEOMETRY_TYPE>::
         std::shared_ptr<const camera_geometry_t> cameraGeometry,
         const Eigen::Vector2d& imageObservation,
         const Eigen::Matrix2d& observationCovariance,
-        int observationIndex,
+        size_t observationIndex,
         const swift_vio::PointSharedData *pointDataPtr,
         bool R_WCnmf) :
     observationIndex_(observationIndex),
@@ -330,7 +330,7 @@ bool ChordalDistance<GEOMETRY_TYPE>::
     EvaluateWithMinimalJacobians(double const* const* parameters,
                                  double* residuals, double** jacobians,
                                  double** jacobiansMinimal) const {
-  std::vector<int> anchorObservationIndices =
+  std::vector<size_t> anchorObservationIndices =
       pointDataPtr_->anchorObservationIds();
   if (anchorObservationIndices[0] == observationIndex_) {
     if (R_WCnmf_) {
