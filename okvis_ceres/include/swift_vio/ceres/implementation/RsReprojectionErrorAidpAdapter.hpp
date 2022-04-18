@@ -34,7 +34,17 @@ RsReprojectionErrorAidpAdapter<GEOMETRY_TYPE>::RsReprojectionErrorAidpAdapter(
     : targetCamera_(targetCamera), hostCamera_(hostCamera),
       costFunction_(measurement, covariance, targetCameraGeometry,
                     imuMeasCanopy, imuParameters, targetStateTime,
-                    targetImageTime) {}
+                    targetImageTime) {
+  if (imuParameters->model_name == "BG_BA") {
+    Mg0_ = costFunction_.ImuParameters()->gyroCorrectionMatrix().data();
+    Ts0_ = costFunction_.ImuParameters()->gyroGSensitivity().data();
+    Ma0_ = costFunction_.ImuParameters()->accelCorrectionMatrix().data();
+  } else {
+    Mg0_ = nullptr;
+    Ts0_ = nullptr;
+    Ma0_ = nullptr;
+  }
+}
 
 template <class GEOMETRY_TYPE>
 void RsReprojectionErrorAidpAdapter<GEOMETRY_TYPE>::setCovariance(
@@ -75,9 +85,11 @@ void RsReprojectionErrorAidpAdapter<
   AddParameterBlock(1);
   AddParameterBlock(3);
   AddParameterBlock(6);
-  AddParameterBlock(9);
-  AddParameterBlock(9);
-  AddParameterBlock(6);
+  if (Mg0_ == nullptr) {
+    AddParameterBlock(9);
+    AddParameterBlock(9);
+    AddParameterBlock(6);
+  }
   SetNumResiduals(2);
 }
 
@@ -103,9 +115,18 @@ void RsReprojectionErrorAidpAdapter<GEOMETRY_TYPE>::fullParameterList(
   } else {
     fullparameters->push_back(parameters[kernel_t::Index::T_BCh + indexShift]);
   }
-  for (int i = kernel_t::Index::Intrinsics; i < kernel_t::Index::M_ai + 1;
+  for (int i = kernel_t::Index::Intrinsics; i < kernel_t::Index::M_gi;
        ++i) {
     fullparameters->push_back(parameters[i + indexShift]);
+  }
+  if (Mg0_) { // BG_BA model
+    fullparameters->push_back(Mg0_);
+    fullparameters->push_back(Ts0_);
+    fullparameters->push_back(Ma0_);
+  } else {
+    for (int i = kernel_t::Index::M_gi; i < kernel_t::Index::M_ai + 1; ++i) {
+      fullparameters->push_back(parameters[i + indexShift]);
+    }
   }
 }
 
@@ -116,6 +137,11 @@ void RsReprojectionErrorAidpAdapter<GEOMETRY_TYPE>::fullParameterList2(
   fullparameters->reserve(kernel_t::numParameterBlocks());
   for (size_t i = 0; i < parameterBlocks(); ++i) {
     fullparameters->push_back(parameters[i]);
+  }
+  if (Mg0_) { // BG_BA model
+    fullparameters->push_back(Mg0_);
+    fullparameters->push_back(Ts0_);
+    fullparameters->push_back(Ma0_);
   }
   int indexShift = 0;
   if (targetCamera_.frameId == hostCamera_.frameId) {
@@ -139,6 +165,11 @@ void RsReprojectionErrorAidpAdapter<GEOMETRY_TYPE>::fullJacobianList(
   fullJacobians->reserve(kernel_t::numParameterBlocks());
   for (size_t i = 0; i < numJacBlocks; ++i) {
     fullJacobians->push_back(jacobians[i]);
+  }
+  if (Mg0_) { // BG_BA model
+    fullJacobians->push_back(nullptr);
+    fullJacobians->push_back(nullptr);
+    fullJacobians->push_back(nullptr);
   }
   if (targetCamera_.frameId == hostCamera_.frameId) {
     fullJacobians->insert(fullJacobians->begin() + kernel_t::Index::T_WBh, j_T_WBh);

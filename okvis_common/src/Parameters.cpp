@@ -111,9 +111,9 @@ void ImuParameters::setGravityDirection(
   normalGravity = gravityDirection;
 }
 
-std::string ImuParameters::toString() const {
+std::string ImuParameters::toString(const std::string &hint) const {
   std::stringstream ss;
-  ss << "a max " << a_max << ", g max " << g_max << ", sigma_g_c " << sigma_g_c
+  ss << hint << "a max " << a_max << ", g max " << g_max << ", sigma_g_c " << sigma_g_c
             << ", sigma_a_c " << sigma_a_c << ", sigma_gw_c " << sigma_gw_c << ", sigma_aw_c "
             << sigma_aw_c << ".\n";
   ss << "sigma_bg " << sigma_bg << ", sigma ba " << sigma_ba << ", g " << g << " unit gravity "

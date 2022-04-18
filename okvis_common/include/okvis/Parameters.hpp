@@ -189,7 +189,7 @@ struct ImuParameters{
     Ma0 = Ma;
   }
 
-  std::string toString() const;
+  std::string toString(const std::string &hint) const;
 
 private:
   /// prior knowledge of IMU intrinsic parameters.

@@ -243,6 +243,10 @@ class RsReprojectionErrorAidp
     return base_t::parameter_block_sizes().at(parameterBlockId);
   }
 
+  std::shared_ptr<const okvis::ImuParameters> ImuParameters() const {
+    return imuParameters_;
+  }
+
   /// @brief Residual block type as string
   virtual std::string typeInfo() const
   {

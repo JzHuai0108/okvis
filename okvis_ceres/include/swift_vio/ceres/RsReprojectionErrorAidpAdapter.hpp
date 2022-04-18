@@ -117,7 +117,8 @@ class RsReprojectionErrorAidpAdapter
   {
     return kernel_t::numParameterBlocks() -
             (targetCamera_.frameId == hostCamera_.frameId ? 1:0) -
-            (targetCamera_.cameraIndex == hostCamera_.cameraIndex ? 1:0);
+            (targetCamera_.cameraIndex == hostCamera_.cameraIndex ? 1:0) -
+        (costFunction_.ImuParameters()->model_name == "BG_BA" ? 3 : 0);
   }
 
   void setParameterBlockAndResidualSizes();
@@ -160,6 +161,11 @@ class RsReprojectionErrorAidpAdapter
   swift_vio::CameraIdentifier hostCamera_;
 
   kernel_t costFunction_;
+
+  // pad the parameters to the cost function when the IMU model is BG_BA
+  const double *Mg0_;
+  const double *Ts0_;
+  const double *Ma0_;
 
   void fullParameterList(double const *const *parameters,
       std::vector<double const *> *fullparameters) const;

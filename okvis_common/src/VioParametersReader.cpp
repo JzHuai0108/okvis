@@ -721,7 +721,6 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
   }
   std::stringstream s;
   s << imuParams->T_BS.T();
-  VLOG(2) << "IMU with transformation T_BS = \n" << s.str();
 
   if (node["a_max"].isReal())
     node["a_max"] >> imuParams->a_max;
@@ -804,6 +803,7 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
     Ma << initMa[0], initMa[1], initMa[2], initMa[3], initMa[4], initMa[5];
     imuParams->setAccelCorrectionMatrix(Ma);
   }
+  LOG(INFO) << imuParams->toString("IMU parameters: ");
 }
 
 // Parses booleans from a cv::FileNode. OpenCV sadly has no implementation like this.
