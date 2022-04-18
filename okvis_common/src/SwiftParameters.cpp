@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 namespace swift_vio {
-EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description) {
+bool EnumFromString(std::string description, EstimatorAlgorithm *e) {
   std::transform(description.begin(), description.end(), description.begin(),
                  ::toupper);
   std::unordered_map<std::string, EstimatorAlgorithm> descriptionToId{
@@ -15,13 +15,14 @@ EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description) {
       {"SLIDINGWINDOWFILTER", EstimatorAlgorithm::SlidingWindowFilter},
       {"IMUINITIALIZER", EstimatorAlgorithm::ImuInitializer},
       {"VIOINITIALIZER", EstimatorAlgorithm::VioInitializer}};
-
   auto iter = descriptionToId.find(description);
   if (iter == descriptionToId.end()) {
-    return EstimatorAlgorithm::SlidingWindowSmoother;
+    *e = EstimatorAlgorithm::SlidingWindowSmoother;
+    return false;
   } else {
-    return iter->second;
+    *e = iter->second;
   }
+  return true;
 }
 
 std::ostream &operator<<(std::ostream &strm, EstimatorAlgorithm a) {
@@ -30,30 +31,6 @@ std::ostream &operator<<(std::ostream &strm, EstimatorAlgorithm a) {
                                "SlidingWindowFilter",   "ImuInitializer",
                                "VioInitializer"};
   return strm << names[static_cast<int>(a)];
-}
-
-struct EstimatorAlgorithmHash {
-  template <typename T> std::size_t operator()(T t) const {
-    return static_cast<std::size_t>(t);
-  }
-};
-
-std::string EstimatorAlgorithmIdToName(EstimatorAlgorithm id) {
-  std::unordered_map<EstimatorAlgorithm, std::string, EstimatorAlgorithmHash>
-      idToDescription{
-          {EstimatorAlgorithm::SlidingWindowSmoother, "SlidingWindowSmoother"},
-          {EstimatorAlgorithm::FixedLagSmoother, "FixedLagSmoother"},
-          {EstimatorAlgorithm::RiFixedLagSmoother, "RiFixedLagSmoother"},
-          {EstimatorAlgorithm::OkvisEstimator, "OkvisEstimator"},
-          {EstimatorAlgorithm::SlidingWindowFilter, "SlidingWindowFilter"},
-          {EstimatorAlgorithm::ImuInitializer, "ImuInitializer"},
-          {EstimatorAlgorithm::VioInitializer, "VioInitializer"}};
-  auto iter = idToDescription.find(id);
-  if (iter == idToDescription.end()) {
-    return "SlidingWindowSmoother";
-  } else {
-    return iter->second;
-  }
 }
 
 std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s) {
@@ -65,22 +42,46 @@ std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s) {
 std::string BriskOptions::toString(std::string hint) const {
   std::stringstream ss(hint);
   ss << "DetectionAbsoluteThreshold " << detectionAbsoluteThreshold
-     << " DescriptionRotationInvariance "
+     << ", DescriptionRotationInvariance "
      << descriptionRotationInvariance
-     << " DescriptionScaleInvariance " << descriptionScaleInvariance
-     << " MatchingThreshold " << matchingThreshold;
+     << ", DescriptionScaleInvariance " << descriptionScaleInvariance
+     << ", MatchingThreshold " << matchingThreshold << ".\n";
   return ss.str();
+}
+
+std::ostream &operator<<(std::ostream &s, HistogramMethod m) {
+  const std::string names[] = {"NONE", "HISTOGRAM", "CLAHE"};
+  return s << names[static_cast<int>(m)];
+}
+
+bool EnumFromString(std::string name, HistogramMethod *m) {
+  std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+  std::unordered_map<std::string, HistogramMethod> descriptionToId{
+      {"NONE", HistogramMethod::NONE},
+      {"HISTOGRAM", HistogramMethod::HISTOGRAM},
+      {"CLAHE", HistogramMethod::CLAHE}};
+
+  auto iter = descriptionToId.find(name);
+  if (iter == descriptionToId.end()) {
+    *m = HistogramMethod::NONE;
+    return false;
+  } else {
+    *m = iter->second;
+  }
+  return true;
 }
 
 FrontendOptions::FrontendOptions(
     FeatureTrackingScheme _featureTrackingMethod, BriskOptions _brisk,
-    bool _useMedianFilter, int _detectionOctaves, double _detectionThreshold,
+    bool _useMedianFilter, HistogramMethod hm,
+    int _detectionOctaves, double _detectionThreshold,
     int _maxNoKeypoints, float _keyframeInsertionOverlapThreshold,
     float _keyframeInsertionMatchingRatioThreshold,
     bool _stereoWithEpipolarCheck, double _epipolarDistanceThreshold,
     size_t _numOldKeyframesToMatch, size_t _numKeyframesToMatch, int _numThreads)
     : featureTrackingMethod(_featureTrackingMethod), brisk(_brisk),
-      useMedianFilter(_useMedianFilter), detectionOctaves(_detectionOctaves),
+      useMedianFilter(_useMedianFilter), histogramMethod(hm),
+      detectionOctaves(_detectionOctaves),
       detectionThreshold(_detectionThreshold), maxNoKeypoints(_maxNoKeypoints),
       keyframeInsertionOverlapThreshold(_keyframeInsertionOverlapThreshold),
       keyframeInsertionMatchingRatioThreshold(
@@ -92,20 +93,20 @@ FrontendOptions::FrontendOptions(
 
 std::string FrontendOptions::toString(std::string hint) const {
   std::stringstream ss(hint);
-  ss << "Feature tracking method " << featureTrackingMethod
-     << "\nBrisk options " << brisk.toString("Brisk options ")
-     << "\nuseMedianFilter " << useMedianFilter << " detectionOctaves "
-     << detectionOctaves << " detectionThreshold " << detectionThreshold
-     << " maxNoKeypoints " << maxNoKeypoints
-     << "\nkeyframeInsertionOverlapThreshold "
+  ss << "Feature tracking method " << featureTrackingMethod << ".\n"
+     << brisk.toString("Brisk options ") << "useMedianFilter "
+     << useMedianFilter << ", histogram method " << histogramMethod
+     << ", detectionOctaves " << detectionOctaves << ", detectionThreshold "
+     << detectionThreshold << ", maxNoKeypoints " << maxNoKeypoints
+     << ".\nkeyframeInsertionOverlapThreshold "
      << keyframeInsertionOverlapThreshold
-     << " keyframeInsertionMatchingRatioThreshold "
+     << ", keyframeInsertionMatchingRatioThreshold "
      << keyframeInsertionMatchingRatioThreshold
-     << " stereoMatchWithEpipolarCheck " << stereoMatchWithEpipolarCheck
-     << " epipolarDistanceThreshold " << epipolarDistanceThreshold
-     << "\nnumOldKeyframesToMatch " << numOldKeyframesToMatch
-     << " numKeyframesToMatch " << numKeyframesToMatch
-     << " numThreads " << numThreads;
+     << ". stereoMatchWithEpipolarCheck " << stereoMatchWithEpipolarCheck
+     << ", epipolarDistanceThreshold " << epipolarDistanceThreshold
+     << ".\nnumOldKeyframesToMatch " << numOldKeyframesToMatch
+     << ", numKeyframesToMatch " << numKeyframesToMatch << ", numThreads "
+     << numThreads << ".\n";
   return ss.str();
 }
 

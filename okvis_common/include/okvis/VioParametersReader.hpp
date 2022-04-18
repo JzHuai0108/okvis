@@ -211,6 +211,21 @@ class VioParametersReader{
  */
 bool parseBoolean(cv::FileNode node, bool& val);
 
+template <typename E> bool parseEnum(cv::FileNode n, E *e) {
+  if (n.isInt()) {
+    int v;
+    n >> v;
+    *e = static_cast<E>(v);
+  } else if (n.isString()) {
+    std::string s;
+    n >> s;
+    EnumFromString(s, e);
+  } else {
+    return false;
+  }
+  return true;
+}
+
 void parseImuParameters(cv::FileNode node, ImuParameters *imuParams);
 
 void parseCameraNoises(cv::FileNode cameraParamNode,

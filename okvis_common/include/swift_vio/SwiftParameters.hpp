@@ -10,6 +10,7 @@
 
 #include <string>
 #include <iostream>
+#include <sstream>
 
 namespace swift_vio {
 enum class EstimatorAlgorithm {
@@ -22,11 +23,16 @@ enum class EstimatorAlgorithm {
   VioInitializer,
 };
 
-EstimatorAlgorithm EstimatorAlgorithmNameToId(std::string description);
+bool EnumFromString(std::string description, EstimatorAlgorithm *e);
 
 std::ostream &operator<<(std::ostream &strm, EstimatorAlgorithm a);
 
-std::string EstimatorAlgorithmIdToName(EstimatorAlgorithm id);
+template <typename E>
+std::string EnumToString(E id) {
+  std::stringstream ss;
+  ss << id;
+  return ss.str();
+}
 
 enum class FeatureTrackingScheme {
   KeyframeDescriptorMatching = 0,   ///< default, keyframe and back-to-back frame matching
@@ -61,11 +67,16 @@ struct BriskOptions {
   std::string toString(std::string hint) const;
 };
 
+enum class HistogramMethod {NONE, HISTOGRAM, CLAHE};
+std::ostream &operator<<(std::ostream &s, HistogramMethod m);
+bool EnumFromString(std::string name, HistogramMethod *m);
+
 struct FrontendOptions {
   FeatureTrackingScheme featureTrackingMethod;
 
   BriskOptions brisk;
   bool useMedianFilter;     ///< Use a Median filter over captured image?
+  HistogramMethod histogramMethod;  ///< Preprocess the images with a histogram equalization technique?
   int detectionOctaves;     ///< Number of keypoint detection octaves.
   double detectionThreshold;  ///< Keypoint detection threshold.
   int maxNoKeypoints;       ///< Restrict to a maximum of this many keypoints per image (strongest ones).
@@ -99,7 +110,9 @@ struct FrontendOptions {
   FrontendOptions(FeatureTrackingScheme featureTrackingMethod =
                       FeatureTrackingScheme::KeyframeDescriptorMatching,
                   BriskOptions brisk = BriskOptions(),
-                  bool useMedianFilter = false, int detectionOctaves = 0,
+                  bool useMedianFilter = false,
+                  HistogramMethod hm = HistogramMethod::HISTOGRAM,
+                  int detectionOctaves = 0,
                   double detectionThreshold = 40, int maxNoKeypoints = 400,
                   float keyframeInsertionOverlapThreshold = 0.6,
                   float keyframeInsertionMatchingRatioThreshold = 0.2,

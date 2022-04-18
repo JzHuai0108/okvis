@@ -248,11 +248,11 @@ void parseInitialState(cv::FileNode initialStateNode,
 void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams) {
   if (optNode["algorithm"].isString()) {
     std::string description = (std::string)optNode["algorithm"];
-    optParams->algorithm = swift_vio::EstimatorAlgorithmNameToId(description);
+    swift_vio::EnumFromString(description, &optParams->algorithm);
   }
   if (optNode["initializer"].isString()) {
     std::string description = (std::string)optNode["initializer"];
-    optParams->initializer = swift_vio::EstimatorAlgorithmNameToId(description);
+    swift_vio::EnumFromString(description, &optParams->initializer);
   }
   parseBoolean(optNode["constantBias"], optParams->constantBias);
 
@@ -278,6 +278,7 @@ void parseFrontendOptions(cv::FileNode frontendNode,
                           swift_vio::FrontendOptions* frontendOptions) {
   parseBoolean(frontendNode["useMedianFilter"],
                frontendOptions->useMedianFilter);
+  parseEnum(frontendNode["histogramMethod"], &frontendOptions->histogramMethod);
   if (frontendNode["keyframeInsertionOverlapThreshold"].isReal()) {
     frontendNode["keyframeInsertionOverlapThreshold"] >>
         frontendOptions->keyframeInsertionOverlapThreshold;
