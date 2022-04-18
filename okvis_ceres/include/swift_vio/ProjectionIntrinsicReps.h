@@ -165,7 +165,7 @@ inline int ProjIntrinsicRepNameToId(std::string rep_name) {
   } else if (rep_name.compare("FX") == 0) {
     return ProjIntrinsic_FX::kModelId;
   } else {
-    return -1;
+    return ProjIntrinsic_FXY_CXY::kModelId;
   }
 }
 

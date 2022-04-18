@@ -520,7 +520,7 @@ inline int ExtrinsicRepNameToId(std::string extrinsicRepName) {
   } else if (extrinsicRepName.compare("P_CB") == 0) {
     return Extrinsic_p_CB::kModelId;
   } else {
-    return -1;
+    return Extrinsic_p_BC_q_BC::kModelId;
   }
 }
 

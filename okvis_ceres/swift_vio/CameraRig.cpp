@@ -183,8 +183,9 @@ std::shared_ptr<CameraRig> CameraRig::deepCopyPtr() const {
 CameraRig CameraRig::deepCopy(const okvis::cameras::NCameraSystem &ncameraSystem) {
   CameraRig rig;
   for (size_t i = 0u; i < ncameraSystem.numCameras(); ++i) {
-    rig.addCameraDeep(ncameraSystem.T_SC(i), ncameraSystem.cameraGeometry(i), ncameraSystem.projectionIntrinsicRep(i),
-                   ncameraSystem.extrinsicRep(i));
+    rig.addCameraDeep(ncameraSystem.T_SC(i), ncameraSystem.cameraGeometry(i),
+                      ncameraSystem.projectionIntrinsicRep(i),
+                      ncameraSystem.extrinsicRep(i));
   }
   rig.setOverlaps(ncameraSystem.overlaps());
   return rig;
@@ -193,8 +194,9 @@ CameraRig CameraRig::deepCopy(const okvis::cameras::NCameraSystem &ncameraSystem
 std::shared_ptr<CameraRig> CameraRig::deepCopyPtr(const okvis::cameras::NCameraSystem &ncameraSystem) {
   std::shared_ptr<CameraRig> rig(new CameraRig());
   for (size_t i = 0u; i < ncameraSystem.numCameras(); ++i) {
-    rig->addCameraDeep(ncameraSystem.T_SC(i), ncameraSystem.cameraGeometry(i), ncameraSystem.projectionIntrinsicRep(i),
-                   ncameraSystem.extrinsicRep(i));
+    rig->addCameraDeep(ncameraSystem.T_SC(i), ncameraSystem.cameraGeometry(i),
+                       ncameraSystem.projectionIntrinsicRep(i),
+                       ncameraSystem.extrinsicRep(i));
   }
   rig->setOverlaps(ncameraSystem.overlaps());
   return rig;
