@@ -81,7 +81,7 @@ struct CameraNoiseParameters {
                         double sigma_c_relative_translation,
                         double sigma_c_relative_orientation);
 
-  std::string toString() const;
+  std::string toString(const std::string &hint) const;
 
   bool isIntrinsicsFixed() const;
 

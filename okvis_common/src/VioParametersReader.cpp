@@ -804,7 +804,7 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
     Ma << initMa[0], initMa[1], initMa[2], initMa[3], initMa[4], initMa[5];
     imuParams->setAccelCorrectionMatrix(Ma);
   }
-  LOG(INFO) << imuParams->toString("IMU parameters: ");
+  LOG(INFO) << imuParams->toString("IMU parameters for VIO estimators: ");
 }
 
 // Parses booleans from a cv::FileNode. OpenCV sadly has no implementation like this.

@@ -27,9 +27,9 @@ CameraNoiseParameters::CameraNoiseParameters(
   extrinsics_fixed_ = isExtrinsicsFixed();
 }
 
-std::string CameraNoiseParameters::toString() const {
+std::string CameraNoiseParameters::toString(const std::string &hint) const {
   std::stringstream ss;
-  ss << "sigma_absolute_translation " << sigma_absolute_translation
+  ss << hint << "sigma_absolute_translation " << sigma_absolute_translation
      << ", sigma_absolute_orientation " << sigma_absolute_orientation
      << ", sigma_c_relative_translation " << sigma_c_relative_translation
      << ", sigma_c_relative_orientation " << sigma_c_relative_orientation
