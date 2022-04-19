@@ -153,11 +153,11 @@ EstimatorOptions::EstimatorOptions(
       delayFilterInitByFrames(_delayInitByFrames), numThreads(_numThreads),
       verbose(_verbose) {}
 
-std::string EstimatorOptions::toString(std::string lead) const {
-  std::stringstream ss(lead);
+std::string EstimatorOptions::toString(const std::string &hint) const {
+  std::stringstream ss(hint);
   ss << "Algorithm " << algorithm << ", initializer " << initializer
      << ", numKeyframes " << numKeyframes
-     << ", numImuFrames " << numImuFrames << ".\nConstant bias? "
+     << ", numImuFrames " << numImuFrames << ".\nConstant bias in initializer? "
      << constantBias << ", use epipolar constraint? " << useEpipolarConstraint
      << ", camera observation model Id " << cameraObservationModelId
      << ", compute OKVIS NEES? " << computeOkvisNees

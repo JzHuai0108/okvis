@@ -271,7 +271,6 @@ void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams) {
   if (optNode["delayFilterInitByFrames"].isInt()) {
     optNode["delayFilterInitByFrames"] >> optParams->delayFilterInitByFrames;
   }
-  LOG(INFO) << optParams->toString("Estimator options: ");
 }
 
 void parseFrontendOptions(cv::FileNode frontendNode,
@@ -453,6 +452,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
         << "ceres_options: timeLimit parameter not provided. Setting no time limit.";
     vioParameters_.optimization.timeLimitForMatchingAndOptimization = -1.0;
   }
+  LOG(INFO) << vioParameters_.optimization.toString("Estimator options: ");
 
   parseFrontendOptions(file["frontend"], &vioParameters_.frontendOptions);
 

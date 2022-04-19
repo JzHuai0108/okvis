@@ -329,7 +329,7 @@ struct EstimatorOptions {
   int numKeyframes; ///< Number of keyframes.
   int numImuFrames; ///< Number of IMU frames.
 
-  bool constantBias; ///< estimate only one copy of biases.
+  bool constantBias; ///< estimate only one copy of biases in the initializer.
   bool useEpipolarConstraint;
   int cameraObservationModelId;
 
@@ -362,7 +362,7 @@ struct EstimatorOptions {
       double _maxProjectionErrorTol = 7, int _delayFilterInitByFrames = 3,
       int _numThreads = 2, bool _verbose = false);
 
-  std::string toString(std::string lead = "") const;
+  std::string toString(const std::string &hint = "") const;
 };
 
 /**
