@@ -292,12 +292,14 @@ bool PointSharedData::decideAnchors(int landmarkModelId, bool anchorInKeyframe) 
           return false;
         }
       }
-
-      uint64_t frameId = rit->frameId;
-      do {
-        ++rit;
-      } while (rit->frameId == frameId);
-      --rit;
+      // find the camera of the minimal index as the anchor camera.
+      auto nextrit = rit;
+      ++nextrit;
+      while (nextrit != stateInfoForObservations_.rend() &&
+             nextrit->frameId == rit->frameId) {
+        rit = nextrit;
+        ++nextrit;
+      }
       size_t obsIndex = stateInfoForObservations_.size() -
                      std::distance(stateInfoForObservations_.rbegin(), rit) - 1;
       anchorIds_.emplace_back(rit->frameId, rit->cameraId, obsIndex);
