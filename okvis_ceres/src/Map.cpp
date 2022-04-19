@@ -76,17 +76,15 @@ bool Map::parameterBlockExists(uint64_t parameterBlockId) const {
 void Map::printParameterBlockInfo(uint64_t parameterBlockId) const {
   ResidualBlockCollection residualCollection = residuals(parameterBlockId);
   LOG(INFO) << "parameter info" << std::endl << "----------------------------"
-            << std::endl << " - block Id: " << parameterBlockId << std::endl
-            << " - type: " << parameterBlockPtr(parameterBlockId)->typeInfo()
-            << std::endl << " - residuals (" << residualCollection.size()
+            << std::endl << " - block Id: " << parameterBlockId
+            << "\n - type: " << parameterBlockPtr(parameterBlockId)->typeInfo()
+            << std::endl << " - #residuals (" << residualCollection.size()
             << "):";
   for (size_t i = 0; i < residualCollection.size(); ++i) {
-    LOG(INFO)
-        << "   - id: "
-        << residualCollection.at(i).residualBlockId
-        << std::endl
-        << "   - type: "
-        << errorInterfacePtr(residualCollection.at(i).residualBlockId)->typeInfo();
+    auto errorPtr = errorInterfacePtr(residualCollection.at(i).residualBlockId);
+    LOG(INFO) << "   - id: " << residualCollection.at(i).residualBlockId
+              << "\n   - type: " << errorPtr->typeInfo()
+              << "   - dim: " << errorPtr->residualDim();
   }
   LOG(INFO) << "============================";
 }

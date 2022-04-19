@@ -401,13 +401,14 @@ void parsePoseGraphOptions(cv::FileNode pgNode, swift_vio::PoseGraphOptions* pgO
 // Read and parse a config file.
 void VioParametersReader::readConfigFile(const std::string& filename) {
   vioParameters_.optimization.timeReserve.fromSec(0.005);
-
-  // reads
   cv::FileStorage file(filename, cv::FileStorage::READ);
 
   OKVIS_ASSERT_TRUE(Exception, file.isOpened(),
                     "Could not open config file: " << filename);
   LOG(INFO) << "Opened configuration file: " << filename;
+
+  parseEstimatorOptions(
+      file["optimization"], &vioParameters_.optimization);
 
   // number of keyframes
   if (file["numKeyframes"].isInt()) {
@@ -425,17 +426,6 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
         << "numImuFrames parameter not provided. Setting to default numImuFrames=2.";
     vioParameters_.optimization.numImuFrames = 2;
   }
-
-  parseEstimatorOptions(
-      file["optimization"], &vioParameters_.optimization);
-
-  parseFrontendOptions(file["frontend"], &vioParameters_.frontendOptions);
-
-  parseDetectionOptions(file["detection_options"], &vioParameters_.frontendOptions);
-
-  parsePointLandmarkOptions(file["point_landmark"], &vioParameters_.pointLandmarkOptions);
-
-  parsePoseGraphOptions(file["pose_graph"], &vioParameters_.poseGraphOptions);
 
   // minimum ceres iterations
   if (file["ceres_options"]["minIterations"].isInt()) {
@@ -463,6 +453,14 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
         << "ceres_options: timeLimit parameter not provided. Setting no time limit.";
     vioParameters_.optimization.timeLimitForMatchingAndOptimization = -1.0;
   }
+
+  parseFrontendOptions(file["frontend"], &vioParameters_.frontendOptions);
+
+  parseDetectionOptions(file["detection_options"], &vioParameters_.frontendOptions);
+
+  parsePointLandmarkOptions(file["point_landmark"], &vioParameters_.pointLandmarkOptions);
+
+  parsePoseGraphOptions(file["pose_graph"], &vioParameters_.poseGraphOptions);
 
   // do we use the direct driver?
   bool success = parseBoolean(file["useDriver"], useDriver);
@@ -526,6 +524,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
 
   cv::FileNode imu_params = file["imu_params"];
   parseImuParameters(imu_params, &vioParameters_.imu);
+  LOG(INFO) << vioParameters_.imu.toString("IMU parameters for VIO estimators: ");
   readConfigFile_ = true;
 }
 
@@ -804,7 +803,6 @@ void parseImuParameters(cv::FileNode node, ImuParameters *imuParams) {
     Ma << initMa[0], initMa[1], initMa[2], initMa[3], initMa[4], initMa[5];
     imuParams->setAccelCorrectionMatrix(Ma);
   }
-  LOG(INFO) << imuParams->toString("IMU parameters for VIO estimators: ");
 }
 
 // Parses booleans from a cv::FileNode. OpenCV sadly has no implementation like this.

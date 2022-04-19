@@ -43,7 +43,7 @@ std::string CameraNoiseParameters::toString(const std::string &hint) const {
     ss << "].\n";
   }
   ss << "sigma_td " << sigma_td << ", sigma_tr " << sigma_tr
-     << ", sigma_observaiton " << sigma_observation << ".\n";
+     << ", sigma_observation " << sigma_observation << ".\n";
   return ss.str();
 }
 
