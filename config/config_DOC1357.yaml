@@ -55,8 +55,9 @@ imu_params:
          0.0000, 0.0000, 0.0000, 1.0000]
 
 # Estimator parameters
-numKeyframes: 5 # number of keyframes in optimisation window
-numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error terms
+optimization:
+    numKeyframes: 5 # number of keyframes in optimisation window
+    numImuFrames: 3 # number of frames linked by most recent nonlinear IMU error terms
 
 # ceres optimization options
 ceres_options:

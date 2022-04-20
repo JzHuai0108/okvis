@@ -245,7 +245,8 @@ void parseInitialState(cv::FileNode initialStateNode,
   VLOG(2) << initialState->toString();
 }
 
-void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams) {
+void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams,
+                           size_t numCameras) {
   if (optNode["algorithm"].isString()) {
     std::string description = (std::string)optNode["algorithm"];
     swift_vio::EnumFromString(description, &optParams->algorithm);
@@ -254,6 +255,23 @@ void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams) {
     std::string description = (std::string)optNode["initializer"];
     swift_vio::EnumFromString(description, &optParams->initializer);
   }
+
+  if (optNode["numKeyframes"].isInt()) {
+    optNode["numKeyframes"] >> optParams->numKeyframes;
+  }
+  if (optNode["numImuFrames"].isInt()) {
+    optNode["numImuFrames"] >> optParams->numImuFrames;
+  }
+  if (optNode["minMarginalizedFrames"].isInt()) {
+    int n;
+    optNode["minMarginalizedFrames"] >> n;
+    optParams->minMarginalizedFrames = n;
+  } else {
+    optParams->minMarginalizedFrames = 4u > numCameras ? 4u - numCameras : 1u;
+    LOG(INFO) << "minMarginalizedFrames not provided, setting to "
+              << optParams->minMarginalizedFrames;
+  }
+
   parseBoolean(optNode["constantBias"], optParams->constantBias);
 
   parseBoolean(optNode["useEpipolarConstraint"], optParams->useEpipolarConstraint);
@@ -270,6 +288,18 @@ void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams) {
   }
   if (optNode["delayFilterInitByFrames"].isInt()) {
     optNode["delayFilterInitByFrames"] >> optParams->delayFilterInitByFrames;
+  }
+}
+
+void parseCeresOptions(cv::FileNode ceresNode, EstimatorOptions *optParams) {
+  if (ceresNode["minIterations"].isInt()) {
+    ceresNode["minIterations"] >> optParams->min_iterations;
+  }
+  if (ceresNode["maxIterations"].isInt()) {
+    ceresNode["maxIterations"] >> optParams->max_iterations;
+  }
+  if (ceresNode["timeLimit"].isReal()) {
+    ceresNode["timeLimit"] >> optParams->timeLimitForMatchingAndOptimization;
   }
 }
 
@@ -406,54 +436,6 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
                     "Could not open config file: " << filename);
   LOG(INFO) << "Opened configuration file: " << filename;
 
-  parseEstimatorOptions(
-      file["optimization"], &vioParameters_.optimization);
-
-  // number of keyframes
-  if (file["numKeyframes"].isInt()) {
-    file["numKeyframes"] >> vioParameters_.optimization.numKeyframes;
-  } else {
-    LOG(WARNING)
-        << "numKeyframes parameter not provided. Setting to default numKeyframes=5.";
-    vioParameters_.optimization.numKeyframes = 5;
-  }
-  // number of IMU frames
-  if (file["numImuFrames"].isInt()) {
-    file["numImuFrames"] >> vioParameters_.optimization.numImuFrames;
-  } else {
-    LOG(WARNING)
-        << "numImuFrames parameter not provided. Setting to default numImuFrames=2.";
-    vioParameters_.optimization.numImuFrames = 2;
-  }
-
-  // minimum ceres iterations
-  if (file["ceres_options"]["minIterations"].isInt()) {
-    file["ceres_options"]["minIterations"]
-        >> vioParameters_.optimization.min_iterations;
-  } else {
-    LOG(WARNING)
-        << "ceres_options: minIterations parameter not provided. Setting to default minIterations=1";
-    vioParameters_.optimization.min_iterations = 1;
-  }
-  // maximum ceres iterations
-  if (file["ceres_options"]["maxIterations"].isInt()) {
-    file["ceres_options"]["maxIterations"]
-        >> vioParameters_.optimization.max_iterations;
-  } else {
-    LOG(WARNING)
-        << "ceres_options: maxIterations parameter not provided. Setting to default maxIterations=10.";
-    vioParameters_.optimization.max_iterations = 10;
-  }
-  // ceres time limit
-  if (file["ceres_options"]["timeLimit"].isReal()) {
-    file["ceres_options"]["timeLimit"] >> vioParameters_.optimization.timeLimitForMatchingAndOptimization;
-  } else {
-    LOG(WARNING)
-        << "ceres_options: timeLimit parameter not provided. Setting no time limit.";
-    vioParameters_.optimization.timeLimitForMatchingAndOptimization = -1.0;
-  }
-  LOG(INFO) << vioParameters_.optimization.toString("Estimator options: ");
-
   parseFrontendOptions(file["frontend"], &vioParameters_.frontendOptions);
 
   parseDetectionOptions(file["detection_options"], &vioParameters_.frontendOptions);
@@ -521,6 +503,13 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
     LOG(FATAL) << "Did not find any calibration!";
 
   buildCameraSystem(calibrations, &vioParameters_.nCameraSystem);
+
+  parseEstimatorOptions(
+      file["optimization"], &vioParameters_.optimization,
+      vioParameters_.nCameraSystem.numCameras());
+
+  parseCeresOptions(file["ceres_options"], &vioParameters_.optimization);
+  LOG(INFO) << vioParameters_.optimization.toString("Estimator options: ");
 
   cv::FileNode imu_params = file["imu_params"];
   parseImuParameters(imu_params, &vioParameters_.imu);

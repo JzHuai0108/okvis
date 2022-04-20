@@ -130,21 +130,19 @@ std::string ImuParameters::toString(const std::string &hint) const {
 
 EstimatorOptions::EstimatorOptions(
     swift_vio::EstimatorAlgorithm _algorithm,
-    swift_vio::EstimatorAlgorithm _initializer,
-    int _max_iterations,
+    swift_vio::EstimatorAlgorithm _initializer, int _max_iterations,
     int _min_iterations, double _timeLimitForMatchingAndOptimization,
     okvis::Duration _timeReserve, int _numKeyframes, int _numImuFrames,
-    bool _constantBias, bool _useEpipolarConstraint,
+    size_t minMargedFrames, bool _constantBias, bool _useEpipolarConstraint,
     int _cameraObservationModelId, bool _computeOkvisNees,
     bool _useMahalanobisGating, double _maxProjectionErrorTol,
     int _delayInitByFrames, int _numThreads, bool _verbose)
-    : algorithm(_algorithm),
-      initializer(_initializer),
-      max_iterations(_max_iterations),
-      min_iterations(_min_iterations),
+    : algorithm(_algorithm), initializer(_initializer),
+      max_iterations(_max_iterations), min_iterations(_min_iterations),
       timeLimitForMatchingAndOptimization(_timeLimitForMatchingAndOptimization),
       timeReserve(_timeReserve), numKeyframes(_numKeyframes),
-      numImuFrames(_numImuFrames), constantBias(_constantBias),
+      numImuFrames(_numImuFrames), minMarginalizedFrames(minMargedFrames),
+      constantBias(_constantBias),
       useEpipolarConstraint(_useEpipolarConstraint),
       cameraObservationModelId(_cameraObservationModelId),
       computeOkvisNees(_computeOkvisNees),
@@ -156,9 +154,10 @@ EstimatorOptions::EstimatorOptions(
 std::string EstimatorOptions::toString(const std::string &hint) const {
   std::stringstream ss(hint);
   ss << "Algorithm " << algorithm << ", initializer " << initializer
-     << ", numKeyframes " << numKeyframes
-     << ", numImuFrames " << numImuFrames << ".\nConstant bias in initializer? "
-     << constantBias << ", use epipolar constraint? " << useEpipolarConstraint
+     << ", numKeyframes " << numKeyframes << ", numImuFrames " << numImuFrames
+     << ".\nMin number of marginalized frames " << minMarginalizedFrames
+     << ", constant bias in initializer? " << constantBias
+     << ".\nUse epipolar constraint? " << useEpipolarConstraint
      << ", camera observation model Id " << cameraObservationModelId
      << ", compute OKVIS NEES? " << computeOkvisNees
      << ".\nMahalanobis gating? " << useMahalanobisGating

@@ -328,6 +328,12 @@ struct EstimatorOptions {
 
   int numKeyframes; ///< Number of keyframes.
   int numImuFrames; ///< Number of IMU frames.
+  ///< Minimum number of marginalized frames in each marginalization step of filters.
+  size_t minMarginalizedFrames;
+  // Sun 2017 Robust stereo appendix D suggests that this is at least 3 for the
+  // monocular case so that the marginalized observations can contribute
+  // innovation to the states.
+  // I think this may not make much difference, so 1 is OK.
 
   bool constantBias; ///< estimate only one copy of biases in the initializer.
   bool useEpipolarConstraint;
@@ -353,10 +359,11 @@ struct EstimatorOptions {
           swift_vio::EstimatorAlgorithm::SlidingWindowFilter,
       swift_vio::EstimatorAlgorithm _initializer =
           swift_vio::EstimatorAlgorithm::VioInitializer,
-      int _max_iterations = 10, int _min_iterations = 3,
-      double _timeLimitForMatchingAndOptimization = 0.035,
+      int _max_iterations = 10, int _min_iterations = 1,
+      double _timeLimitForMatchingAndOptimization = -1.0,
       okvis::Duration _timeReserve = okvis::Duration(0.005),
-      int _numKeyframes = 5, int _numImuFrames = 3, bool _constantBias = false,
+      int _numKeyframes = 5, int _numImuFrames = 3, size_t minMargedFrames = 1u,
+      bool _constantBias = false,
       bool _useEpipolarConstraint = false, int _cameraObservationModelId = 0,
       bool _computeOkvisNees = false, bool _useMahalanobisGating = true,
       double _maxProjectionErrorTol = 7, int _delayFilterInitByFrames = 3,
