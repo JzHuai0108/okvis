@@ -341,6 +341,8 @@ void parseFrontendOptions(cv::FileNode frontendNode,
   if (frontendNode["numThreads"].isInt()) {
     frontendNode["numThreads"] >> frontendOptions->numThreads;
   }
+  parseBoolean(frontendNode["allAreKeyframes"],
+               frontendOptions->allAreKeyframes);
   LOG(INFO) << frontendOptions->toString("Frontend options: ");
 }
 

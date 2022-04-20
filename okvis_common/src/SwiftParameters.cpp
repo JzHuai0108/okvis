@@ -25,18 +25,18 @@ bool EnumFromString(std::string description, EstimatorAlgorithm *e) {
   return true;
 }
 
-std::ostream &operator<<(std::ostream &strm, EstimatorAlgorithm a) {
+std::string EnumToString(EstimatorAlgorithm a) {
   const std::string names[] = {"SlidingWindowSmoother", "FixedLagSmoother",
                                "RiFixedLagSmoother",    "OkvisEstimator",
                                "SlidingWindowFilter",   "ImuInitializer",
                                "VioInitializer"};
-  return strm << names[static_cast<int>(a)];
+  return names[static_cast<int>(a)];
 }
 
-std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s) {
+std::string EnumToString(FeatureTrackingScheme s) {
   const std::string names[] = {"KeyframeDescriptorMatching", "FramewiseKLT",
                                "FramewiseDescriptorMatching"};
-  return strm << names[static_cast<int>(s)];
+  return names[static_cast<int>(s)];
 }
 
 std::string BriskOptions::toString(std::string hint) const {
@@ -49,9 +49,9 @@ std::string BriskOptions::toString(std::string hint) const {
   return ss.str();
 }
 
-std::ostream &operator<<(std::ostream &s, HistogramMethod m) {
+std::string EnumToString(HistogramMethod m) {
   const std::string names[] = {"NONE", "HISTOGRAM", "CLAHE"};
-  return s << names[static_cast<int>(m)];
+  return names[static_cast<int>(m)];
 }
 
 bool EnumFromString(std::string name, HistogramMethod *m) {
@@ -78,7 +78,7 @@ FrontendOptions::FrontendOptions(
     int _maxNoKeypoints, float _keyframeInsertionOverlapThreshold,
     float _keyframeInsertionMatchingRatioThreshold,
     bool _stereoWithEpipolarCheck, double _epipolarDistanceThreshold,
-    size_t _numOldKeyframesToMatch, size_t _numKeyframesToMatch, int _numThreads)
+    size_t _numOldKeyframesToMatch, size_t _numKeyframesToMatch, int _numThreads, bool allKeyframes)
     : featureTrackingMethod(_featureTrackingMethod), brisk(_brisk),
       useMedianFilter(_useMedianFilter), histogramMethod(hm),
       detectionOctaves(_detectionOctaves),
@@ -89,7 +89,8 @@ FrontendOptions::FrontendOptions(
       stereoMatchWithEpipolarCheck(_stereoWithEpipolarCheck),
       epipolarDistanceThreshold(_epipolarDistanceThreshold),
       numOldKeyframesToMatch(_numOldKeyframesToMatch),
-      numKeyframesToMatch(_numKeyframesToMatch), numThreads(_numThreads) {}
+      numKeyframesToMatch(_numKeyframesToMatch), numThreads(_numThreads),
+      allAreKeyframes(allKeyframes) {}
 
 std::string FrontendOptions::toString(std::string hint) const {
   std::stringstream ss(hint);
@@ -106,7 +107,7 @@ std::string FrontendOptions::toString(std::string hint) const {
      << ", epipolarDistanceThreshold " << epipolarDistanceThreshold
      << ".\nnumOldKeyframesToMatch " << numOldKeyframesToMatch
      << ", numKeyframesToMatch " << numKeyframesToMatch << ", numThreads "
-     << numThreads << ".\n";
+     << numThreads << ".\nAll frames are keyframes? " << allAreKeyframes << ".\n";
   return ss.str();
 }
 

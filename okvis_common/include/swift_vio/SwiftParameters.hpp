@@ -24,14 +24,9 @@ enum class EstimatorAlgorithm {
 };
 
 bool EnumFromString(std::string description, EstimatorAlgorithm *e);
-
-std::ostream &operator<<(std::ostream &strm, EstimatorAlgorithm a);
-
-template <typename E>
-std::string EnumToString(E id) {
-  std::stringstream ss;
-  ss << id;
-  return ss.str();
+std::string EnumToString(EstimatorAlgorithm id);
+inline std::ostream &operator<<(std::ostream &strm, EstimatorAlgorithm a) {
+  return strm << EnumToString(a);
 }
 
 enum class FeatureTrackingScheme {
@@ -39,8 +34,10 @@ enum class FeatureTrackingScheme {
   FramewiseKLT,  ///< KLT back-to-back frame matching,
   FramewiseDescriptorMatching, ///< back-to-back descriptor-based frame matching
 };
-
-std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s);
+std::string EnumToString(FeatureTrackingScheme s);
+inline std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s) {
+  return strm << EnumToString(s);
+}
 
 struct BriskOptions {
   double detectionAbsoluteThreshold;
@@ -68,8 +65,11 @@ struct BriskOptions {
 };
 
 enum class HistogramMethod {NONE, HISTOGRAM, CLAHE};
-std::ostream &operator<<(std::ostream &s, HistogramMethod m);
 bool EnumFromString(std::string name, HistogramMethod *m);
+std::string EnumToString(HistogramMethod m);
+inline std::ostream &operator<<(std::ostream &s, HistogramMethod m) {
+  return s << EnumToString(m);
+}
 
 struct FrontendOptions {
   FeatureTrackingScheme featureTrackingMethod;
@@ -106,6 +106,7 @@ struct FrontendOptions {
   size_t numKeyframesToMatch;
 
   int numThreads;
+  bool allAreKeyframes; ///< Treat every frame as a keyframe?
 
   FrontendOptions(FeatureTrackingScheme featureTrackingMethod =
                       FeatureTrackingScheme::KeyframeDescriptorMatching,
@@ -120,7 +121,7 @@ struct FrontendOptions {
                   double epipolarDistanceThreshold = 2.5,
                   size_t numOldKeyframesToMatch = 1,
                   size_t numKeyframesToMatch = 2,
-                  int numThreads = 4);
+                  int numThreads = 4, bool allKeyframes = false);
 
   std::string toString(std::string hint) const;
 };
