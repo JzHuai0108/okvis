@@ -597,7 +597,7 @@ int ImuOdometry::propagation(
         fabs(omega_S_1[1]) > imuParams.g_max ||
         fabs(omega_S_1[2]) > imuParams.g_max) {
       sigma_g_c *= 100;
-      LOG(WARNING) << "gyr saturation";
+      VLOG(0) << "gyr saturation";
     }
 
     if (fabs(acc_S_0[0]) > imuParams.a_max ||
@@ -607,7 +607,7 @@ int ImuOdometry::propagation(
         fabs(acc_S_1[1]) > imuParams.a_max ||
         fabs(acc_S_1[2]) > imuParams.a_max) {
       sigma_a_c *= 100;
-      LOG(WARNING) << "acc saturation";
+      VLOG(0) << "acc saturation";
     }
 
     iem.computeDeltaState(dt, omega_S_0, acc_S_0, omega_S_1, acc_S_1);
