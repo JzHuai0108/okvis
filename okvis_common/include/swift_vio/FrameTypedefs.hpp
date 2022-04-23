@@ -40,12 +40,15 @@ struct FeatureTrackStatus {
     }
   }
 
-  bool inState;
-  size_t numMissFrames; // number of successive miss frames since its last
-                     // observing frame. For instance, if it is not observed in
-                     // the last and current frame, it would be 2.
+  bool inState; ///< is the landmark of the feature track in the state vector?
+  // number of successive miss frames since its last observing frame. For
+  // instance, if it is not observed in the last and current frame, it would
+  // be 2.
+  size_t numMissFrames;
 
+  // what type of measurements will the feature track provide to the estimator?
   MeasurementType measurementType;
+  // what is the final status of the measurements of the feature track to the estimator?
   MeasurementFate measurementFate;
 };
 

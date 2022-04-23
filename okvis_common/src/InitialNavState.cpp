@@ -9,20 +9,9 @@ InitialNavState::InitialNavState()
       q_WS(1, 0, 0, 0),
       v_WS(0, 0, 0),
       sigma_p_WS(1e-4, 1e-4, 1e-4),
-      sigma_q_WS(30 * M_PI / 180, 30 * M_PI / 180, 1e-4),
-      sigma_v_WS(0.1, 0.1, 0.1) {}
-
-// v_WS, and sigma_v_WS are to be recalculated later according to updated p_WS and
-// q_ws
-InitialNavState::InitialNavState(const InitialNavState& rhs)
-    : initializeToCustomPose(rhs.initializeToCustomPose),
-      stateTime(rhs.stateTime),
-      p_WS(rhs.p_WS),
-      q_WS(rhs.q_WS),
-      v_WS(rhs.v_WS),
-      sigma_p_WS(rhs.sigma_p_WS),
-      sigma_q_WS(rhs.sigma_q_WS),
-      sigma_v_WS(rhs.sigma_v_WS) {}
+      sigma_q_WS(3 * M_PI / 180, 3 * M_PI / 180, 1e-4),
+      sigma_v_WS(0.1, 0.1, 0.1),
+      delayFilterInitByFrames(3), motionDisparityTol(5.f) {}
 
 void InitialNavState::updatePose(const okvis::kinematics::Transformation& T_WS,
                                  const okvis::Time state_time) {
@@ -60,8 +49,8 @@ InitialNavState& InitialNavState::operator=(const InitialNavState& other) {
   return *this;
 }
 
-std::string InitialNavState::toString() const {
-  std::stringstream ss;
+std::string InitialNavState::toString(const std::string &hint) const {
+  std::stringstream ss(hint);
   if (initializeToCustomPose) {
     ss << "initializeToCustomPose: p_WS " << p_WS.transpose() << ", "
        << q_WS.coeffs().transpose() << " at time " << stateTime << ".";
@@ -70,6 +59,8 @@ std::string InitialNavState::toString() const {
      << ".\n";
   ss << "sigma p_WS " << sigma_p_WS.transpose() << ", sigma q_WS "
      << sigma_q_WS.transpose() << ".\n";
+  ss << "delayFilterInitByFrames " << delayFilterInitByFrames
+     << ", motionDisparityTol " << motionDisparityTol << ".\n";
   return ss.str();
 }
 

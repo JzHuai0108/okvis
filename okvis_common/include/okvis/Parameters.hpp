@@ -348,9 +348,6 @@ struct EstimatorOptions {
   // Max allowed projection error for an image feature to check outliers in the reprojection error scheme.
   double maxProjectionErrorTol;
 
-  // The number of frames to delay the nonlinear filter initialization since motion is detected?
-  int delayFilterInitByFrames;
-
   int numThreads;
   bool verbose;
 
@@ -366,7 +363,7 @@ struct EstimatorOptions {
       bool _constantBias = false,
       bool _useEpipolarConstraint = false, int _cameraObservationModelId = 0,
       bool _computeOkvisNees = false, bool _useMahalanobisGating = true,
-      double _maxProjectionErrorTol = 7, int _delayFilterInitByFrames = 3,
+      double _maxProjectionErrorTol = 7,
       int _numThreads = 2, bool _verbose = false);
 
   std::string toString(const std::string &hint = "") const;

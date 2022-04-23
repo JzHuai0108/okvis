@@ -241,8 +241,17 @@ void parseInitialState(cv::FileNode initialStateNode,
     initialState->sigma_q_WS = stdqs;
   }
 
+  if (initialStateNode["delayFilterInitByFrames"].isInt()) {
+    initialStateNode["delayFilterInitByFrames"] >> initialState->delayFilterInitByFrames;
+  }
+
+  if (initialStateNode["motionDisparityTol"].isReal()) {
+    initialStateNode["motionDisparityTol"] >> initialState->motionDisparityTol;
+  }
+
   initialState->initializeToCustomPose = initializeToCustomPose;
-  VLOG(2) << initialState->toString();
+
+  LOG(INFO) << initialState->toString("Initial state ");
 }
 
 void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams,
@@ -285,9 +294,6 @@ void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams,
                optParams->useMahalanobisGating);
   if (optNode["maxProjectionErrorTol"].isInt()) {
     optNode["maxProjectionErrorTol"] >> optParams->maxProjectionErrorTol;
-  }
-  if (optNode["delayFilterInitByFrames"].isInt()) {
-    optNode["delayFilterInitByFrames"] >> optParams->delayFilterInitByFrames;
   }
 }
 

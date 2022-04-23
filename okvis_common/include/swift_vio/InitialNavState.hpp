@@ -22,9 +22,13 @@ struct InitialNavState {
       sigma_q_WS;  // std of $\delta \theta$ which is expressed in the world frame
   Eigen::Vector3d sigma_v_WS;
 
-  InitialNavState();
+  // The number of frames used for motion detection before filter initialization.
+  int delayFilterInitByFrames;
+  // If disparity in pixels at the start is greater than this value,
+  // motion is considered to have occurred.
+  float motionDisparityTol;
 
-  InitialNavState(const InitialNavState& rhs);
+  InitialNavState();
 
   void updatePose(const okvis::kinematics::Transformation& T_WS,
                   const okvis::Time state_time);
@@ -39,7 +43,7 @@ struct InitialNavState {
 
   InitialNavState& operator=(const InitialNavState& other);
 
-  std::string toString() const;
+  std::string toString(const std::string &hint) const;
 };
 
 /**
