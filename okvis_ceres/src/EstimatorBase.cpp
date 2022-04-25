@@ -344,9 +344,21 @@ bool EstimatorBase::getSpeed(uint64_t poseId, Eigen::Vector3d &speed) const
   if (!getSensorStateEstimateAs<ceres::SpeedAndBiasParameterBlock>(
       poseId, 0, SensorStates::Imu, ImuSensorStates::SpeedAndBias,
       speedAndBias)) {
-    speed = speedAndBias.head<3>();
     return false;
   }
+  speed = speedAndBias.head<3>();
+  return true;
+}
+
+bool EstimatorBase::getImuBiases(uint64_t poseId, uint64_t imuIdx,
+                                 Eigen::Matrix<double, 6, 1> &bgba) const {
+  Eigen::Matrix<double, 9, 1> speedAndBias;
+  if (!getSensorStateEstimateAs<ceres::SpeedAndBiasParameterBlock>(
+          poseId, imuIdx, SensorStates::Imu, ImuSensorStates::SpeedAndBias,
+          speedAndBias)) {
+    return false;
+  }
+  bgba = speedAndBias.tail<6>();
   return true;
 }
 

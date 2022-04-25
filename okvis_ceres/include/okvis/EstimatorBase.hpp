@@ -341,6 +341,8 @@ class EstimatorBase : public VioBackendInterface
 
   bool getSpeed(uint64_t poseId, Eigen::Vector3d &speed) const;
 
+  bool getImuBiases(uint64_t poseId, size_t imuIdx, Eigen::Matrix<double, 6, 1> &biases) const;
+
   /**
    * @brief Get camera states for a given pose ID.
    * @warning This accesses the optimization graph, so not very fast.
