@@ -981,7 +981,7 @@ int ImuOdometry::propagationBackward(
         fabs(omega_S_1[1]) > imuParams.g_max ||
         fabs(omega_S_1[2]) > imuParams.g_max) {
       sigma_g_c *= 100;
-      LOG(WARNING) << "gyr saturation";
+      VLOG(0) << "gyr saturation";
     }
 
     if (fabs(acc_S_0[0]) > imuParams.a_max ||

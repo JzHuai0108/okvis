@@ -160,7 +160,7 @@ int ImuError::redoPreintegration(const okvis::kinematics::Transformation& /*T_WS
         || fabs(omega_S_1[1]) > imuParameters_.g_max
         || fabs(omega_S_1[2]) > imuParameters_.g_max) {
       sigma_g_c *= 100;
-      LOG(WARNING)<< "gyr saturation";
+      VLOG(0) << "gyr saturation";
     }
 
     if (fabs(acc_S_0[0]) > imuParameters_.a_max || fabs(acc_S_0[1]) > imuParameters_.a_max
@@ -169,7 +169,7 @@ int ImuError::redoPreintegration(const okvis::kinematics::Transformation& /*T_WS
         || fabs(acc_S_1[1]) > imuParameters_.a_max
         || fabs(acc_S_1[2]) > imuParameters_.a_max) {
       sigma_a_c *= 100;
-      LOG(WARNING)<< "acc saturation";
+      LOG(WARNING) << "acc saturation";
     }
 
     // actual propagation
@@ -398,7 +398,7 @@ int ImuError::propagation(const okvis::ImuMeasurementDeque & imuMeasurements,
         || fabs(omega_S_1[1]) > imuParams.g_max
         || fabs(omega_S_1[2]) > imuParams.g_max) {
       sigma_g_c *= 100;
-      LOG(WARNING) << "gyr saturation";
+      VLOG(0) << "gyr saturation";
     }
 
     if (fabs(acc_S_0[0]) > imuParams.a_max || fabs(acc_S_0[1]) > imuParams.a_max
