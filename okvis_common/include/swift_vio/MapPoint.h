@@ -81,7 +81,7 @@ struct MapPoint
         distance(distance),
         anchorStateId(anchorState),
         anchorCameraId(anchorCamera),
-        initialized(inited)
+        initialized(inited), timesObserved(0u)
   {
   }
 
@@ -94,6 +94,7 @@ struct MapPoint
       observations.emplace(
           p.first, KeypointObservation(Eigen::Vector2f::Zero(), -1, p.second));
     }
+    timesObserved = observations.size();
   }
 
   bool trackedInCurrentFrame(uint64_t currentFrameId) const {
@@ -171,6 +172,10 @@ struct MapPoint
     return initialized;
   }
 
+  size_t numTimesObserved() const {
+    return timesObserved;
+  }
+
   bool hasObservationInImage(uint64_t frameId, size_t cameraId) const {
     auto iter = observations.lower_bound(okvis::KeypointIdentifier(frameId, cameraId, 0u));
     if (iter != observations.end() && iter->first.frameId == frameId && iter->first.cameraIndex == cameraId) {
@@ -180,6 +185,11 @@ struct MapPoint
   }
 
   void addObservations(const Eigen::AlignedMap<okvis::KeypointIdentifier, FluidObservation> &newObservations);
+
+  inline void addObservation(const okvis::KeypointIdentifier &kid, const KeypointObservation &kp) {
+    observations.emplace(kid, kp);
+    ++timesObserved;
+  }
 
   uint64_t id;            ///< ID of the point. E.g. landmark ID.
   Eigen::Vector4d pointHomog;  ///< Homogeneous coordinate of the point in the World frame.
@@ -194,6 +204,7 @@ struct MapPoint
 private:
   mutable FeatureTrackStatus status;
   mutable bool initialized; // is this landmark initialized in position?
+  size_t timesObserved;  // how many times this map point has been observed?
 };
 
 struct BareMapPoint {

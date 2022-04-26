@@ -78,7 +78,6 @@ void MapPoint::addObservations(
         std::forward_as_tuple(KeypointObservation(newObs.second)));
     OKVIS_ASSERT_TRUE(std::runtime_error, res.second, "The observation has been added before!");
   }
+  timesObserved += newObservations.size();
 }
-
-
 } // namespace swift_vio

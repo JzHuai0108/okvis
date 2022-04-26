@@ -50,15 +50,15 @@ template<class GEOMETRY_TYPE>
 
   // avoid double observations
   okvis::KeypointIdentifier kid(poseId, camIdx, keypointIdx);
-  if (landmarksMap_.at(landmarkId).observations.find(kid)
-      != landmarksMap_.at(landmarkId).observations.end()) {
+  MapPoint &mp = landmarksMap_.at(landmarkId);
+  if (mp.observations.find(kid) != mp.observations.end()) {
     return NULL;
   }
 
   // jhuai: we will add reprojection factors in the optimize() step, hence, less
   // coupling between feature tracking frontend and estimator, and flexibility
   // in choosing which landmark's observations to use in the opt problem.
-  landmarksMap_.at(landmarkId).observations.emplace(kid, 0u);
+  mp.observations.emplace(kid, 0u);  
   return NULL;
 }
 
