@@ -78,7 +78,7 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters, okvis::MockVioBac
       estimator_(estimator),
       frontend_(frontend),
       parameters_(parameters),
-      viewerNamePrefix_("Feature matches for camera"),
+      viewerNamePrefix_("Reprojected landmarks for camera"),
       maxImuInputQueueSize_(60) {
   init();
 }
@@ -95,7 +95,7 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters)
                                     parameters.frontendOptions)),
       loopClosureModule_(),
       parameters_(parameters),
-      viewerNamePrefix_("Feature matches for camera"),
+      viewerNamePrefix_("Reprojected landmarks for camera"),
       maxImuInputQueueSize_(2 * max_camera_input_queue_size *
                             parameters.imu.rate /
                             parameters.sensors_information.cameraRate) {
@@ -119,7 +119,7 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters,
       frontend_(frontend),
       loopClosureModule_(loopClosureMethod),
       parameters_(parameters),
-      viewerNamePrefix_("Feature matches for camera"),
+      viewerNamePrefix_("Reprojected landmarks for camera"),
       maxImuInputQueueSize_(
           2 * max_camera_input_queue_size * parameters.imu.rate
               / parameters.sensors_information.cameraRate) {
