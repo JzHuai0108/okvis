@@ -236,20 +236,22 @@ class CameraRig {
   static std::shared_ptr<CameraRig> deepCopyPtr(const okvis::cameras::NCameraSystem &ncameraSystem);
 
   /**
-   * @brief initialize rig to this CameraRig
-   * @param rig
+   * @brief clone this CameraRig to rig
+   * The difference to @assignTo is that the memory for members of rig will be reallocated.
+   * i.e., cloneTo copies deeper than @assignTo.
+   * @param[out] rig
    */
-  void initializeTo(okvis::cameras::NCameraSystem *rig) const;
+  void cloneTo(okvis::cameras::NCameraSystem *rig) const;
 
   /**
-   * @brief sync rig to this CameraRig
-   * @param rig
+   * @brief assign values of this CameraRig to rig
+   * @param[out] rig
    */
   void assignTo(CameraRig *rig) const;
 
   /**
-   * @brief sync rig to this CameraRig
-   * @param rig
+   * @brief assign values of this CameraRig to rig
+   * @param[out] rig
    */
   void assignTo(okvis::cameras::NCameraSystem *rig) const;
 

@@ -202,7 +202,7 @@ std::shared_ptr<CameraRig> CameraRig::deepCopyPtr(const okvis::cameras::NCameraS
   return rig;
 }
 
-void CameraRig::initializeTo(okvis::cameras::NCameraSystem *rig) const {
+void CameraRig::cloneTo(okvis::cameras::NCameraSystem *rig) const {
   rig->reset(this->T_SC_, this->cameraGeometries_, this->distortionTypes_, false);
   rig->setOverlaps(this->overlaps_);
   for (size_t i = 0 ; i < cameraGeometries_.size(); ++i) {
