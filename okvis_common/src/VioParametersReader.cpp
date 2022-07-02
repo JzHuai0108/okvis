@@ -435,6 +435,15 @@ void parsePoseGraphOptions(cv::FileNode pgNode, swift_vio::PoseGraphOptions* pgO
             << pgOptions->minDistance << ", Min angle " << pgOptions->minAngle;
 }
 
+void parseVizOptions(cv::FileNode node, Visualization &visualization) {
+  parseBoolean(node["displayImages"], visualization.displayImages);
+  if (node["downscaleFactor"].isInt()) {
+    node["downscaleFactor"] >> visualization.downscaleFactor;
+  }
+  LOG(INFO) << "displayImages " << visualization.displayImages
+            << ", downscaleFactor " << visualization.downscaleFactor;
+}
+
 // Read and parse a config file.
 void VioParametersReader::readConfigFile(const std::string& filename) {
   vioParameters_.optimization.timeReserve.fromSec(0.005);
@@ -457,11 +466,7 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
   OKVIS_ASSERT_TRUE(Exception, success,
                     "'useDriver' parameter missing in configuration file.");
 
-  // display images?
-  success = parseBoolean(file["displayImages"],
-                         vioParameters_.visualization.displayImages);
-  OKVIS_ASSERT_TRUE(Exception, success,
-                    "'displayImages' parameter missing in configuration file.");
+  parseVizOptions(file["viz_options"], vioParameters_.visualization);
 
   // image delay
 //  success = file["imageDelay"].isReal();
@@ -931,8 +936,6 @@ bool VioParametersReader::getCalibrationViaConfig(
       CameraCalibration calib;
 
       cv::FileNode T_SC_node = (*it)["T_SC"];
-      int downScale = 1;
-      if ((*it)["down_scale"].isInt()) downScale = (*it)["down_scale"];
       cv::FileNode imageDimensionNode = (*it)["image_dimension"];
       cv::FileNode distortionCoefficientNode = (*it)["distortion_coefficients"];
       cv::FileNode focalLengthNode = (*it)["focal_length"];
@@ -943,18 +946,16 @@ bool VioParametersReader::getCalibrationViaConfig(
       T_SC << T_SC_node[0], T_SC_node[1], T_SC_node[2], T_SC_node[3], T_SC_node[4], T_SC_node[5], T_SC_node[6], T_SC_node[7], T_SC_node[8], T_SC_node[9], T_SC_node[10], T_SC_node[11], T_SC_node[12], T_SC_node[13], T_SC_node[14], T_SC_node[15];
       calib.T_SC = okvis::kinematics::Transformation(T_SC);
 
-      calib.imageDimension << static_cast<double>(imageDimensionNode[0]) /
-                                  downScale,
-          static_cast<double>(imageDimensionNode[1]) / downScale;
+      calib.imageDimension << static_cast<double>(imageDimensionNode[0]),
+          static_cast<double>(imageDimensionNode[1]);
       calib.distortionCoefficients.resize(distortionCoefficientNode.size());
       for(size_t i=0; i<distortionCoefficientNode.size(); ++i) {
         calib.distortionCoefficients[i] = distortionCoefficientNode[i];
       }
-      calib.focalLength << static_cast<double>(focalLengthNode[0]) / downScale,
-          static_cast<double>(focalLengthNode[1]) / downScale;
-      calib.principalPoint << static_cast<double>(principalPointNode[0]) /
-                                  downScale,
-          static_cast<double>(principalPointNode[1]) / downScale;
+      calib.focalLength << static_cast<double>(focalLengthNode[0]),
+          static_cast<double>(focalLengthNode[1]);
+      calib.principalPoint << static_cast<double>(principalPointNode[0]),
+          static_cast<double>(principalPointNode[1]);
       calib.distortionType = (std::string)((*it)["distortion_type"]);
 
       if ((*it)["image_delay"].isReal()) {

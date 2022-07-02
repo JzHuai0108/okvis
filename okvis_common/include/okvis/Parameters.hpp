@@ -382,6 +382,11 @@ struct SensorsInformation {
 /// @brief Some visualization settings.
 struct Visualization {
   bool displayImages; ///< Display images?
+  int downscaleFactor; ///< downscale the display image relative to the original image by this factor.
+  // should be power of 2, e.g., 4 to reduce the image width to a quater of the original width.
+  Visualization(bool _displayImages = false, int _downscaleFactor = 1) :
+    displayImages(_displayImages), downscaleFactor(_downscaleFactor) {
+  }
 };
 
 enum class FrameName { B, S, W, Wc };
