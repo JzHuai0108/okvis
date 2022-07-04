@@ -26,7 +26,7 @@ class PointLandmarkSimulation
                         Eigen::aligned_allocator<Eigen::Vector4d>>&
           homogeneousPoints,
       okvis::kinematics::Transformation& T_WS_ref,
-      std::shared_ptr<const okvis::cameras::NCameraSystem> cameraSystemRef,
+      const okvis::cameras::NCameraSystem &cameraSystemRef,
       std::shared_ptr<okvis::MultiFrame> nframes,
       std::vector<std::vector<size_t>>* frameLandmarkIndices,
       std::vector<std::vector<int>>* keypointIndices,

@@ -9,7 +9,7 @@ void PointLandmarkSimulation::projectLandmarksToNFrame(
                       Eigen::aligned_allocator<Eigen::Vector4d>>&
         homogeneousPoints,
     okvis::kinematics::Transformation& T_WS_ref,
-    std::shared_ptr<const okvis::cameras::NCameraSystem> cameraSystemRef,
+    const okvis::cameras::NCameraSystem &cameraSystemRef,
     std::shared_ptr<okvis::MultiFrame> nframes,
     std::vector<std::vector<size_t>>* frameLandmarkIndices,
     std::vector<std::vector<int>>* keypointIndices,
@@ -23,10 +23,10 @@ void PointLandmarkSimulation::projectLandmarksToNFrame(
     std::vector<int> frameKeypointIndices(homogeneousPoints.size(), -1);
     for (size_t j = 0; j < homogeneousPoints.size(); ++j) {
       Eigen::Vector2d projection;
-      Eigen::Vector4d point_C = cameraSystemRef->T_SC(i)->inverse() *
+      Eigen::Vector4d point_C = cameraSystemRef.T_SC(i)->inverse() *
                                 T_WS_ref.inverse() * homogeneousPoints[j];
       okvis::cameras::CameraBase::ProjectionStatus status =
-          cameraSystemRef->cameraGeometry(i)->projectHomogeneous(point_C,
+          cameraSystemRef.cameraGeometry(i)->projectHomogeneous(point_C,
                                                                  &projection);
       if (status == okvis::cameras::CameraBase::ProjectionStatus::Successful) {
         Eigen::Vector2d measurement(projection);
