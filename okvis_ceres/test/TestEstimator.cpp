@@ -172,7 +172,7 @@ TEST(okvisTestSuite, Estimator) {
 
       // now let's add also landmark observations
       std::vector<std::vector<size_t>> lmkIndices; // for every keypoint
-      std::vector<std::vector<int>> keypointIndices; // for every landmark
+      std::vector<std::unordered_map<size_t, size_t>> keypointIndices; // for every landmark
       double imageNoiseStd = 0.7;
       simul::PointLandmarkSimulation::projectLandmarksToNFrame(
           homogeneousPoints, T_WS, *cameraSystem, mf, &lmkIndices,

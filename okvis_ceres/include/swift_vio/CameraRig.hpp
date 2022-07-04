@@ -89,6 +89,11 @@ class CameraRig {
     return T_SC_[camera_id];
   }
 
+  inline std::shared_ptr<const okvis::kinematics::Transformation> T_SC(
+      int camera_id) const {
+    return T_SC_[camera_id];
+  }
+
   inline std::shared_ptr<const okvis::cameras::CameraBase> cameraGeometry(
       int camera_id) const {
     return cameraGeometries_[camera_id];
