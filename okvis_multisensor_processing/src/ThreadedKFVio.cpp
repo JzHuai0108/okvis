@@ -640,18 +640,29 @@ void ThreadedKFVio::imuConsumerLoop() {
       if (parameters_.publishing.publishImuPropagatedState) {
         if (!repropagationNeeded_ && imuMeasurements_.size() > 0) {
           start = imuMeasurements_.back().timeStamp;
-        } else if (repropagationNeeded_) {
-          std::lock_guard<std::mutex> lastStateLock(lastState_mutex_);
-          start = lastOptimizedStateTimestamp_;
-          T_WS_propagated_ = lastOptimized_T_WS_;
-          speedAndBiases_propagated_ = lastOptimizedSpeedAndBiases_;
-          repropagationNeeded_ = false;
         } else
           start = okvis::Time(0, 0);
         end = &data.timeStamp;
       }
       imuMeasurements_.push_back(data);
     }  // unlock _imuMeasurements_mutex
+
+    Eigen::AlignedVector<okvis::kinematics::Transformation> vector_of_T_SCi;
+    vector_of_T_SCi.resize(parameters_.nCameraSystem.numCameras());
+    if (parameters_.publishing.publishImuPropagatedState) {
+      std::lock_guard<std::mutex> lastStateLock(lastState_mutex_);
+      if (repropagationNeeded_) {
+
+        start = lastOptimizedStateTimestamp_;
+        T_WS_propagated_ = lastOptimized_T_WS_;
+        speedAndBiases_propagated_ = lastOptimizedSpeedAndBiases_;
+        repropagationNeeded_ = false;
+      }
+      for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
+        vector_of_T_SCi[i] = *(lastOptimizedCameraSystem_->T_SC(i));
+      }
+      // unlock lastState_mutex
+    }
 
     // notify other threads that imu data with timeStamp is here.
     imuFrameSynchronizer_.gotImuData(data.timeStamp);
@@ -676,11 +687,7 @@ void ThreadedKFVio::imuConsumerLoop() {
       result.speedAndBiases = speedAndBiases_propagated_;
       result.omega_S = imuMeasurements_.back().measurement.gyroscopes
           - speedAndBiases_propagated_.segment<3>(3);
-      for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
-        result.vector_of_T_SCi.push_back(
-            okvis::kinematics::Transformation(
-                *parameters_.nCameraSystem.T_SC(i)));
-      }
+      result.vector_of_T_SCi = vector_of_T_SCi;
       result.onlyPublishLandmarks = false;
       optimizationResults_.PushNonBlockingDroppingIfFull(result,1);
     }
