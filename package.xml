@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>okvis</name>
+  <version>1.0</version>
+  <description>okvis</description>
+
+  <maintainer email="huai.3@osu.edu">Jianzhu Huai</maintainer>
+  <license>BSD</license>
+
+  <buildtool_depend>cmake</buildtool_depend>
+
+  <build_depend>ceres</build_depend>
+  <build_depend>eigen</build_depend>
+
+  <export>
+    <!-- Specify that this is not really a Catkin package-->
+    <build_type>cmake</build_type>
+  </export>
+</package>
