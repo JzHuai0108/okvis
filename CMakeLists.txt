@@ -54,14 +54,11 @@ else()
   message(STATUS "Building with build type '${CMAKE_BUILD_TYPE}'")
 endif()
 
-if(APPLE)
-  # The clang compiler (on osx) is somehow much more strict
-  # than the compilers on ubuntu and so this does not seem
-  # possible on OSX just yet.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -fPIC")
-else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11 -fPIC")
-endif()
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm*")
   message(STATUS "ARM processor detected, will attempt to use NEON.")
@@ -97,7 +94,6 @@ if(VISENSORDRIVER_FOUND)
 else()
   message(STATUS "libvisensor not found")
 endif()
-
 
 
 # glog
@@ -200,12 +196,18 @@ else()
   add_dependencies(${CERES_LIBRARIES} ceres_external)
 
   # install it once built
-  install(FILES ${CMAKE_BINARY_DIR}/${CERES_LIB_PREFIX}/libceres.a 
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+  if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    install(FILES ${CMAKE_BINARY_DIR}/${CERES_LIB_PREFIX}/libceres-debug.a 
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+  else () 
+    install(FILES ${CMAKE_BINARY_DIR}/${CERES_LIB_PREFIX}/libceres.a 
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+  endif ()
+
   install(DIRECTORY ${CMAKE_BINARY_DIR}/include/ceres/ 
     DESTINATION ${CMAKE_INSTALL_PREFIX}/include/ceres/)
-  install(DIRECTORY ${CMAKE_BINARY_DIR}/share/Ceres/
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/share/Ceres/)
+  install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/cmake/Ceres/
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/Ceres/)
 endif()
 
 # OpenGV
@@ -246,9 +248,6 @@ install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/CMake/opengv/
   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/CMake/opengv/)
 
 if(${BUILD_TESTS})
-  if(CATKIN_ENABLE_TESTING)
-  message("GTest found by catkin and its shared libraries will be used for OKVIS.")
-  else()
   # https://github.com/Crascit/DownloadProject/blob/master/CMakeLists.txt
   if (CMAKE_VERSION VERSION_LESS 3.2)
       set(UPDATE_DISCONNECTED_IF_AVAILABLE "")
@@ -260,7 +259,7 @@ if(${BUILD_TESTS})
   download_project(PROJ                googletest
                    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gtest
                    GIT_REPOSITORY      https://github.com/google/googletest.git
-                   GIT_TAG             master
+                   GIT_TAG             main
                    ${UPDATE_DISCONNECTED_IF_AVAILABLE}
   )
   # Prevent GoogleTest from overriding our compiler/linker options
@@ -277,7 +276,6 @@ if(${BUILD_TESTS})
       include_directories("${gtest_SOURCE_DIR}/include"
                           "${gmock_SOURCE_DIR}/include")
   endif()
-  endif(CATKIN_ENABLE_TESTING)
   # set library variables used by okvis modules.
   set(GMOCK_LIBRARY gmock)
   set(GTEST_LIBRARY gtest)
@@ -387,7 +385,7 @@ set(CONF_INCLUDE_DIRS
   "${PROJECT_SOURCE_DIR}/okvis_matcher/include"
   "${PROJECT_SOURCE_DIR}/okvis_frontend/include"
   "${PROJECT_SOURCE_DIR}/okvis_multisensor_processing/include"
-  "${PROJECT_BINARY_DIR}"
+  "${PROJECT_BINARY_DIR}/include"
 )
 configure_file(cmake/okvisConfig.cmake.in
   "${PROJECT_BINARY_DIR}/okvisConfig.cmake" @ONLY)
