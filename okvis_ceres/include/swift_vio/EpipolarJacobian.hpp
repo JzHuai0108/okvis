@@ -1,3 +1,6 @@
+/**
+  Deprecated: EpipolarFactor and EpipolarJacobian will be removed for its poor performance.
+  */
 #ifndef INCLUDE_SWIFT_VIO_EPIPOLAR_JACOBIAN_HPP_
 #define INCLUDE_SWIFT_VIO_EPIPOLAR_JACOBIAN_HPP_
 #include <Eigen/Geometry>

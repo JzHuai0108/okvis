@@ -82,13 +82,37 @@ void PoseParameterBlock::setEstimate(
   }
 }
 
-void PoseParameterBlock::fixPositionLinPoint(const okvis::kinematics::Transformation& T_WS) {
+void PoseParameterBlock::fixLinPoint(const okvis::kinematics::Transformation& T_WS) {
   pLinPoint_ = T_WS.r();
+  const Eigen::Vector4d q = T_WS.q().coeffs();
+  parameters_[3] = q[0];
+  parameters_[4] = q[1];
+  parameters_[5] = q[2];
+  parameters_[6] = q[3];
   plinPointFixed_ = true;
 }
 
-void PoseParameterBlock::fixPositionLinPoint() {
-  plinPointFixed_ = true;
+void PoseParameterBlock::Plus(const double *delta) {
+  okvis::kinematics::Transformation estPlus;
+  swift_vio::PoseLocalParameterizationSimplified::oplus(
+      parameters_, delta, estPlus.parameterMutablePtr());
+  memcpy(parameters_, estPlus.parameters().data(), sizeof(double) * Dimension);
+  if (!plinPointFixed_) {
+    pLinPoint_ = estPlus.r();
+  }
+}
+
+void PoseParameterBlock::PlusForJacobian(const double *delta) {
+  okvis::kinematics::Transformation estLin = linPoint();
+  okvis::kinematics::Transformation estLinPlus;
+  swift_vio::PoseLocalParameterizationSimplified::oplus(
+      estLin.parameterPtr(), delta, estLinPlus.parameterMutablePtr());
+  pLinPoint_ = estLinPlus.r();
+  const Eigen::Matrix<double, 7, 1>& rq = estLinPlus.parameters();
+  parameters_[3] = rq[3];
+  parameters_[4] = rq[4];
+  parameters_[5] = rq[5];
+  parameters_[6] = rq[6];
 }
 
 // getters

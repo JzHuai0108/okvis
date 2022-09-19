@@ -88,10 +88,31 @@ public:
   /// \return The timestamp of this state.
   // okvis::Time timestamp() const {return timestamp_;}
 
-  void fixPositionLinPoint(const okvis::kinematics::Transformation &T_WS);
+  /**
+   * @brief fix the lin point, but does not change current estimate.
+   * @param T_WS
+   */
+  void fixLinPoint(const okvis::kinematics::Transformation &T_WS);
 
-  void fixPositionLinPoint();
-  
+  /**
+   * @brief set lin point fixed.
+   */
+  void fixLinPoint() {
+    plinPointFixed_ = true;
+  }
+
+  /**
+   * @brief Plus update both the lin point if needed and the current estimate.
+   * @param Delta_Chi
+   */
+  void Plus(const double *delta);
+
+  /**
+   * @brief PlusForJacobian update only the lin point.
+   * @param Delta_Chi
+   */
+  void PlusForJacobian(const double *delta);
+
   okvis::kinematics::Transformation linPoint() const;
   
   Eigen::Vector3d positionLinPoint() const {

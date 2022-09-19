@@ -59,8 +59,19 @@ class EuclideanParamBlockSizedLin
     }
   }
 
-  void fixLinPoint(const Eigen::Matrix<double, Dim, 1>& intrinsicParams) {
-    linPoint_ = intrinsicParams;
+  /**
+   * @brief fix the lin point, but does not change current estimate.
+   * @param params
+   */
+  void fixLinPoint(const Eigen::Matrix<double, Dim, 1>& params) {
+    linPoint_ = params;
+    linPointFixed_ = true;
+  }
+
+  /**
+   * @brief set lin point fixed.
+   */
+  void fixLinPoint() {
     linPointFixed_ = true;
   }
 
