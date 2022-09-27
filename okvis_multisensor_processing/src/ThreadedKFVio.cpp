@@ -93,7 +93,6 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters)
       optimizationDone_(true),
       frontend_(new okvis::Frontend(parameters.nCameraSystem.numCameras(),
                                     parameters.frontendOptions)),
-      loopClosureModule_(),
       parameters_(parameters),
       viewerNamePrefix_("Reprojected landmarks for camera"),
       maxImuInputQueueSize_(2 * max_camera_input_queue_size *
@@ -107,8 +106,7 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters)
 
 ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters,
                              std::shared_ptr<okvis::EstimatorBase> estimator,
-                             std::shared_ptr<okvis::VioFrontendInterface> frontend,
-                             std::shared_ptr<swift_vio::LoopClosureMethod> loopClosureMethod)
+                             std::shared_ptr<okvis::VioFrontendInterface> frontend)
     : speedAndBiases_propagated_(okvis::SpeedAndBias::Zero()),
       imu_params_(parameters.imu),
       repropagationNeeded_(false),
@@ -117,7 +115,6 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters,
       optimizationDone_(true),
       estimator_(estimator),
       frontend_(frontend),
-      loopClosureModule_(loopClosureMethod),
       parameters_(parameters),
       viewerNamePrefix_("Reprojected landmarks for camera"),
       maxImuInputQueueSize_(
@@ -184,14 +181,10 @@ void ThreadedKFVio::startThreads() {
   visualizationThread_ = std::thread(&ThreadedKFVio::visualizationLoop, this);
   optimizationThread_ = std::thread(&ThreadedKFVio::optimizationLoop, this);
   publisherThread_ = std::thread(&ThreadedKFVio::publisherLoop, this);
-  loopClosureModule_.startThreads();
 }
 
 // Destructor. This calls Shutdown() for all threadsafe queues and joins all threads.
 ThreadedKFVio::~ThreadedKFVio() {
-  loopClosureModule_.shutdown();
-  loopFrames_.Shutdown();
-
   for (size_t i = 0; i < numCameras_; ++i) {
     cameraMeasurementsReceived_.at(i)->Shutdown();
   }
@@ -351,7 +344,6 @@ void ThreadedKFVio::addDifferentialPressureMeasurement(const okvis::Time &,
 // should return immediately (blocking=false), or only when the processing is complete.
 void ThreadedKFVio::setBlocking(bool blocking) {
   blocking_ = blocking;
-//  loopClosureModule_.setBlocking(blocking);
   // disable time limit for optimization
   if(blocking_) {
     std::lock_guard<std::mutex> lock(estimator_mutex_);
@@ -771,18 +763,11 @@ void ThreadedKFVio::optimizationLoop() {
     std::shared_ptr<okvis::MultiFrame> frame_pairs;
     VioVisualizer::VisualizationData::Ptr visualizationDataPtr;
     okvis::Time deleteImuMeasurementsUntil(0, 0);
-    std::vector<std::shared_ptr<swift_vio::LoopFrameAndMatches>> loopFrameAndMatchesList;
-    bool foundLoop = popLoopFrameAndMatchesList(&loopFrameAndMatchesList);
     if (matchedFrames_.PopBlocking(&frame_pairs) == false)
       return;
     OptimizationResults result;
-    std::shared_ptr<swift_vio::LoopQueryKeyframeMessage> queryKeyframe;
     {
       std::lock_guard<std::mutex> l(estimator_mutex_);
-      if (foundLoop) {
-        estimator_->setLoopFrameAndMatchesList(loopFrameAndMatchesList);
-      }
-
       bool runNonlinearEstimation = estimator_->tryToInitialize(frame_pairs, frontend_->isInitialized());
       // get timestamp of last frame in IMU window. Need to do this before marginalization as it will be removed there (if not keyframe)
       deleteImuMeasurementsUntil =
@@ -828,8 +813,6 @@ void ThreadedKFVio::optimizationLoop() {
         }
         estimator_->getLandmarks(result.landmarksVector);
         dumpCalibrationParameters(latestNFrameId, &result);
-//        estimator_->getLoopQueryKeyframeMessage(frame_pairs, &queryKeyframe);
-
         repropagationNeeded_ = true;
       }
 
@@ -880,7 +863,6 @@ void ThreadedKFVio::optimizationLoop() {
     optimizationNotification_.notify_all();
 
     optimizationResults_.Push(result);
-    loopClosureModule_.push(queryKeyframe);
     // adding further elements to visualization data that do not access estimator
     if (parameters_.visualization.displayImages) {
       visualizationDataPtr->currentFrames = frame_pairs;
@@ -970,37 +952,5 @@ void ThreadedKFVio::configureBackend(okvis::VioParameters& parameters) {
   estimator_->setEstimatorOptions(parameters.optimization);
   estimator_->setPointLandmarkOptions(parameters.pointLandmarkOptions);
   estimator_->setPoseGraphOptions(parameters.poseGraphOptions);
-
-  loopClosureModule_.setOutputLoopFrameCallback(
-      std::bind(&okvis::ThreadedKFVio::addLoopFrameAndMatches,
-                this, std::placeholders::_1));
 }
-
-bool ThreadedKFVio::popLoopFrameAndMatchesList(
-    std::vector<std::shared_ptr<swift_vio::LoopFrameAndMatches>>*
-        loopFrameAndMatchesList) {
-  std::shared_ptr<swift_vio::LoopFrameAndMatches> loopFrameAndMatches;
-  bool foundLoop = loopFrames_.PopNonBlocking(&loopFrameAndMatches);
-  while (foundLoop) {
-    loopFrameAndMatchesList->push_back(loopFrameAndMatches);
-    foundLoop = loopFrames_.PopNonBlocking(&loopFrameAndMatches);
-  }
-  return loopFrameAndMatchesList->size() > 0u;
-}
-
-bool ThreadedKFVio::addLoopFrameAndMatches(std::shared_ptr<swift_vio::LoopFrameAndMatches> loopFrame) {
-  if (blocking_) {
-    loopFrames_.PushBlockingIfFull(loopFrame, 2); // 2 because loop closure is not critical.
-    return true;
-  } else {
-    loopFrames_.PushNonBlockingDroppingIfFull(
-        loopFrame, maxImuInputQueueSize_);
-    return loopFrames_.Size() == 1;
-  }
-}
-
-void ThreadedKFVio::appendPgoStateCallback(const StateCallback& pgoStateCallback) {
-  loopClosureModule_.appendStateCallback(pgoStateCallback);
-}
-
 }  // namespace okvis

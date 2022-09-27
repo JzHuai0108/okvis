@@ -26,6 +26,6 @@ bool LoopClosureMethod::addConstraintsAndOptimize(
 std::shared_ptr<KeyframeInDatabase>
 LoopClosureMethod::initializeKeyframeInDatabase(
     size_t dbowId, const LoopQueryKeyframeMessage& queryKeyframe) const {
-  return queryKeyframe.toKeyframeInDatebase(dbowId);
+  return queryKeyframe.toKeyframeInDatabase(dbowId);
 }
 }  // namespace swift_vio

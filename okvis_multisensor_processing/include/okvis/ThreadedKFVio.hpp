@@ -242,8 +242,6 @@ class ThreadedKFVio : public VioInterface {
 
   std::string headerLine() const final { return estimator_->headerLine(); }
 
-  void appendPgoStateCallback(const StateCallback& pgoStateCallback) final;
-
  private:
   /// \brief Start all threads.
   virtual void startThreads();
@@ -310,17 +308,7 @@ class ThreadedKFVio : public VioInterface {
   /// \brief copy calibration parameters from estimator to optimization result.
   /// \warning Lock estimator_mutex.
   void dumpCalibrationParameters(uint64_t latestNFrameId, OptimizationResults* result) const;
-  /// \brief add loop frame and matches to queue.
-  bool addLoopFrameAndMatches(std::shared_ptr<swift_vio::LoopFrameAndMatches> loopFrame);
 
-  /**
-   * @brief popLoopFrameAndMatchesList pop all queued loop frames and saved to loopFrameAndMatchesList.
-   * @param[out] loopFrameAndMatchesList keeps the popped loop frames,
-   * eventually will be relayed to the estimator.
-   * @return true if any loop frame is found.
-   */
-  bool popLoopFrameAndMatchesList(
-      std::vector<std::shared_ptr<swift_vio::LoopFrameAndMatches>>* loopFrameAndMatchesList);
   /// @name State variables
   /// @{
 
@@ -391,8 +379,6 @@ class ThreadedKFVio : public VioInterface {
   okvis::threadsafe::ThreadSafeQueue<VioVisualizer::VisualizationData::Ptr> visualizationData_;
   /// The queue containing the actual display images
   okvis::threadsafe::ThreadSafeQueue<std::vector<cv::Mat>> displayImages_;
-  /// The queue containing detected loop frames and 2d-2d feature matches.
-  okvis::threadsafe::ThreadSafeQueue<std::shared_ptr<swift_vio::LoopFrameAndMatches>> loopFrames_;
   /// @}
   /// @name Mutexes
   /// @{
@@ -440,7 +426,6 @@ class ThreadedKFVio : public VioInterface {
   std::shared_ptr<okvis::EstimatorBase> estimator_;    ///< The backend estimator.
   std::shared_ptr<VioFrontendInterface> frontend_;      ///< The frontend.
 #endif
-  swift_vio::LoopClosureModule loopClosureModule_;
   /// @}
 
   size_t numCameras_;     ///< Number of cameras in the system.

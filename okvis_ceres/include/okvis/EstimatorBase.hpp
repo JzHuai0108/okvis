@@ -49,8 +49,6 @@
 #include <okvis/kinematics/Transformation.hpp>
 
 #include <okvis/assert_macros.hpp>
-#include <loop_closure/KeyframeForLoopDetection.hpp>
-#include <loop_closure/LoopFrameAndMatches.hpp>
 #include <okvis/VioBackendInterface.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/FrameTypedefs.hpp>
@@ -588,18 +586,6 @@ class EstimatorBase : public VioBackendInterface
     poseGraphOptions_ = pgp;
   }
 
-  /**
-   * @brief setLoopFrameAndMatchesList
-   * @warning This method is thread unsafe so do not call
-   * setLoopFrameAndMatchesList() in one thread and call optimize() in another.
-   * @param loopFrameAndMatchesList
-   */
-  void setLoopFrameAndMatchesList(
-      const std::vector<std::shared_ptr<swift_vio::LoopFrameAndMatches>>&
-          loopFrameAndMatchesList) {
-    loopFrameAndMatchesList_ = loopFrameAndMatchesList;
-  }
-
   void setInitializationStatus(InitializationStatus status) {
     initStatus_ = status;
   }
@@ -817,8 +803,6 @@ class EstimatorBase : public VioBackendInterface
 
   // initial nav state, (position, orientation, and velocity), and their stds.
   swift_vio::InitialNavState initialNavState_;
-
-  std::vector<std::shared_ptr<swift_vio::LoopFrameAndMatches>> loopFrameAndMatchesList_;
 
   EstimatorOptions estimatorOptions_;
 

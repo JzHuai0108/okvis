@@ -233,7 +233,7 @@ class LoopQueryKeyframeMessage {
                            std::shared_ptr<const okvis::MultiFrame> multiframe);
   ~LoopQueryKeyframeMessage();
 
-  std::shared_ptr<KeyframeInDatabase> toKeyframeInDatebase(size_t dbowId) const {
+  std::shared_ptr<KeyframeInDatabase> toKeyframeInDatabase(size_t dbowId) const {
     std::shared_ptr<KeyframeInDatabase> keyframeInDB(
         new KeyframeInDatabase(dbowId, id_, stamp_, T_WB_, cov_T_WB_));
     keyframeInDB->setOdometryConstraints(odometryConstraintList_);

@@ -320,8 +320,6 @@ class VioInterface {
 
   virtual std::string headerLine() const { return ""; }
 
-  virtual void appendPgoStateCallback(const StateCallback& /*pgoStateCallback*/) {}
-
  protected:
 
   /// \brief Write first line of IMU CSV file to describe columns.
