@@ -893,7 +893,7 @@ void EstimatorBase::getEstimatedCameraSystem(okvis::cameras::NCameraSystem *came
 }
 
 bool EstimatorBase::getOdometryConstraintsForKeyframe(
-    std::shared_ptr<swift_vio::LoopQueryKeyframeMessage> queryKeyframe) const {
+    std::shared_ptr<swift_vio::LoopQueryKeyframeMessage<okvis::MultiFrame>> queryKeyframe) const {
   int j = 0;
   auto& odometryConstraintList = queryKeyframe->odometryConstraintListMutable();
   odometryConstraintList.reserve(poseGraphOptions_.maxOdometryConstraintForAKeyframe);
@@ -923,7 +923,7 @@ bool EstimatorBase::getOdometryConstraintsForKeyframe(
 // while keeping the keyframe of the previous message in the sliding window.
 bool EstimatorBase::getLoopQueryKeyframeMessage(
     okvis::MultiFramePtr multiFrame,
-    std::shared_ptr<swift_vio::LoopQueryKeyframeMessage>* queryKeyframe) const {
+    std::shared_ptr<swift_vio::LoopQueryKeyframeMessage<okvis::MultiFrame>>* queryKeyframe) const {
   auto riter = statesMap_.rbegin();
   if (!riter->second.isKeyframe) {
     return false;
@@ -932,7 +932,7 @@ bool EstimatorBase::getLoopQueryKeyframeMessage(
   get_T_WS(riter->first, T_WBr);
 
   uint64_t queryKeyframeId = riter->first;
-  queryKeyframe->reset(new swift_vio::LoopQueryKeyframeMessage(
+  queryKeyframe->reset(new swift_vio::LoopQueryKeyframeMessage<okvis::MultiFrame>(
       queryKeyframeId, riter->second.timestamp, T_WBr, multiFrame));
 
   getOdometryConstraintsForKeyframe(*queryKeyframe);

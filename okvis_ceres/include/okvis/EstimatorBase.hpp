@@ -531,7 +531,7 @@ class EstimatorBase : public VioBackendInterface
    */
   bool getLoopQueryKeyframeMessage(
       okvis::MultiFramePtr multiFrame,
-      std::shared_ptr<swift_vio::LoopQueryKeyframeMessage>* queryKeyframe) const;
+      std::shared_ptr<swift_vio::LoopQueryKeyframeMessage<okvis::MultiFrame>>* queryKeyframe) const;
   ///@}
 
   /// @name Setters
@@ -650,7 +650,7 @@ class EstimatorBase : public VioBackendInterface
    * @return
    */
   virtual bool getOdometryConstraintsForKeyframe(
-      std::shared_ptr<swift_vio::LoopQueryKeyframeMessage> /*queryKeyframe*/) const;
+      std::shared_ptr<swift_vio::LoopQueryKeyframeMessage<okvis::MultiFrame>> /*queryKeyframe*/) const;
 
   /// \brief StateInfo This configures the state vector ordering
   struct StateInfo

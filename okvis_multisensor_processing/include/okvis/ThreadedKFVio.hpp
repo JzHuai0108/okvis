@@ -49,9 +49,7 @@
 #include <okvis/cameras/NCameraSystem.hpp>
 #include <okvis/Measurements.hpp>
 #include <okvis/Frontend.hpp>
-#include <loop_closure/LoopClosureModule.hpp>
-#include <loop_closure/LoopClosureMethod.hpp>
-#include <loop_closure/LoopFrameAndMatches.hpp>
+
 #include <okvis/MultiFrame.hpp>
 #include <okvis/Parameters.hpp>
 #include <okvis/assert_macros.hpp>
@@ -109,8 +107,7 @@ class ThreadedKFVio : public VioInterface {
 
   ThreadedKFVio(okvis::VioParameters& parameters,
                 std::shared_ptr<EstimatorBase> estimator,
-                std::shared_ptr<VioFrontendInterface> frontend,
-                std::shared_ptr<swift_vio::LoopClosureMethod> loopClosureMethod);
+                std::shared_ptr<VioFrontendInterface> frontend);
 #endif
 
   /// \brief Destructor. This calls Shutdown() for all threadsafe queues and joins all threads.
@@ -442,8 +439,6 @@ class ThreadedKFVio : public VioInterface {
 
   /// Max position measurements before dropping.
   const size_t maxPositionInputQueueSize_ = 10;
-  
-  const size_t maxLoopFrameQueueSize_ = 4;
 };
 
 }  // namespace okvis

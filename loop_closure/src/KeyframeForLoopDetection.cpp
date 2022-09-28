@@ -1,6 +1,9 @@
 #include <loop_closure/KeyframeForLoopDetection.hpp>
 #include <okvis/kinematics/MatrixPseudoInverse.hpp>
 
+#include <okvis/MultiFrame.hpp>
+#include <swift_vio/MultiFrame.hpp>
+
 namespace swift_vio {
 NeighborConstraintInDatabase::NeighborConstraintInDatabase() {}
 
@@ -43,17 +46,6 @@ void NeighborConstraintMessage::computeRelativePoseCovariance(
                crossTerm + Jzn * cov_T_WB_ * Jzn.transpose();
 }
 
-LoopQueryKeyframeMessage::LoopQueryKeyframeMessage() {}
-
-LoopQueryKeyframeMessage::LoopQueryKeyframeMessage(uint64_t id, okvis::Time stamp,
-                         const okvis::kinematics::Transformation& T_WB,
-                         std::shared_ptr<const okvis::MultiFrame> multiframe)
-    : id_(id), stamp_(stamp), T_WB_(T_WB) {
-  setNFrame(multiframe);
-}
-
-LoopQueryKeyframeMessage::~LoopQueryKeyframeMessage() {}
-
 KeyframeInDatabase::KeyframeInDatabase() {}
 
 KeyframeInDatabase::KeyframeInDatabase(
@@ -73,4 +65,9 @@ void KeyframeInDatabase::setSquareRootInfoFromCovariance(
       std::numeric_limits<double>::epsilon());
   constraintList_.at(j)->squareRootInfo_.noalias() = pseudoL.transpose();
 }
+
+template class LoopQueryKeyframeMessage<okvis::MultiFrame>;
+
+template class LoopQueryKeyframeMessage<swift_vio::MultiFrame>;
+
 }  // namespace swift_vio

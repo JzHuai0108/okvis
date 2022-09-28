@@ -50,7 +50,6 @@
 
 #include <okvis/assert_macros.hpp>
 #include <loop_closure/KeyframeForLoopDetection.hpp>
-#include <loop_closure/LoopFrameAndMatches.hpp>
 #include <okvis/VioBackendInterface.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/FrameTypedefs.hpp>
