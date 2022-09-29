@@ -46,6 +46,9 @@
 #include <array>
 
 #include <ceres/ceres.h>
+
+#include <loop_closure/KeyframeForLoopDetection.hpp>
+
 #include <okvis/kinematics/Transformation.hpp>
 
 #include <okvis/assert_macros.hpp>
@@ -530,8 +533,8 @@ class EstimatorBase : public VioBackendInterface
    * @brief get the latest keyframe and its info which is used for loop detection.
    */
   bool getLoopQueryKeyframeMessage(
-      okvis::MultiFramePtr multiFrame,
-      std::shared_ptr<swift_vio::LoopQueryKeyframeMessage<okvis::MultiFrame>>* queryKeyframe) const;
+      const std::shared_ptr<const okvis::MultiFrame>& multiFrame,
+      std::shared_ptr<swift_vio::LoopQueryKeyframeMessage>* queryKeyframe) const;
   ///@}
 
   /// @name Setters
@@ -650,7 +653,7 @@ class EstimatorBase : public VioBackendInterface
    * @return
    */
   virtual bool getOdometryConstraintsForKeyframe(
-      std::shared_ptr<swift_vio::LoopQueryKeyframeMessage<okvis::MultiFrame>> /*queryKeyframe*/) const;
+      std::shared_ptr<swift_vio::LoopQueryKeyframeMessage> /*queryKeyframe*/) const;
 
   /// \brief StateInfo This configures the state vector ordering
   struct StateInfo

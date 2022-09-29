@@ -11,6 +11,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <swift_vio/MultiFrame.hpp>
 
 namespace swift_vio {
 enum class EstimatorAlgorithm {
@@ -63,13 +64,6 @@ struct BriskOptions {
         matchingThreshold(threshold) {}
   std::string toString(std::string hint) const;
 };
-
-enum class HistogramMethod {NONE, HISTOGRAM, CLAHE};
-bool EnumFromString(std::string name, HistogramMethod *m);
-std::string EnumToString(HistogramMethod m);
-inline std::ostream &operator<<(std::ostream &s, HistogramMethod m) {
-  return s << EnumToString(m);
-}
 
 struct FrontendOptions {
   FeatureTrackingScheme featureTrackingMethod;

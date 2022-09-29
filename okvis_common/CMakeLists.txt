@@ -13,15 +13,6 @@ include_directories(${EIGEN_INCLUDE_DIR})
 
 # build the library
 add_library(${PROJECT_NAME} STATIC 
-  src/FrameTypedefs.cpp
-  src/FullStateWithExtrinsicsAsCallback.cpp
-  src/InitialNavState.cpp
-  src/MapPoint.cpp
-  src/Parameters.cpp
-  src/PipelineParams.cpp
-  src/SwiftParameters.cpp
-  src/VioInterface.cpp
-  src/VioParametersReader.cpp
   include/okvis/FrameTypedefs.hpp
   include/okvis/Measurements.hpp
   include/okvis/Parameters.hpp
@@ -32,7 +23,18 @@ add_library(${PROJECT_NAME} STATIC
   include/okvis/VioParametersReader.hpp
   include/okvis/threadsafe/ThreadsafeQueue.hpp
   include/swift_vio/FrameTypedefs.hpp
-  include/swift_vio/IoUtil.hpp)
+  include/swift_vio/YamlParser.h
+  src/FrameTypedefs.cpp
+  src/FullStateWithExtrinsicsAsCallback.cpp
+  src/InitialNavState.cpp
+  src/IoUtil.cpp
+  src/MapPoint.cpp
+  src/Parameters.cpp
+  src/PipelineParams.cpp
+  src/SwiftParameters.cpp
+  src/VioInterface.cpp
+  src/VioParametersReader.cpp
+  src/YamlHelpers.cpp)
 
 # and link it                     
 target_link_libraries(${PROJECT_NAME}

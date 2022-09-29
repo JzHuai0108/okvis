@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.11)
-project(loop_closure)
+project(loop_closure_structs)
 
 if(NOT DO_TIMING)
   add_definitions(-DDEACTIVATE_TIMERS)

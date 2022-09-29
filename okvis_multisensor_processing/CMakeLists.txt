@@ -38,7 +38,7 @@ target_link_libraries(${PROJECT_NAME}
    PUBLIC okvis_kinematics 
    PUBLIC okvis_cv 
    PUBLIC okvis_common
-   PUBLIC loop_closure
+   PUBLIC loop_closure_structs
    PUBLIC okvis_ceres 
    PUBLIC okvis_frontend
    PRIVATE ${GLOG_LIBRARIES}

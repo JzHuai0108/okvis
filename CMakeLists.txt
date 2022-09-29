@@ -305,7 +305,6 @@ add_subdirectory(okvis_timing)
 
 include_directories(loop_closure/include)
 add_subdirectory(loop_closure)
-# add_dependencies(loop_closure okvis_util)
 
 include_directories(okvis_ceres/include)
 add_subdirectory(okvis_ceres)
@@ -334,7 +333,7 @@ if(BUILD_APPS)
     okvis_time
     okvis_cv 
     okvis_common
-    loop_closure
+    loop_closure_structs
     okvis_ceres
     okvis_timing
     okvis_matcher
@@ -360,7 +359,7 @@ export (TARGETS
     okvis_time
     okvis_cv 
     okvis_common
-    loop_closure
+    loop_closure_structs
     okvis_ceres
     okvis_timing
     okvis_matcher

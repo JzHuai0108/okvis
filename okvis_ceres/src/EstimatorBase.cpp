@@ -893,7 +893,7 @@ void EstimatorBase::getEstimatedCameraSystem(okvis::cameras::NCameraSystem *came
 }
 
 bool EstimatorBase::getOdometryConstraintsForKeyframe(
-    std::shared_ptr<swift_vio::LoopQueryKeyframeMessage<okvis::MultiFrame>> queryKeyframe) const {
+    std::shared_ptr<swift_vio::LoopQueryKeyframeMessage> queryKeyframe) const {
   int j = 0;
   auto& odometryConstraintList = queryKeyframe->odometryConstraintListMutable();
   odometryConstraintList.reserve(poseGraphOptions_.maxOdometryConstraintForAKeyframe);
@@ -922,8 +922,8 @@ bool EstimatorBase::getOdometryConstraintsForKeyframe(
 // 1, minimum time gap, 2, minimum distance, 3, minimum number of keypoints
 // while keeping the keyframe of the previous message in the sliding window.
 bool EstimatorBase::getLoopQueryKeyframeMessage(
-    okvis::MultiFramePtr multiFrame,
-    std::shared_ptr<swift_vio::LoopQueryKeyframeMessage<okvis::MultiFrame>>* queryKeyframe) const {
+    const std::shared_ptr<const okvis::MultiFrame>& multiFrame,
+    std::shared_ptr<swift_vio::LoopQueryKeyframeMessage>* queryKeyframe) const {
   auto riter = statesMap_.rbegin();
   if (!riter->second.isKeyframe) {
     return false;
@@ -932,7 +932,7 @@ bool EstimatorBase::getLoopQueryKeyframeMessage(
   get_T_WS(riter->first, T_WBr);
 
   uint64_t queryKeyframeId = riter->first;
-  queryKeyframe->reset(new swift_vio::LoopQueryKeyframeMessage<okvis::MultiFrame>(
+  queryKeyframe->reset(new swift_vio::LoopQueryKeyframeMessage(
       queryKeyframeId, riter->second.timestamp, T_WBr, multiFrame));
 
   getOdometryConstraintsForKeyframe(*queryKeyframe);
@@ -941,7 +941,7 @@ bool EstimatorBase::getLoopQueryKeyframeMessage(
   // and corresponding indices into the 2d keypoint list.
   // The local camera frame will be used as their coordinate frame.
   const std::vector<uint64_t>& landmarkIdList =
-      multiFrame->getLandmarkIds(swift_vio::LoopQueryKeyframeMessage::kQueryCameraIndex);
+      multiFrame->getLandmarkIds(swift_vio::kQueryCameraIndex);
   size_t numKeypoints = landmarkIdList.size();
   auto& keypointIndexForLandmarkList =
       (*queryKeyframe)->keypointIndexForLandmarkListMutable();

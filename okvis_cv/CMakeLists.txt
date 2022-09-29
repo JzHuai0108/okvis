@@ -15,6 +15,7 @@ add_library(${PROJECT_NAME} STATIC
   src/CameraBase.cpp
   src/EUCM.cpp
   src/NCameraSystem.cpp
+  src/swift_vio/MultiFrame.cpp
 )
 
 # and link it

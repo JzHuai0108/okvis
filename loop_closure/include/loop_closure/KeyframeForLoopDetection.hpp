@@ -5,10 +5,18 @@
 #include <Eigen/Core>
 #include <Eigen/StdVector>
 
+#include <opencv2/core.hpp>
+
 #include <okvis/assert_macros.hpp>
+#include <okvis/cameras/CameraBase.hpp>
+#include <okvis/cameras/NCameraSystem.hpp>
+
 #include <okvis/class_macros.hpp>
+#include <okvis/MultiFrame.hpp>
+#include <okvis/Time.hpp>
 
 #include <loop_closure/InverseTransformMultiplyJacobian.hpp>
+#include <swift_vio/MultiFrame.hpp>
 
 namespace swift_vio {
 enum class PoseConstraintType {
@@ -212,6 +220,27 @@ public:
       keypointList_; ///< locations and size of every keypoint in left camera.
 };
 
+constexpr size_t kQueryCameraIndex = 0u;
+
+/**
+  * @brief setNFrame copy essential parts from frontend NFrame to avoid
+  * read/write at the same time by VIO estimator and loop closure module.
+  */
+template <typename MultiFrameT>
+void setNFrame(std::shared_ptr<const MultiFrameT> multiframe, std::shared_ptr<okvis::MultiFrame> nframe) {
+  // shallow copy one image.
+  nframe->setImage(kQueryCameraIndex, multiframe->image(kQueryCameraIndex));
+  nframe->setTimestamp(multiframe->timestamp());
+  nframe->setTimestamp(kQueryCameraIndex, multiframe->timestamp(kQueryCameraIndex));
+  nframe->resetKeypoints(kQueryCameraIndex,
+                          multiframe->getKeypoints(kQueryCameraIndex));
+  cv::Mat descriptors;
+  cv::Mat rawDescriptors = multiframe->getDescriptors(kQueryCameraIndex);
+  // With motion blurred images, rawDescriptors may be empty.
+  rawDescriptors.copyTo(descriptors);
+  nframe->resetDescriptors(kQueryCameraIndex, descriptors);
+}
+
 /**
  * @brief The LoopQueryKeyframeMessage class
  * The internal C++ keyframe message for loop closure.
@@ -222,7 +251,6 @@ public:
  * estimated online by the estimator. This should not disturb the frontend
  * feature matching which locks the estimator in matching features.
  */
-template <typename MultiFrameT>
 class LoopQueryKeyframeMessage {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -234,9 +262,23 @@ class LoopQueryKeyframeMessage {
 
   LoopQueryKeyframeMessage(uint64_t id, okvis::Time stamp,
                          const okvis::kinematics::Transformation& T_WB,
-                         std::shared_ptr<const okvis::MultiFrame> multiframe)
+                         const std::shared_ptr<const okvis::MultiFrame>& multiframe)
     : id_(id), stamp_(stamp), T_WB_(T_WB) {
-    setNFrame(multiframe);
+    std::shared_ptr<okvis::MultiFrame> nframe(new okvis::MultiFrame(
+        multiframe->cameraSystem(), multiframe->timestamp(), multiframe->id()));
+    setNFrame(multiframe, nframe);
+    nframe_ = nframe;
+  }
+
+  LoopQueryKeyframeMessage(uint64_t id, okvis::Time stamp,
+                         const okvis::kinematics::Transformation& T_WB,
+                         const std::shared_ptr<const swift_vio::MultiFrame>& multiframe,
+                         const okvis::cameras::NCameraSystem & cameraSystem)
+    : id_(id), stamp_(stamp), T_WB_(T_WB) {
+    std::shared_ptr<okvis::MultiFrame> nframe(new okvis::MultiFrame(
+        cameraSystem, multiframe->timestamp(), multiframe->id()));
+    setNFrame(multiframe, nframe);
+    nframe_ = nframe;
   }
 
   std::shared_ptr<KeyframeInDatabase> toKeyframeInDatabase(size_t dbowId) const {
@@ -266,29 +308,7 @@ class LoopQueryKeyframeMessage {
     cov_T_WB_.setZero();
   }
 
-  /**
-   * @brief setNFrame copy essential parts from frontend NFrame to avoid
-   * read/write at the same time by VIO estimator and loop closure module.
-   */
-  void setNFrame(std::shared_ptr<const MultiFrameT> multiframe) {
-    // shallow copy camera geometry for each camera.
-    std::shared_ptr<MultiFrameT> nframe(new MultiFrameT(
-        multiframe->cameraSystem(), multiframe->timestamp(), multiframe->id()));
-    // shallow copy one image.
-    nframe->setImage(kQueryCameraIndex, multiframe->image(kQueryCameraIndex));
-    nframe->setTimestamp(multiframe->timestamp());
-    nframe->setTimestamp(kQueryCameraIndex, multiframe->timestamp(kQueryCameraIndex));
-    nframe->resetKeypoints(kQueryCameraIndex,
-                           multiframe->getKeypoints(kQueryCameraIndex));
-    cv::Mat descriptors;
-    cv::Mat rawDescriptors = multiframe->getDescriptors(kQueryCameraIndex);
-    // With motion blurred images, rawDescriptors may be empty.
-    rawDescriptors.copyTo(descriptors);
-    nframe->resetDescriptors(kQueryCameraIndex, descriptors);
-    nframe_ = nframe;
-  }
-
-  std::shared_ptr<const MultiFrameT> NFrame() const {
+  std::shared_ptr<const okvis::MultiFrame> NFrame() const {
     return nframe_;
   }
 
@@ -355,14 +375,14 @@ class LoopQueryKeyframeMessage {
   okvis::kinematics::Transformation T_WB_;
 
  private:
-
   Eigen::Matrix<double, 6, 6>
       cov_T_WB_;  ///< cov of $[\delta p, \delta \theta]$. An estimator
                   ///< that does not provide covariance for poses should zero
                   ///< cov_T_WB_.
 
-  /// @warn Do not hold on to nframe_ which has many images.
-  std::shared_ptr<const MultiFrameT> nframe_; ///< nframe contains the list of keypoints for each subframe, and the camera system info.
+  /// @warn Do not hold on to nframe_ which has many images. 
+  /// We use okvis::MultiFrame here for FrameNoncentralAbsoluteAdapter which is used for geometric verification.
+  std::shared_ptr<const okvis::MultiFrame> nframe_; ///< nframe contains the list of keypoints for each subframe, and the camera system info.
 
   std::vector<std::shared_ptr<NeighborConstraintMessage>> odometryConstraintList_; ///< The most adjacent neighbor is at the front.
 
@@ -370,8 +390,6 @@ class LoopQueryKeyframeMessage {
   std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>
       landmarkPositionList_;  ///< landmark positions expressed in the body frame of this keyframe.
 }; // LoopQueryKeyframeMessage
-
-constexpr size_t kQueryCameraIndex = 0u;
 
 struct PgoResult {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW

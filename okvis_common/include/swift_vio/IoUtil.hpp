@@ -9,6 +9,7 @@ static const Eigen::IOFormat kSpaceInitFmt(Eigen::StreamPrecision,
                                            Eigen::DontAlignCols, " ", "\n", "",
                                            "", "", "");
 
+std::string removeTrailingSlash(const std::string& path);
+
 }  // namespace swift_vio
 #endif  // SWIFT_VIO_IO_UTIL_HPP
-

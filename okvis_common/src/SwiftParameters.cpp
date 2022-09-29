@@ -49,28 +49,6 @@ std::string BriskOptions::toString(std::string hint) const {
   return ss.str();
 }
 
-std::string EnumToString(HistogramMethod m) {
-  const std::string names[] = {"NONE", "HISTOGRAM", "CLAHE"};
-  return names[static_cast<int>(m)];
-}
-
-bool EnumFromString(std::string name, HistogramMethod *m) {
-  std::transform(name.begin(), name.end(), name.begin(), ::toupper);
-  std::unordered_map<std::string, HistogramMethod> descriptionToId{
-      {"NONE", HistogramMethod::NONE},
-      {"HISTOGRAM", HistogramMethod::HISTOGRAM},
-      {"CLAHE", HistogramMethod::CLAHE}};
-
-  auto iter = descriptionToId.find(name);
-  if (iter == descriptionToId.end()) {
-    *m = HistogramMethod::NONE;
-    return false;
-  } else {
-    *m = iter->second;
-  }
-  return true;
-}
-
 FrontendOptions::FrontendOptions(
     FeatureTrackingScheme _featureTrackingMethod, BriskOptions _brisk,
     bool _useMedianFilter, HistogramMethod hm,
