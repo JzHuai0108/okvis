@@ -13,6 +13,7 @@ include_directories(${EIGEN_INCLUDE_DIR})
 # build the library
 add_library(${PROJECT_NAME} STATIC
   src/KeyframeForLoopDetection.cpp
+  src/LoopFrameAndMatches.cpp
   include/loop_closure/KeyframeForLoopDetection.hpp)
 
 # and link it
