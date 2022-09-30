@@ -140,7 +140,12 @@ CameraBase::ProjectionStatus EUCM::projectWithExternalParameters(
     Eigen::Vector2d *imagePoint, Eigen::Matrix<double, 2, 3> *pointJacobian,
     Eigen::Matrix2Xd *intrinsicsJacobian) const {
   ExtendedUnifiedCamera<double> eucm(parameters);
-  bool status = eucm.project(point, *imagePoint, pointJacobian, intrinsicsJacobian);
+  bool status = false;
+  if (pointJacobian) {
+    status = eucm.project(point, *imagePoint, pointJacobian, intrinsicsJacobian);
+  } else {
+    status = eucm.project(point, *imagePoint);
+  }
   if (status) {
     return okvis::cameras::CameraBase::ProjectionStatus::Successful;
   }

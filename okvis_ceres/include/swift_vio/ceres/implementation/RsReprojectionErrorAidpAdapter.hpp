@@ -11,7 +11,6 @@
 #include <okvis/kinematics/operators.hpp>
 
 #include <swift_vio/Measurements.hpp>
-#include <swift_vio/MultipleTransformPointJacobian.hpp>
 #include <swift_vio/ceres/JacobianHelpers.hpp>
 #include <swift_vio/imu/SimpleImuOdometry.hpp>
 #include <swift_vio/imu/SimpleImuPropagationJacobian.hpp>

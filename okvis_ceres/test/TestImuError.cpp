@@ -365,15 +365,13 @@ TEST(okvisTestSuite, ImuError){
 
 	// print some infos about the optimization
 	//std::cout << summary.FullReport() << "\n";
-	std::cout << "initial T_WS_1 : " << T_WS_1_disturbed.T() << "\n"
-			<< "optimized T_WS_1 : " << poseParameterBlock_1.estimate().T() << "\n"
-			<< "correct T_WS_1 : " << T_WS_1.T() << "\n";
+	std::cout << "initial T_WS_1 :\n" << T_WS_1_disturbed.T() << "\n"
+			<< "optimized T_WS_1 :\n" << poseParameterBlock_1.estimate().T() << "\n"
+			<< "correct T_WS_1 :\n" << T_WS_1.T() << "\n";
 
+//	std::cout << "initial cost " << summary.initial_cost << " final cost " << summary.final_cost << "\n";
 	// make sure it converged
-	OKVIS_ASSERT_TRUE(Exception,summary.final_cost<1e-2,"cost not reducible");
-	OKVIS_ASSERT_TRUE(Exception,2*(T_WS_1.q()*poseParameterBlock_1.estimate().q().inverse()).vec().norm()<1e-2,"quaternions not close enough");
-	OKVIS_ASSERT_TRUE(Exception,(T_WS_1.r()-poseParameterBlock_1.estimate().r()).norm()<0.04,"translation not close enough");
+	ASSERT_LT(summary.final_cost / summary.initial_cost, 1e-4) << "cost not reducible";
+	ASSERT_LT(2*(T_WS_1.q()*poseParameterBlock_1.estimate().q().inverse()).vec().norm(), 1e-2) << "quaternions not close enough";
+	ASSERT_LT((T_WS_1.r()-poseParameterBlock_1.estimate().r()).norm(), 0.04) << "translation not close enough";
 }
-
-
-

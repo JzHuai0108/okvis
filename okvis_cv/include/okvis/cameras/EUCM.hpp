@@ -123,7 +123,7 @@ public:
   ///             \ref ProjectionStatus for more information.
   CameraBase::ProjectionStatus projectWithExternalParameters(
       const Eigen::Vector3d &point, const Eigen::VectorXd &parameters,
-      Eigen::Vector2d *imagePoint, Eigen::Matrix<double, 2, 3> *pointJacobian,
+      Eigen::Vector2d *imagePoint, Eigen::Matrix<double, 2, 3> *pointJacobian = NULL,
       Eigen::Matrix2Xd *intrinsicsJacobian = NULL) const;
 
   /// \brief Projects Euclidean points to 2d image points (projection) in a

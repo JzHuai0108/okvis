@@ -154,6 +154,7 @@ public:
 
     void checkAgainstMultipleTransformJacobian() const {
       swift_vio::MultipleTransformPointJacobian mtpj({T_AB_}, {-1}, hpA_);
+      mtpj.computeJacobians();
       Eigen::Matrix<double, 4, 4> dhpB_dhpA = mtpj.dp_dpoint();
       EXPECT_LT((dhpB_dhpA_numeric_ - dhpB_dhpA).lpNorm<Eigen::Infinity>(), tol)
           << "dhpB_dhpA_numeric_\n"

@@ -124,6 +124,11 @@ public:
                               parameters_[5]);
   }
 
+  virtual void plus(const double* x0, const double* Delta_Chi,
+                    double* x0_plus_Delta) const {
+    swift_vio::PoseLocalParameterizationSimplified::oplus(x0, Delta_Chi, x0_plus_Delta);
+  }
+
   // Delta_Chi=x0_plus_Delta[-]x0
   /// \brief Computes the minimal difference between a variable x and a perturbed variable x_plus_delta
   /// @param[in] x0 Variable.
