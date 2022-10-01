@@ -164,8 +164,6 @@ class Estimator : public EstimatorBase
 
   std::vector<std::string> variableLabels() const override;
 
-  std::vector<std::string> perturbationLabels() const override;
-
   /// @name Getters
   /// @{
   /**

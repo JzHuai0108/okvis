@@ -775,14 +775,6 @@ std::vector<std::string> Estimator::variableLabels() const {
   return varList;
 }
 
-std::vector<std::string> Estimator::perturbationLabels() const {
-  return std::vector<std::string>{
-      "p_WB_W_x(m)",   "p_WB_W_y(m)",  "p_WB_W_z(m)",   "theta_WB_x",
-      "theta_WB_y",    "theta_WB_z",   "v_WB_W_x(m/s)", "v_WB_W_y(m/s)",
-      "v_WB_W_z(m/s)", "b_g_x(rad/s)", "b_g_y(rad/s)",  "b_g_z(rad/s)",
-      "b_a_x(m/s^2)",  "b_a_y(m/s^2)", "b_a_z(m/s^2)"};
-}
-
 // Start ceres optimization.
 #ifdef USE_OPENMP
 void Estimator::optimize(size_t numIter, size_t numThreads,

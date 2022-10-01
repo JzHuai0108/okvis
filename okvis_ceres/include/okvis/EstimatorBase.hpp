@@ -412,7 +412,11 @@ class EstimatorBase : public VioBackendInterface
   }
 
   std::vector<std::string> perturbationLabels() const override {
-    return std::vector<std::string>();
+    return std::vector<std::string>{
+        "p_WB_W_x(m)",   "p_WB_W_y(m)",  "p_WB_W_z(m)",   "theta_WB_x",
+        "theta_WB_y",    "theta_WB_z",   "v_WB_W_x(m/s)", "v_WB_W_y(m/s)",
+        "v_WB_W_z(m/s)", "b_g_x(rad/s)", "b_g_y(rad/s)",  "b_g_z(rad/s)",
+        "b_a_x(m/s^2)",  "b_a_y(m/s^2)", "b_a_z(m/s^2)"};
   }
 
   std::string headerLine(const std::string delimiter=" ") const final;
