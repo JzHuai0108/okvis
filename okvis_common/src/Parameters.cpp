@@ -133,7 +133,7 @@ EstimatorOptions::EstimatorOptions(
     swift_vio::EstimatorAlgorithm _initializer, int _max_iterations,
     int _min_iterations, double _timeLimitForMatchingAndOptimization,
     okvis::Duration _timeReserve, int _numKeyframes, int _numImuFrames,
-    size_t minMargedFrames, bool _constantBias, bool _useEpipolarConstraint,
+    size_t minMargedFrames, int _numKeyframesForInit, bool _constantBias, bool _useEpipolarConstraint,
     int _cameraObservationModelId, bool _computeOkvisNees,
     bool _useMahalanobisGating, double _maxProjectionErrorTol,
     int _numThreads, bool _verbose)
@@ -142,7 +142,7 @@ EstimatorOptions::EstimatorOptions(
       timeLimitForMatchingAndOptimization(_timeLimitForMatchingAndOptimization),
       timeReserve(_timeReserve), numKeyframes(_numKeyframes),
       numImuFrames(_numImuFrames), minMarginalizedFrames(minMargedFrames),
-      constantBias(_constantBias),
+      numKeyframesForInit(_numKeyframesForInit), constantBias(_constantBias),
       useEpipolarConstraint(_useEpipolarConstraint),
       cameraObservationModelId(_cameraObservationModelId),
       computeOkvisNees(_computeOkvisNees),
@@ -156,6 +156,7 @@ std::string EstimatorOptions::toString(const std::string &hint) const {
   ss << "Algorithm " << algorithm << ", initializer " << initializer
      << ", numKeyframes " << numKeyframes << ", numImuFrames " << numImuFrames
      << ".\nMin number of marginalized frames " << minMarginalizedFrames
+     << ", number of keyframes for init " << numKeyframesForInit
      << ", constant bias in initializer? " << constantBias
      << ".\nUse epipolar constraint? " << useEpipolarConstraint
      << ", camera observation model Id " << cameraObservationModelId

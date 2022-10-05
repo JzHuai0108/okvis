@@ -334,6 +334,7 @@ struct EstimatorOptions {
   // monocular case so that the marginalized observations can contribute
   // innovation to the states.
   // I think this may not make much difference, so 1 is OK.
+  int numKeyframesForInit; ///< required number of keyframes to become ready to init subsequent estimators.
 
   bool constantBias; ///< estimate only one copy of biases in the initializer.
   bool useEpipolarConstraint;
@@ -359,7 +360,8 @@ struct EstimatorOptions {
       int _max_iterations = 10, int _min_iterations = 1,
       double _timeLimitForMatchingAndOptimization = -1.0,
       okvis::Duration _timeReserve = okvis::Duration(0.005),
-      int _numKeyframes = 5, int _numImuFrames = 3, size_t minMargedFrames = 1u,
+      int _numKeyframes = 5, int _numImuFrames = 3, 
+      size_t minMargedFrames = 1u, int _numKeyframesForInit = 3,
       bool _constantBias = false,
       bool _useEpipolarConstraint = false, int _cameraObservationModelId = 0,
       bool _computeOkvisNees = false, bool _useMahalanobisGating = true,

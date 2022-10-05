@@ -281,6 +281,10 @@ void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams,
               << optParams->minMarginalizedFrames;
   }
 
+  if (optNode["numKeyframesForInit"].isInt()) {
+    optNode["numKeyframesForInit"] >> optParams->numKeyframesForInit;
+  }
+
   parseBoolean(optNode["constantBias"], optParams->constantBias);
 
   parseBoolean(optNode["useEpipolarConstraint"], optParams->useEpipolarConstraint);
