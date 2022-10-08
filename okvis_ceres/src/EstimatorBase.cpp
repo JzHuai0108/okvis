@@ -978,8 +978,10 @@ bool EstimatorBase::getLoopQueryKeyframeMessage(
       }
       ++keypointIndex;
     }
-    (*queryKeyframe)->nframe_->resetDescriptors(i, okvis::selectDescriptors(
-          multiFrame->getDescriptors(origCamId), keypointIndexForLandmarkList.at(i)));
+    if (multiFrame->getDescriptors(origCamId).cols > 0) {
+      (*queryKeyframe)->nframe_->resetDescriptors(i, okvis::selectDescriptors(
+            multiFrame->getDescriptors(origCamId), keypointIndexForLandmarkList.at(i)));
+    }
     (*queryKeyframe)->nframe_->resetKeypoints(i, okvis::selectKeypoints(
           multiFrame->getKeypoints(origCamId), keypointIndexForLandmarkList.at(i)));
   }

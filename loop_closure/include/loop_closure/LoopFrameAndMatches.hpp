@@ -36,9 +36,8 @@ class LoopFrameAndMatches {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   LoopFrameAndMatches();
 
-  LoopFrameAndMatches(uint64_t id, okvis::Time stamp, size_t dbowId,
+  LoopFrameAndMatches(uint64_t id, okvis::Time stamp,
                       uint64_t queryKeyframeId, okvis::Time queryKeyframeStamp,
-                      size_t queryKeyframeDbowId,
                       const okvis::kinematics::Transformation& T_BlBq);
 
   ~LoopFrameAndMatches();
@@ -66,11 +65,9 @@ class LoopFrameAndMatches {
 
   uint64_t id_; ///< id of the loop keyframe earlier assigned by vio.
   okvis::Time stamp_;
-  size_t dbowId_; ///< id of the loop keyframe in keyframe dbow database.
 
   uint64_t queryKeyframeId_; ///< id of the query keyframe assigned by vio.
   okvis::Time queryKeyframeStamp_;
-  size_t queryKeyframeDbowId_; ///< id of the query keyframe in keyframe dbow database.
 
   okvis::kinematics::Transformation
       T_BlBq_;  ///< Bl loop frame, Bq query keyframe.

@@ -86,12 +86,14 @@ NCameraSystem NCameraSystem::selectedNCameraSystem(const std::vector<size_t>& se
     selectedCameras.T_SC_.push_back(T_SC_.at(selectedId));
     selectedCameras.cameraGeometries_.push_back(cameraGeometries_.at(selectedId));
     selectedCameras.distortionTypes_.push_back(distortionTypes_.at(selectedId));
-
-    selectedCameras.overlaps_.push_back(std::vector<bool>());
-    selectedCameras.overlaps_[i].reserve(selectedCamIds.size());
-    for (size_t j = 0u; j < selectedCamIds.size(); ++j) {
-      size_t selectedIdj = selectedCamIds.at(j);
-      selectedCameras.overlaps_[i].push_back(overlaps_[selectedId][selectedIdj]);
+    if (overlaps_.size()) {
+      selectedCameras.overlaps_.push_back(std::vector<bool>());
+      selectedCameras.overlaps_[i].reserve(selectedCamIds.size());
+      for (size_t j = 0u; j < selectedCamIds.size(); ++j) {
+        size_t selectedIdj = selectedCamIds.at(j);
+        selectedCameras.overlaps_[i].push_back(
+            overlaps_[selectedId][selectedIdj]);
+      }
     }
 
     selectedCameras.projectionIntrinsicRepNames_.push_back(projectionIntrinsicRepNames_.at(selectedId));
