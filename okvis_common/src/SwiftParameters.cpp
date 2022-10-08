@@ -90,8 +90,10 @@ std::string FrontendOptions::toString(std::string hint) const {
 }
 
 PoseGraphOptions::PoseGraphOptions(int _maxOdometryConstraintForAKeyframe,
+                                   const std::vector<size_t> &_camerasToPublish,
                                    double _minDistance, double _minAngle)
     : maxOdometryConstraintForAKeyframe(_maxOdometryConstraintForAKeyframe),
+      lcdCameras(_camerasToPublish),
       minDistance(_minDistance), minAngle(_minAngle) {}
 
 PointLandmarkOptions::PointLandmarkOptions(

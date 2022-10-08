@@ -240,6 +240,9 @@ class Frame
 inline cv::Mat selectDescriptors(const cv::Mat descriptors,
                                  const std::vector<int>& descriptorIndices);
 
+inline std::vector<cv::KeyPoint> selectKeypoints(const std::vector<cv::KeyPoint>& keypoints,
+                                                 const std::vector<int>& keypointIndices);
+
 }  // namespace okvis
 
 #include "implementation/Frame.hpp"

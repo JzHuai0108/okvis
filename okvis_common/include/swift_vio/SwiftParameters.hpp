@@ -138,9 +138,12 @@ struct PointLandmarkOptions {
 
 struct PoseGraphOptions {
   int maxOdometryConstraintForAKeyframe;
+  std::vector<size_t> lcdCameras;  ///< Indices of cameras within the NCameraSystem whose images
+  // are to be published for loop closure detection.
   double minDistance;
   double minAngle;
   PoseGraphOptions(int maxOdometryConstraintForAKeyframe = 3,
+                   const std::vector<size_t> &camerasToPublish = {0},
                    double minDistance = 0.1, double minAngle = 0.1);
 };
 

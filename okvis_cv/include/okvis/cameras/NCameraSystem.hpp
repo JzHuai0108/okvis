@@ -86,6 +86,8 @@ class NCameraSystem
                        const std::vector<DistortionType>& distortionTypes,
                        bool computeOverlaps);
 
+  inline NCameraSystem selectedNCameraSystem(const std::vector<size_t>& selectedCamIds) const;
+
   /// \brief Destructor that doesn't do anything really.
   inline virtual ~NCameraSystem();
 

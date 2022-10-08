@@ -71,6 +71,35 @@ NCameraSystem::NCameraSystem(
     this->computeOverlaps();
   }
 }
+
+NCameraSystem NCameraSystem::selectedNCameraSystem(const std::vector<size_t>& selectedCamIds) const {
+  NCameraSystem selectedCameras;
+  selectedCameras.T_SC_.reserve(selectedCamIds.size());
+  selectedCameras.cameraGeometries_.reserve(selectedCamIds.size());
+  selectedCameras.distortionTypes_.reserve(selectedCamIds.size());
+  selectedCameras.overlaps_.reserve(selectedCamIds.size());
+  selectedCameras.projectionIntrinsicRepNames_.reserve(selectedCamIds.size());
+  selectedCameras.extrinsicRepNames_.reserve(selectedCamIds.size());
+
+  for (size_t i = 0u; i < selectedCamIds.size(); ++i) {
+    size_t selectedId = selectedCamIds.at(i);
+    selectedCameras.T_SC_.push_back(T_SC_.at(selectedId));
+    selectedCameras.cameraGeometries_.push_back(cameraGeometries_.at(selectedId));
+    selectedCameras.distortionTypes_.push_back(distortionTypes_.at(selectedId));
+
+    selectedCameras.overlaps_.push_back(std::vector<bool>());
+    selectedCameras.overlaps_[i].reserve(selectedCamIds.size());
+    for (size_t j = 0u; j < selectedCamIds.size(); ++j) {
+      size_t selectedIdj = selectedCamIds.at(j);
+      selectedCameras.overlaps_[i].push_back(overlaps_[selectedId][selectedIdj]);
+    }
+
+    selectedCameras.projectionIntrinsicRepNames_.push_back(projectionIntrinsicRepNames_.at(selectedId));
+    selectedCameras.extrinsicRepNames_.push_back(extrinsicRepNames_.at(selectedId));
+  }
+  return selectedCameras;
+}
+
 NCameraSystem::~NCameraSystem()
 {
 }

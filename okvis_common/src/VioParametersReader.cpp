@@ -423,10 +423,26 @@ void parsePointLandmarkOptions(cv::FileNode plNode,
   LOG(INFO) << plOptions->toString("Point landmark options: ");
 }
 
+std::vector<size_t> parseCommaSeparatedValues(const std::string &str) {
+  // str = "1,2,3,4,5,6";
+  std::vector<size_t> vect;
+  std::stringstream ss(str);
+
+  for (size_t i; ss >> i;) {
+    vect.push_back(i);
+    if (ss.peek() == ',')
+      ss.ignore();
+  }
+  return vect;
+}
+
 void parsePoseGraphOptions(cv::FileNode pgNode, swift_vio::PoseGraphOptions* pgOptions) {
   if (pgNode["maxOdometryConstraintForAKeyframe"].isInt()) {
     pgNode["maxOdometryConstraintForAKeyframe"] >>
         pgOptions->maxOdometryConstraintForAKeyframe;
+  }
+  if (pgNode["lcdCameras"].isString()) {
+    pgOptions->lcdCameras = parseCommaSeparatedValues(pgNode["lcdCameras"]);
   }
   if (pgNode["minDistance"].isReal()) {
     pgNode["minDistance"] >> pgOptions->minDistance;

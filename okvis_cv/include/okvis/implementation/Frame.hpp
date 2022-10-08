@@ -323,6 +323,16 @@ cv::Mat selectDescriptors(
   return result;
 }
 
+std::vector<cv::KeyPoint> selectKeypoints(const std::vector<cv::KeyPoint>& keypoints,
+                                          const std::vector<int>& keypointIndices) {
+  std::vector<cv::KeyPoint> selected;
+  selected.reserve(keypointIndices.size());
+  for (size_t i : keypointIndices) {
+    selected.push_back(keypoints[i]);
+  }
+  return selected;
+}
+
 cv::Mat Frame::copyDescriptorsAt(
     const std::vector<int>& descriptorIndices) const {
   return selectDescriptors(descriptors_, descriptorIndices);

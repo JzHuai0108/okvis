@@ -895,10 +895,10 @@ void EstimatorBase::getEstimatedCameraSystem(okvis::cameras::NCameraSystem *came
 bool EstimatorBase::getOdometryConstraintsForKeyframe(
     std::shared_ptr<swift_vio::LoopQueryKeyframeMessage> queryKeyframe) const {
   int j = 0;
-  auto& odometryConstraintList = queryKeyframe->odometryConstraintListMutable();
+  auto& odometryConstraintList = queryKeyframe->odometryConstraintList_;
   odometryConstraintList.reserve(poseGraphOptions_.maxOdometryConstraintForAKeyframe);
   okvis::kinematics::Transformation T_WBr = queryKeyframe->T_WB_;
-  queryKeyframe->setZeroCovariance();
+  queryKeyframe->setDefaultCovariance();
   auto riter = statesMap_.rbegin();
   for (++riter;  // skip the last frame which is queryKeyframe.
        riter != statesMap_.rend() && j < poseGraphOptions_.maxOdometryConstraintForAKeyframe;
@@ -910,7 +910,6 @@ bool EstimatorBase::getOdometryConstraintsForKeyframe(
       std::shared_ptr<swift_vio::NeighborConstraintMessage> odometryConstraint(
           new swift_vio::NeighborConstraintMessage(
               riter->first, riter->second.timestamp, T_BnBr, T_WBn));
-      odometryConstraint->core_.squareRootInfo_.setIdentity();
       odometryConstraintList.emplace_back(odometryConstraint);
       ++j;
     }
@@ -918,50 +917,71 @@ bool EstimatorBase::getOdometryConstraintsForKeyframe(
   return true;
 }
 
-// TODO(jhuai): Add heuristic rules to throttle loop query keyframes.
-// 1, minimum time gap, 2, minimum distance, 3, minimum number of keypoints
-// while keeping the keyframe of the previous message in the sliding window.
 bool EstimatorBase::getLoopQueryKeyframeMessage(
     const std::shared_ptr<const okvis::MultiFrame>& multiFrame,
+    const std::vector<size_t>& lcdCameras,
     std::shared_ptr<swift_vio::LoopQueryKeyframeMessage>* queryKeyframe) const {
   auto riter = statesMap_.rbegin();
   if (!riter->second.isKeyframe) {
     return false;
   }
+
+  constexpr size_t minNumKeypointsToPublish = 6;
+  size_t maxNumKeypoints = 0;
+  for (size_t i = 0u; i < lcdCameras.size(); ++i) {
+    int origCamId = lcdCameras.at(i);
+    maxNumKeypoints = std::max(maxNumKeypoints, multiFrame->getKeypoints(origCamId).size());
+  }
+  if (maxNumKeypoints < minNumKeypointsToPublish) {
+    LOG(INFO) << "Keyframe at " << riter->second.timestamp 
+        << " will not be published for LCD for observing only "
+        << maxNumKeypoints << " keypoints.";
+    return false;
+  }
+
   okvis::kinematics::Transformation T_WBr;
   get_T_WS(riter->first, T_WBr);
 
   uint64_t queryKeyframeId = riter->first;
   queryKeyframe->reset(new swift_vio::LoopQueryKeyframeMessage(
-      queryKeyframeId, riter->second.timestamp, T_WBr, multiFrame));
-
+      queryKeyframeId, riter->second.timestamp, T_WBr, multiFrame, lcdCameras));
   getOdometryConstraintsForKeyframe(*queryKeyframe);
 
-  // add 3d landmarks observed in query keyframe's first frame,
-  // and corresponding indices into the 2d keypoint list.
-  // The local camera frame will be used as their coordinate frame.
-  const std::vector<uint64_t>& landmarkIdList =
-      multiFrame->getLandmarkIds(swift_vio::kQueryCameraIndex);
-  size_t numKeypoints = landmarkIdList.size();
-  auto& keypointIndexForLandmarkList =
-      (*queryKeyframe)->keypointIndexForLandmarkListMutable();
-  keypointIndexForLandmarkList.reserve(numKeypoints / 4);
-  auto& landmarkPositionList = (*queryKeyframe)->landmarkPositionListMutable();
-  landmarkPositionList.reserve(numKeypoints / 4);
-  int keypointIndex = 0;
+  auto& keypointIndexForLandmarkList = (*queryKeyframe)->keypointIndexForLandmarkList_;
+  keypointIndexForLandmarkList.resize(lcdCameras.size());
+  auto& landmarkPositionList = (*queryKeyframe)->landmarkPositionList_;
+  landmarkPositionList.resize(lcdCameras.size());
 
-  okvis::kinematics::Transformation T_BrW = T_WBr.inverse();
-  for (const uint64_t landmarkId : landmarkIdList) {
-    if (landmarkId != 0) {
-      auto result = landmarksMap_.find(landmarkId);
-      if (result != landmarksMap_.end() && result->second.quality > 1e-6) {
-        keypointIndexForLandmarkList.push_back(keypointIndex);
-        Eigen::Vector4d hp_W = result->second.pointHomog;
-        Eigen::Vector4d hp_B = T_BrW * hp_W;
-        landmarkPositionList.push_back(hp_B);
+  for (size_t i = 0u; i < lcdCameras.size(); ++i) {
+    int origCamId = lcdCameras.at(i);
+    // add 3d landmarks observed in query keyframe's first frame,
+    // and corresponding indices into the 2d keypoint list.
+    // The local camera frame will be used as their coordinate frame.
+    const std::vector<uint64_t>& landmarkIdList =
+        multiFrame->getLandmarkIds(origCamId);
+    size_t numKeypoints = landmarkIdList.size();
+
+    keypointIndexForLandmarkList.at(i).reserve(numKeypoints / 4);
+    landmarkPositionList.at(i).reserve(numKeypoints / 4);
+
+    int keypointIndex = 0;
+    okvis::kinematics::Transformation T_BrW = T_WBr.inverse();
+    for (const uint64_t landmarkId : landmarkIdList) {
+      if (landmarkId != 0) {
+        auto result = landmarksMap_.find(landmarkId);
+        if (result != landmarksMap_.end() && result->second.quality > 1e-6) {
+          keypointIndexForLandmarkList.at(i).push_back(keypointIndex);
+          Eigen::Vector4d hp_W = result->second.pointHomog;
+          Eigen::Vector4d hp_B = T_BrW * hp_W;
+          landmarkPositionList.at(i).push_back(hp_B);
+        }
       }
+      ++keypointIndex;
     }
-    ++keypointIndex;
+    (*queryKeyframe)->nframe_->resetDescriptors(i, okvis::selectDescriptors(
+          multiFrame->getDescriptors(origCamId), keypointIndexForLandmarkList.at(i)));
+    (*queryKeyframe)->nframe_->resetKeypoints(i, okvis::selectKeypoints(
+          multiFrame->getKeypoints(origCamId), keypointIndexForLandmarkList.at(i)));
   }
   return true;
 }

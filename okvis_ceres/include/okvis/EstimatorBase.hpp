@@ -538,6 +538,7 @@ class EstimatorBase : public VioBackendInterface
    */
   bool getLoopQueryKeyframeMessage(
       const std::shared_ptr<const okvis::MultiFrame>& multiFrame,
+      const std::vector<size_t>& lcdCameras,
       std::shared_ptr<swift_vio::LoopQueryKeyframeMessage>* queryKeyframe) const;
   ///@}
 

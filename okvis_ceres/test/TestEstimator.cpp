@@ -190,9 +190,9 @@ TEST(okvisTestSuite, Estimator) {
       }
       // run the optimization
       estimator.optimize(10, 4, false);
-
+      std::vector<size_t> lcdCameras{0};
       std::shared_ptr<swift_vio::LoopQueryKeyframeMessage> queryKeyframe;
-      estimator.getLoopQueryKeyframeMessage(mf, &queryKeyframe);
+      estimator.getLoopQueryKeyframeMessage(mf, lcdCameras, &queryKeyframe);
       bool isKf = (k % 3 == 0);
       // check number of landmarks, landmark positions are in camera frame,
       // the constraint list, poses, etc.
@@ -203,17 +203,17 @@ TEST(okvisTestSuite, Estimator) {
         okvis::kinematics::Transformation T_WS_kf;
         estimator.get_T_WS(mf->id(), T_WS_kf);
         EXPECT_LT((queryKeyframe->T_WB_.coeffs() - T_WS_kf.coeffs()).lpNorm<Eigen::Infinity>(), 1e-7);
-        EXPECT_LT(queryKeyframe->getCovariance().lpNorm<Eigen::Infinity>(), 1e-7);
+        EXPECT_NEAR(queryKeyframe->getCovariance().lpNorm<Eigen::Infinity>(), 1.0, 1e-7);
 
         if (k == 0) {
-          EXPECT_EQ(queryKeyframe->odometryConstraintList().size(), 0u);
+          EXPECT_EQ(queryKeyframe->odometryConstraintList_.size(), 0u);
         } else {
           okvis::kinematics::Transformation T_WS_prevkf;
           estimator.get_T_WS(prevkeymf->id(), T_WS_prevkf);
-          EXPECT_GE(queryKeyframe->odometryConstraintList().size(), 1u);
+          EXPECT_GE(queryKeyframe->odometryConstraintList_.size(), 1u);
           std::shared_ptr<const swift_vio::NeighborConstraintMessage>
               constraintMessage =
-                  queryKeyframe->odometryConstraintList().at(0u);
+                  queryKeyframe->odometryConstraintList_.at(0u);
           EXPECT_EQ(constraintMessage->core_.id_, prevkeymf->id());
           EXPECT_EQ(constraintMessage->core_.stamp_, prevkeymf->timestamp());
           EXPECT_LT((constraintMessage->core_.T_BBr_.coeffs() -
@@ -222,20 +222,17 @@ TEST(okvisTestSuite, Estimator) {
                     1e-7);
           EXPECT_EQ(constraintMessage->core_.type_,
                     swift_vio::PoseConstraintType::Odometry);
-          EXPECT_LT((constraintMessage->core_.squareRootInfo_ -
-                     Eigen::Matrix<double, 6, 6>::Identity())
-                        .lpNorm<Eigen::Infinity>(),
-                    1e-7);
           EXPECT_LT((constraintMessage->T_WB_.coeffs() - T_WS_prevkf.coeffs())
                         .lpNorm<Eigen::Infinity>(),
                     1e-7);
         }
         prevkeymf = mf;
-        const std::vector<int>& kpIndices = queryKeyframe->keypointIndexForLandmarkList();
+        size_t oneSelectedCam = lcdCameras[0];
+        const std::vector<int>& kpIndices = queryKeyframe->keypointIndexForLandmarkList_.at(oneSelectedCam);
 
         const std::vector<Eigen::Vector4d,
                           Eigen::aligned_allocator<Eigen::Vector4d>>&
-            lmkPositions = queryKeyframe->landmarkPositionList();
+            lmkPositions = queryKeyframe->landmarkPositionList_.at(oneSelectedCam);
         EXPECT_EQ(kpIndices.size(), lmkPositions.size());
 
         for (size_t k = 0; k < lmkPositions.size(); ++k) {
