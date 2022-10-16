@@ -196,6 +196,78 @@ opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::FrameNoncentralAbsoluteAd
   }
 }
 
+opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::FrameNoncentralAbsoluteAdapter(
+    const std::vector<Eigen::Vector4d,
+                      Eigen::aligned_allocator<Eigen::Vector4d>>&
+        candidatePoints,
+    const std::vector<size_t>& matchedPointIndices,
+    const std::vector<size_t>& matchedKeypointIndices, const size_t im,
+    std::shared_ptr<const swift_vio::MultiFrame> frame,
+        const okvis::cameras::NCameraSystem& cameraSystem) {
+  okvis::cameras::DistortionType distortionType =
+      cameraSystem.distortionType(im);
+
+  // store transformation. note: the T_SC estimates might actually slightly
+  // differ, but we ignore this here.
+  camOffsets_.resize(im+1);
+  camRotations_.resize(im+1);
+  camOffsets_[im] = cameraSystem.T_SC(im)->r();
+  camRotations_[im] = cameraSystem.T_SC(im)->C();
+  size_t noCorrespondences = matchedKeypointIndices.size();
+  keypointIndices_.reserve(noCorrespondences);
+
+  for (size_t k = 0; k < noCorrespondences; ++k) {
+    int lmId = matchedPointIndices[k];
+    const Eigen::Vector4d hp = candidatePoints[lmId];
+
+    // Points at infinity should not happen because the landmarks
+    // from VIO estimator has already been screened there.
+    // Also ensuring that the input points have the same size as the internal
+    // points simplifies locating inliers in the original points.
+//    if (fabs(hp[3]) < 1.0e-8) continue;
+
+    // add landmark here
+    points_.push_back(hp.head<3>() / hp[3]);
+
+    // also add bearing vector
+    Eigen::Vector3d bearing;
+    Eigen::Vector2d keypoint;
+    size_t kpIndex = matchedKeypointIndices[k];
+    frame->getKeypoint(im, kpIndex, keypoint);
+    double keypointStdDev;
+    frame->getKeypointSize(im, kpIndex, keypointStdDev);
+    keypointStdDev = 0.8 * keypointStdDev / 12.0;
+    double fu = 1.0;
+
+#define DISTORTION_MODEL_CASE(camera_geometry_t)                               \
+  {                                                                            \
+    std::shared_ptr<const okvis::cameras::CameraBase> basePtr =                \
+        cameraSystem.cameraGeometry(im);                                       \
+    std::shared_ptr<const camera_geometry_t> castPtr =                         \
+        std::dynamic_pointer_cast<const camera_geometry_t>(basePtr);           \
+    castPtr->backProject(keypoint, &bearing);                                  \
+    fu = castPtr->focalLengthU();                                              \
+  }
+
+    switch (distortionType) { DISTORTION_MODEL_SWITCH_CASES }
+
+#undef DISTORTION_MODEL_CASE
+
+    // also store sigma angle
+    sigmaAngles_.push_back(sqrt(2) * keypointStdDev * keypointStdDev /
+                           (fu * fu));
+
+    bearing.normalize();
+    bearingVectors_.push_back(bearing);
+
+    // store camera index
+    camIndices_.push_back(im);
+
+    // store keypoint index
+    keypointIndices_.push_back(k);
+  }
+}
+
 // Retrieve the bearing vector of a correspondence.
 opengv::bearingVector_t opengv::absolute_pose::FrameNoncentralAbsoluteAdapter::getBearingVector(
     size_t index) const {

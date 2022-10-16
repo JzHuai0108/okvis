@@ -48,6 +48,7 @@
 #include <okvis/FrameTypedefs.hpp>
 #include <okvis/EstimatorBase.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
+#include <swift_vio/MultiFrame.hpp>
 
 /**
  * \brief Namespace for classes extending the OpenGV library.
@@ -99,6 +100,15 @@ class FrameNoncentralAbsoluteAdapter : public AbsoluteAdapterBase {
       const std::vector<size_t>& matchedPointIndices,
       const std::vector<size_t>& matchedKeypointIndices, const size_t cameraIdx,
       std::shared_ptr<const okvis::MultiFrame> frame);
+
+  FrameNoncentralAbsoluteAdapter(
+      const std::vector<Eigen::Vector4d,
+                        Eigen::aligned_allocator<Eigen::Vector4d>>&
+          candidatePoints,
+      const std::vector<size_t>& matchedPointIndices,
+      const std::vector<size_t>& matchedKeypointIndices, const size_t cameraIdx,
+      std::shared_ptr<const swift_vio::MultiFrame> frame,
+      const okvis::cameras::NCameraSystem &cameraSystem);
 
   virtual ~FrameNoncentralAbsoluteAdapter() {
   }

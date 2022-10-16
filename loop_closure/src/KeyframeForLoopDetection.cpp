@@ -9,7 +9,7 @@ NeighborConstraintInDatabase::NeighborConstraintInDatabase(
     const okvis::kinematics::Transformation& T_BBr,
     PoseConstraintType type) :
   id_(id), stamp_(stamp), T_BBr_(T_BBr), type_(type) {
-
+  squareRootInfo_.setIdentity();
 }
 
 NeighborConstraintInDatabase::~NeighborConstraintInDatabase() {}
@@ -22,7 +22,8 @@ NeighborConstraintMessage::NeighborConstraintMessage(
     const okvis::kinematics::Transformation& T_WB,
     PoseConstraintType type) :
   core_(id, stamp, T_BnBr, type), T_WB_(T_WB) {
-
+  cov_T_WB_.setIdentity();
+  cov_T_WBr_T_WB_.setZero();
 }
 
 NeighborConstraintMessage::~NeighborConstraintMessage() {}

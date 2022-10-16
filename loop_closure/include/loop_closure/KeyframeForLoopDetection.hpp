@@ -128,6 +128,11 @@ public:
     loopConstraintList_.push_back(loopConstraint);
   }
 
+  const cv::Mat frontendDescriptorsWithLandmarks(size_t camId) const {
+    return okvis::selectDescriptors(nFrameWithoutImages_->getDescriptors(camId),
+                                    keypointIndexForLandmarkList_.at(camId));
+  }
+
   void setSquareRootInfo(size_t j,
                       const Eigen::Matrix<double, 6, 6>& squareRootInfo) {
     constraintList_.at(j)->squareRootInfo_ = squareRootInfo;
@@ -149,15 +154,13 @@ public:
   std::vector<std::shared_ptr<NeighborConstraintInDatabase>> loopConstraintList_; ///< loop constraints.
 
   std::vector<size_t> dbowIds_; ///< dbow descriptor for each frame.
-  std::shared_ptr<const okvis::MultiFrame> nFrameWithoutImages_; ///< nframe contains the list of keypoints and descriptors for each frame,
-  // and the camera system info. We use okvis::MultiFrame here for FrameNoncentralAbsoluteAdapter
-  // which is used for geometric verification.
+  std::shared_ptr<const swift_vio::MultiFrame> nFrameWithoutImages_; ///< nframe contains the list of keypoints and descriptors for each frame.
 
   // The below variables are used to find correspondence between a loop frame
   // and a query frame and estimate the relative pose.
   std::vector<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>>
       landmarkPositionList_;  ///< landmark positions expressed in the body frame of this keyframe passed in by a VIO estimator.
-  // Note the size of landmarkPositionList should be the same as the number of keypoints for each frame.
+  std::vector<std::vector<int>> keypointIndexForLandmarkList_;
 };
 
 /**
@@ -166,7 +169,7 @@ public:
   */
 template <typename MultiFrameT>
 void copyNFrame(std::shared_ptr<MultiFrameT> multiframe, const std::vector<size_t>& selectedCamIds,
-    std::shared_ptr<okvis::MultiFrame> queryNFrame, bool copyImages) {
+    std::shared_ptr<swift_vio::MultiFrame> queryNFrame, bool copyImages) {
   queryNFrame->setTimestamp(multiframe->timestamp());
   for (size_t i = 0u; i < selectedCamIds.size(); ++i) {
     size_t origId = selectedCamIds[i];
@@ -201,12 +204,12 @@ class LoopQueryKeyframeMessage {
 
   LoopQueryKeyframeMessage(uint64_t id, okvis::Time stamp,
                          const okvis::kinematics::Transformation& T_WB,
-                         const std::shared_ptr<const okvis::MultiFrame>& multiframe, 
+                         const std::shared_ptr<const okvis::MultiFrame>& multiframe,
                          const std::vector<size_t>& selectedCamIds)
     : id_(id), stamp_(stamp), T_WB_(T_WB), use_uniform_cov_(true) {
-    okvis::cameras::NCameraSystem selectedCamSystem = multiframe->cameraSystem().selectedNCameraSystem(selectedCamIds);
-    std::shared_ptr<okvis::MultiFrame> nframe(new okvis::MultiFrame(
-        selectedCamSystem, multiframe->timestamp(), multiframe->id()));
+    cameraSystem_ = multiframe->cameraSystem().selectedNCameraSystem(selectedCamIds);
+    std::shared_ptr<swift_vio::MultiFrame> nframe(new swift_vio::MultiFrame(
+        selectedCamIds.size(), multiframe->timestamp(), multiframe->id()));
     copyNFrame(multiframe, selectedCamIds, nframe, true);
     nframe_ = nframe;
   }
@@ -217,9 +220,9 @@ class LoopQueryKeyframeMessage {
                          const std::vector<size_t>& selectedCamIds,
                          const okvis::cameras::NCameraSystem& cameraSystem)
     : id_(id), stamp_(stamp), T_WB_(T_WB), use_uniform_cov_(true) {
-    okvis::cameras::NCameraSystem selectedCamSystem = cameraSystem.selectedNCameraSystem(selectedCamIds);
-    std::shared_ptr<okvis::MultiFrame> nframe(new okvis::MultiFrame(
-        selectedCamSystem, multiframe->timestamp(), multiframe->id()));
+    cameraSystem_ = cameraSystem.selectedNCameraSystem(selectedCamIds);
+    std::shared_ptr<swift_vio::MultiFrame> nframe(new swift_vio::MultiFrame(
+        selectedCamIds.size(), multiframe->timestamp(), multiframe->id()));
     copyNFrame(multiframe, selectedCamIds, nframe, true);
     nframe_ = nframe;
   }
@@ -229,8 +232,9 @@ class LoopQueryKeyframeMessage {
         new KeyframeInDatabase(id_, stamp_, T_WB_, cov_T_WB_));
     keyframeInDB->setOdometryConstraints(odometryConstraintList_);
     keyframeInDB->landmarkPositionList_ = landmarkPositionList_;
-    std::shared_ptr<okvis::MultiFrame> nframe(new okvis::MultiFrame(
-        nframe_->cameraSystem(), nframe_->timestamp(), nframe_->id()));
+    keyframeInDB->keypointIndexForLandmarkList_ = keypointIndexForLandmarkList_;
+    std::shared_ptr<swift_vio::MultiFrame> nframe(new swift_vio::MultiFrame(
+        cameraSystem_.numCameras(), nframe_->timestamp(), nframe_->id()));
     size_t numcameras = nframe_->numFrames();
     std::vector<size_t> selectedCamIds;
     selectedCamIds.resize(numcameras);
@@ -268,13 +272,14 @@ private:
   bool use_uniform_cov_;
   Eigen::Matrix<double, 6, 6> cov_T_WB_;  ///< cov of $[\delta p, \delta \theta]$.
 public:
-  std::shared_ptr<okvis::MultiFrame> nframe_; ///< nframe contains the image, keypoints, and descriptors, for each frame, and the camera system info.
+  std::shared_ptr<swift_vio::MultiFrame> nframe_; ///< nframe contains the image, keypoints, and descriptors, for each frame.
+  okvis::cameras::NCameraSystem cameraSystem_;  ///< the camera system info.
   // We use okvis::MultiFrame here for FrameNoncentralAbsoluteAdapter which is used for geometric verification.
   std::vector<std::shared_ptr<NeighborConstraintMessage>> odometryConstraintList_; ///< The most adjacent neighbor is at the front.
 
   std::vector<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d>>>
       landmarkPositionList_;  ///< landmark positions expressed in the body frame of this keyframe for selected frames.
-  std::vector<std::vector<int>> keypointIndexForLandmarkList_; ///< for sanity check only.
+  std::vector<std::vector<int>> keypointIndexForLandmarkList_;  ///< The index of the keypoint within the nframe keypoint list for a landmark.
 }; // LoopQueryKeyframeMessage
 
 struct PgoResult {
