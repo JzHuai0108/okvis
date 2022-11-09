@@ -292,7 +292,7 @@ private:
 
 typedef std::vector<MapPoint, Eigen::aligned_allocator<MapPoint> > MapPointVector;
 typedef std::map<uint64_t, MapPoint, std::less<uint64_t>,
-    Eigen::aligned_allocator<MapPoint> > PointMap;
+    Eigen::aligned_allocator<std::pair<uint64_t const, MapPoint> > > PointMap;
 typedef std::map<uint64_t, okvis::kinematics::Transformation, std::less<uint64_t>,
     Eigen::aligned_allocator<okvis::kinematics::Transformation> > TransformationMap;
 
