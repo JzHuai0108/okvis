@@ -216,7 +216,7 @@ bool EstimatorBase::printStatesAndStdevs(std::ostream& stream, const Eigen::Matr
 
 std::string EstimatorBase::headerLine(const std::string delimiter) const {
   std::stringstream stream;
-  stream << "timestamp(sec)" << delimiter << "frameId" << delimiter;
+  stream << "timestamp(sec)" << delimiter;
   std::vector<std::string> variableList = variableLabels();
   for (const auto& variable : variableList) {
     stream << variable << delimiter;
