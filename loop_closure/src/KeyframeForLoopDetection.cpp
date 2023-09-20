@@ -32,16 +32,15 @@ void NeighborConstraintMessage::computeRelativePoseCovariance(
     const okvis::kinematics::Transformation& T_WBr,
     const Eigen::Matrix<double, 6, 6>& cov_T_WBr,
     Eigen::Matrix<double, 6, 6>* cov_T_BnBr) {
-  // use T_WBr, T_WBn, cov_T_WBr_WB_, cov_T_WBn, cov_T_WBr to compute
-  // cov_T_BnBr
+  // use T_WBr, T_WBn, cov_T_WBr_WB_, cov_T_WBn, cov_T_WBr to compute cov_T_BnBr
+  // var(Y - X) = var(Y) + var(X) - cov(Y, X) - cov(X, Y)
   InverseTransformMultiplyJacobian itmj(T_WB_, T_WBr);
   Eigen::Matrix<double, 6, 6> Jzr, Jzn;
   itmj.dT_dT_WA(&Jzn);
   itmj.dT_dT_WB(&Jzr);
   Eigen::Matrix<double, 6, 6> crossTerm =
       Jzr * cov_T_WBr_T_WB_ * Jzn.transpose();
-  *cov_T_BnBr = Jzr * cov_T_WBr * Jzr.transpose() + crossTerm.transpose() +
-               crossTerm + Jzn * cov_T_WB_ * Jzn.transpose();
+  *cov_T_BnBr = Jzr * cov_T_WBr * Jzr.transpose() - crossTerm.transpose() - crossTerm + Jzn * cov_T_WB_ * Jzn.transpose();
 }
 
 KeyframeInDatabase::KeyframeInDatabase() {}
