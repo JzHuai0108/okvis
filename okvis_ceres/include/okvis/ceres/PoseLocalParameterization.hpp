@@ -53,8 +53,7 @@ class PoseLocalParameterization : public LocalParamizationAdditionalInterfaces {
  public:
 
   /// \brief Trivial destructor.
-  virtual ~PoseLocalParameterization() {
-  }
+  virtual ~PoseLocalParameterization();
 
   /// \brief Generalization of the addition operation,
   ///        x_plus_delta = Plus(x, delta)
