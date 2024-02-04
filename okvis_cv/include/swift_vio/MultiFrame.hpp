@@ -7,6 +7,8 @@
 #define INCLUDE_SWIFT_VIO_MULTIFRAME_HPP_
 
 #include <memory>
+#include <unordered_map>
+
 #include <okvis/assert_macros.hpp>
 #include <swift_vio/Frame.hpp>
 

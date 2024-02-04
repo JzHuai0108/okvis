@@ -12,13 +12,13 @@ set(OKVIS_VERSION
 option (USE_SYSTEM_BRISK
         "Use brisk via find_package rather than downloading it as part of okvis" OFF)
 option (USE_SYSTEM_CERES
-        "Use ceres via find_package rather than downloading it as part of okvis" OFF)
+        "Use ceres via find_package rather than downloading it as part of okvis" ON)
 option (BUILD_APPS
         "Builds a demo app (which requires boost)" ON)
 option (BUILD_TESTS
         "Builds all gtests" OFF)
 option (DO_TIMING
-        "Enable timing" ON)
+        "Enable timing" OFF)
 SET(N_CORES 3 CACHE STRING "Using N number of cores for parallel compilation")
 add_definitions(-DOKVIS_N_CORES=${N_CORES})
 
@@ -67,14 +67,18 @@ if(APPLE)
   # The clang compiler (on osx) is somehow much more strict
   # than the compilers on ubuntu and so this does not seem
   # possible on OSX just yet.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++11 -fPIC")
-  set(CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++11 -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -fPIC")
+  set(CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS "${CMAKE_CXX_FLAGS} -march=native -Wall -fPIC")
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++11 -fPIC")
-  set(CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS "${CMAKE_CXX_FLAGS} -march=native -Wall -std=c++11 -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -fPIC")
+  set(CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS "${CMAKE_CXX_FLAGS} -march=native -Wall -fPIC")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic -Wextra -Werror") # use for code cleaning
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic -Wextra")
 endif()
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "arm*")
   message(STATUS "ARM processor detected, will attempt to use NEON.")
@@ -114,7 +118,6 @@ else()
   message(STATUS "libvisensor not found")
 endif()
 
-# glog
 find_package(Glog REQUIRED)
 include_directories(BEFORE ${GLOG_INCLUDE_DIRS})
 
@@ -193,15 +196,15 @@ else ()
 endif ()
 if(${USE_SYSTEM_CERES})
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-  find_package( Ceres 1.9 REQUIRED )
+  find_package(Ceres 2.0 REQUIRED )
   include_directories(BEFORE ${CERES_INCLUDE_DIRS})
-  message(STATUS "Using system Ceres.")
+  message(STATUS "Using system Ceres at ${CERES_INCLUDE_DIRS}.")
 else()
-  set(CERES_VERSION 1.14.0)
-  set(CERES_TAG facb199f3eda902360f9e1d5271372b7e54febe1) #version 1.14.
+  set(CERES_VERSION 2.1.0)
+  set(CERES_TAG f68321e7de8929fbcdb95dd42877531e64f72f66) # a commit between 1.14 and 2.0.
   if(APPLE)
       ExternalProject_Add(ceres_external
-        GIT_REPOSITORY https://ceres-solver.googlesource.com/ceres-solver
+        GIT_REPOSITORY https://github.com/ceres-solver/ceres-solver.git
         GIT_TAG ${CERES_TAG}
         UPDATE_COMMAND ""
         INSTALL_DIR ${CMAKE_BINARY_DIR}
@@ -270,8 +273,13 @@ else()
   add_dependencies(ceres ceres_external)
 
   # install it once built
-  install(FILES ${CMAKE_BINARY_DIR}/${CERES_LIB_PREFIX}/libceres.a
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+  if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    install(FILES ${CMAKE_BINARY_DIR}/${CERES_LIB_PREFIX}/libceres-debug.a
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+  else ()
+    install(FILES ${CMAKE_BINARY_DIR}/${CERES_LIB_PREFIX}/libceres.a
+      DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+  endif()
   install(DIRECTORY ${CMAKE_BINARY_DIR}/include/ceres/
     DESTINATION ${CMAKE_INSTALL_PREFIX}/include/ceres/)
   install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/cmake/Ceres/

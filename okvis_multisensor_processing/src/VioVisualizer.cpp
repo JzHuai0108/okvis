@@ -188,7 +188,7 @@ cv::Mat VioVisualizer::drawColoredKeypoints(
                                     parameters_.optimization.numImuFrames) / 2;
   std::shared_ptr<okvis::MultiFrame> frame = data->currentFrames;
   cv::Mat outimg;
-  cv::cvtColor(frame->image(image_number), outimg, CV_GRAY2BGR);
+  cv::cvtColor(frame->image(image_number), outimg, cv::COLOR_GRAY2BGR);
 
   for (auto it = data->observations.begin(); it != data->observations.end();
        ++it) {
@@ -200,14 +200,14 @@ cv::Mat VioVisualizer::drawColoredKeypoints(
       // draw keypoint
       const double r = 0.5 * it->keypointSize;
       cv::circle(outimg, cv::Point2f(keypoint[0], keypoint[1]), r, color, 2,
-                 CV_AA);
+                 cv::LINE_AA);
       cv::KeyPoint cvKeypoint;
       frame->getCvKeypoint(image_number, it->keypointIdx, cvKeypoint);
       const double angle = cvKeypoint.angle / 180.0 * M_PI;
       cv::line(outimg, cv::Point2f(keypoint[0], keypoint[1]),
                cv::Point2f(keypoint[0], keypoint[1]) +
                    cv::Point2f(cos(angle), sin(angle)) * r,
-               color, 1, CV_AA);
+               color, 1, cv::LINE_AA);
     }
   }
   return outimg;

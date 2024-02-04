@@ -7,7 +7,7 @@ if(NOT DO_TIMING)
 endif()
 
 # require Eigen
-find_package( Eigen REQUIRED )
+find_package(Eigen REQUIRED )
 include_directories(${EIGEN_INCLUDE_DIR}) 
 
 # build the library
@@ -20,7 +20,7 @@ add_library(${PROJECT_NAME} STATIC
 target_link_libraries(${PROJECT_NAME}
   PUBLIC okvis_cv
   PUBLIC okvis_common
-  PRIVATE ${GLOG_LIBRARIES})
+  PRIVATE ${GLOG_LIBRARY})
 
 # installation if required
 install(TARGETS ${PROJECT_NAME}
