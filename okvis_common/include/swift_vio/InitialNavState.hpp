@@ -41,7 +41,8 @@ struct InitialNavState {
 
   void toCovariance(Eigen::Matrix<double, 6, 6>* covariance) const;
 
-  InitialNavState& operator=(const InitialNavState& other);
+  InitialNavState(const InitialNavState&) = default;
+  InitialNavState& operator=(const InitialNavState&) = default;
 
   std::string toString(const std::string &hint) const;
 };

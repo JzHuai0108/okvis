@@ -286,7 +286,7 @@ bool RsReprojectionError<GEOMETRY_TYPE>::
   LocalBearingVector<GEOMETRY_TYPE>
       rsre(*this);
   bool diffState =
-          ::ceres::internal::AutoDifferentiate<
+          ::ceres::internal::AutoDifferentiate<numOutputs,
               ::ceres::internal::StaticParameterDims<7, 4, 7, 1, 1, 9, 3, 6, 6>
              >(rsre, expandedParams, numOutputs, php_C, dpC_deltaAll);
   if (!diffState)

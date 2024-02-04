@@ -67,11 +67,11 @@ if(APPLE)
   # The clang compiler (on osx) is somehow much more strict
   # than the compilers on ubuntu and so this does not seem
   # possible on OSX just yet.
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -fPIC")
-  set(CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS "${CMAKE_CXX_FLAGS} -march=native -Wall -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC")
+  set(CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS "${CMAKE_CXX_FLAGS} -Wall -fPIC")
 else()
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -Wall -fPIC")
-  set(CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS "${CMAKE_CXX_FLAGS} -march=native -Wall -fPIC")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC")
+  set(CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS "${CMAKE_CXX_FLAGS} -Wall -fPIC")
   #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic -Wextra -Werror") # use for code cleaning
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic -Wextra")
 endif()

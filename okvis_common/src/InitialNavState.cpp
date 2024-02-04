@@ -36,19 +36,6 @@ void InitialNavState::toCovariance(
   covariance->diagonal().tail<3>() = sigma_q_WS.cwiseAbs2();
 }
 
-InitialNavState& InitialNavState::operator=(const InitialNavState& other) {
-  if (&other == this) return *this;
-  initializeToCustomPose = other.initializeToCustomPose;
-  stateTime = other.stateTime;
-  p_WS = other.p_WS;
-  q_WS = other.q_WS;
-  v_WS = other.v_WS;
-  sigma_p_WS = other.sigma_p_WS;
-  sigma_q_WS = other.sigma_q_WS;
-  sigma_v_WS = other.sigma_v_WS;
-  return *this;
-}
-
 std::string InitialNavState::toString(const std::string &hint) const {
   std::stringstream ss(hint);
   if (initializeToCustomPose) {
