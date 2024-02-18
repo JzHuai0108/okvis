@@ -28,6 +28,7 @@ add_library(${PROJECT_NAME}
 
   swift_vio/CameraRig.cpp
   swift_vio/ceres/corrector.cc
+  swift_vio/ceres/EuclideanParamError.cpp
   swift_vio/BearingResiduals.cpp
   swift_vio/CameraObservationModel.cpp
   swift_vio/CameraTimeParamBlock.cpp

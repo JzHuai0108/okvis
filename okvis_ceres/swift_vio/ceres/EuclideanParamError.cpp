@@ -1,11 +1,12 @@
 
 /**
- * @file EuclideanParamError.hpp
+ * @file EuclideanParamError.cpp
  * @brief Source file for the EuclideanParamError class.
  * @author Jianzhu Huai
  */
 
 #include <okvis/kinematics/MatrixPseudoInverse.hpp>
+#include <swift_vio/ceres/EuclideanParamError.hpp>
 
 namespace okvis {
 /// \brief ceres Namespace for ceres-related functionality implemented in okvis.

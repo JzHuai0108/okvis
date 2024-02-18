@@ -15,13 +15,14 @@
 
 namespace swift_vio {
 enum class EstimatorAlgorithm {
-  SlidingWindowSmoother = 0,  ///< keyframe-based smoother.
+  SlidingWindowSmoother = 0,  ///< keyframe-based smoother with full self-calibration.
   FixedLagSmoother, ///< Gtsam::FixedLagSmoother.
   RiFixedLagSmoother, ///< Gtsam::FixedLagSmoother with right invariant errors.
   OkvisEstimator,  ///< The original okvis Estimator, a sliding window estimator.
-  SlidingWindowFilter, ///< keyframe-based filter.
-  ImuInitializer,
-  VioInitializer,
+  SlidingWindowFilter, ///< keyframe-based filter with full self-calibration.
+  ContinuousTimeSlidingWindowSmoother, ///< continuous time keyframe-based sliding window smoother.
+  ImuInitializer,   ///< VIO initialization with only IMU measurements.
+  VioInitializer,   ///< VIO initialization with both IMU and image measurements.
 };
 
 bool EnumFromString(std::string description, EstimatorAlgorithm *e);

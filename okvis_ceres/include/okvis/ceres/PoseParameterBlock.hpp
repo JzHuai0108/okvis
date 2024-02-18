@@ -47,7 +47,7 @@
 #include <swift_vio/ExtrinsicReps.hpp>
 
 namespace okvis {
-namespace ceres{
+namespace ceres {
 
 /// \brief Wraps the parameter block for a pose estimate
 class PoseParameterBlock : public ParameterBlockSized<7,6,okvis::kinematics::Transformation>{

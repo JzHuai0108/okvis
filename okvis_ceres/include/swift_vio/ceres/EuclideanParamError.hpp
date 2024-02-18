@@ -141,5 +141,4 @@ class EuclideanParamError : public ::ceres::DynamicCostFunction,
 }  // namespace ceres
 }  // namespace okvis
 
-#include "implementation/EuclideanParamError.hpp"
 #endif /* INCLUDE_OKVIS_CERES_EUCLIDEANPARAMERROR_HPP_ */

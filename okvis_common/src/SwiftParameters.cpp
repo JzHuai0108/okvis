@@ -13,6 +13,8 @@ bool EnumFromString(std::string description, EstimatorAlgorithm *e) {
       {"RIFIXEDLAGSMOOTHER", EstimatorAlgorithm::RiFixedLagSmoother},
       {"OKVISESTIMATOR", EstimatorAlgorithm::OkvisEstimator},
       {"SLIDINGWINDOWFILTER", EstimatorAlgorithm::SlidingWindowFilter},
+      {"CONTINUOUSTIMESLIDINGWINDOWSMOOTHER",
+       EstimatorAlgorithm::ContinuousTimeSlidingWindowSmoother},
       {"IMUINITIALIZER", EstimatorAlgorithm::ImuInitializer},
       {"VIOINITIALIZER", EstimatorAlgorithm::VioInitializer}};
   auto iter = descriptionToId.find(description);
@@ -28,8 +30,8 @@ bool EnumFromString(std::string description, EstimatorAlgorithm *e) {
 std::string EnumToString(EstimatorAlgorithm a) {
   const std::string names[] = {"SlidingWindowSmoother", "FixedLagSmoother",
                                "RiFixedLagSmoother",    "OkvisEstimator",
-                               "SlidingWindowFilter",   "ImuInitializer",
-                               "VioInitializer"};
+                               "SlidingWindowFilter",   "ContinuousTimeSlidingWindowSmoother",
+                               "ImuInitializer",        "VioInitializer"};
   return names[static_cast<int>(a)];
 }
 

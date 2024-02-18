@@ -33,7 +33,7 @@ bool doesExtrinsicRepFitOkvisBackend(
     EstimatorAlgorithm algorithm) {
   size_t numCameras = cameraSystem.numCameras();
 
-  if (algorithm == EstimatorAlgorithm::SlidingWindowSmoother) {
+  if (algorithm == EstimatorAlgorithm::OkvisEstimator || algorithm == EstimatorAlgorithm::SlidingWindowSmoother) {
     for (size_t index = 1u; index < numCameras; ++index) {
       std::string extrinsicRepName = cameraSystem.extrinsicRep(index);
       int extrinsicRepId =
