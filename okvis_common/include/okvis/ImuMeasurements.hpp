@@ -85,6 +85,10 @@ struct Measurement {
         measurement(measurement_),
         sensorId(sensorId) {
   }
+
+  bool operator<(const Measurement<MEASUREMENT_T>& rhs) const {
+    return timeStamp < rhs.timeStamp;
+  }
 };
 
 /// \brief IMU measurements. For now assume they are synchronized:

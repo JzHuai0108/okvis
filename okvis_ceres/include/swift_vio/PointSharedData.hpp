@@ -87,16 +87,6 @@ class PointSharedData {
 
   /// @name Setters for data for IMU propagation.
   /// @{
-  /**
-   * @brief setVelocityAndBiasParameterBlockPtr
-   * @deprecated
-   */
-  void setVelocityAndBiasParameterBlockPtr(
-      int /*index*/,
-      std::shared_ptr<const okvis::ceres::ParameterBlock> /*speedAndBiasPtr*/) {
-    OKVIS_ASSERT_TRUE(std::runtime_error, false, "This function is broken!");
-  }
-
   void setVelocityAndBiasParameterBlockPtr(
       int index,
       std::shared_ptr<const okvis::ceres::SpeedParameterBlock> speedPtr,
@@ -115,26 +105,24 @@ class PointSharedData {
   }
 
   void setImuAugmentedParameterPtrs(
-      const std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>&
-          imuAugmentedParamBlockPtrs,
+      const std::vector<const double *> &imuAugmentedParamBlockPtrs,
+      const std::vector<size_t> &imuAugmentedParamBlockDims,
       std::shared_ptr<const okvis::ImuParameters> imuParams) {
     imuAugmentedParamBlockPtrs_ = imuAugmentedParamBlockPtrs;
+    imuAugmentedParamBlockDims_ = imuAugmentedParamBlockDims;
     imuParameters_ = imuParams;
   }
 
   void setCameraTimeParameterPtrs(
-      const std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>&
-          tdParamBlockPtrs,
-      const std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>&
-          trParamBlockPtrs) {
+      const std::vector<const double *> &tdParamBlockPtrs,
+      const std::vector<const double *> &trParamBlockPtrs) {
     tdParamBlockPtrs_ = tdParamBlockPtrs;
     trParamBlockPtrs_ = trParamBlockPtrs;
     status_ = PointSharedDataState::ImuInfoReady;
   }
   /// @}
 
-  const std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>> &
-  imuAugmentedParameterPtrs() const {
+  const std::vector<const double *> &imuAugmentedParameterPtrs() const {
     return imuAugmentedParamBlockPtrs_;
   }
 
@@ -287,8 +275,8 @@ class PointSharedData {
 
   double normalizedFeatureTime(const StateInfoForOneKeypoint& item) const {
     size_t cameraIdx = item.cameraId;
-    return tdParamBlockPtrs_[cameraIdx]->parameters()[0] +
-           trParamBlockPtrs_[cameraIdx]->parameters()[0] * item.normalizedRow +
+    return tdParamBlockPtrs_[cameraIdx][0] +
+           trParamBlockPtrs_[cameraIdx][0] * item.normalizedRow +
         (item.imageTimestamp - item.stateEpoch).toSec();
   }
 
@@ -420,13 +408,11 @@ class PointSharedData {
     return stateInfoForObservations_.at(observationIndex).biasPtr;
   }
 
-  std::shared_ptr<const okvis::ceres::ParameterBlock>
-  cameraTimeDelayParameterBlockPtr(size_t cameraIndex) const {
+  const double *cameraTimeDelayParameterBlockPtr(size_t cameraIndex) const {
     return tdParamBlockPtrs_[cameraIndex];
   }
 
-  std::shared_ptr<const okvis::ceres::ParameterBlock>
-  frameReadoutTimeParameterBlockPtr(size_t cameraIndex) const {
+  const double *frameReadoutTimeParameterBlockPtr(size_t cameraIndex) const {
     return trParamBlockPtrs_[cameraIndex];
   }
 
@@ -445,12 +431,10 @@ class PointSharedData {
 
   std::vector<AnchorFrameIdentifier> anchorIds_;
 
-  std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>
-      tdParamBlockPtrs_;
-  std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>
-      trParamBlockPtrs_;
-  std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>
-      imuAugmentedParamBlockPtrs_;
+  std::vector<const double *> tdParamBlockPtrs_;
+  std::vector<const double *> trParamBlockPtrs_;
+  std::vector<const double *> imuAugmentedParamBlockPtrs_;
+  std::vector<size_t> imuAugmentedParamBlockDims_;
   std::shared_ptr<const okvis::ImuParameters> imuParameters_;
   size_t imuIdx_;
   // The structure of sharedJacobians is determined by an external cameraObservationModelId.

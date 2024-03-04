@@ -206,6 +206,12 @@ class CameraRig {
     cameraGeometries_[camera_id]->setIntrinsics(intrinsic_vec);
   }
 
+  inline void setCameraIntrinsics(int camera_id, const double *intrinsic_data) {
+    Eigen::Map<const Eigen::VectorXd> intrinsic_vec(intrinsic_data,
+                                                    cameraGeometries_[camera_id]->noIntrinsicsParameters());
+    cameraGeometries_[camera_id]->setIntrinsics(intrinsic_vec);
+  }
+
   void setCameraIntrinsics(int camera_id,
                                   const Eigen::VectorXd& projection_vec,
                                   const Eigen::VectorXd& distortion_vec);

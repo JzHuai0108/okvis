@@ -166,6 +166,8 @@ class NCameraSystem
   inline void setCameraIntrinsics(int camera_id,
                                   const Eigen::VectorXd &intrinsic_vec);
 
+  inline void setCameraIntrinsics(int camera_id, const double *intrinsic_data);
+
   inline void setImageDelay(int camera_id, double td);
 
   inline void setReadoutTime(int camera_id, double tr);

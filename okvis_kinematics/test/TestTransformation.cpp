@@ -128,3 +128,12 @@ TEST(Transformation, operations) {
     //EXPECT_TRUE((delta - delta2).norm() < 1e-8);
   }
 }
+
+TEST(Transformation, setCoeffs) {
+  Eigen::Matrix<double, 7, 1> coeffs;
+  coeffs.setRandom();
+  okvis::kinematics::Transformation T;
+  T.setCoeffs(coeffs);
+
+  T.setCoeffs(Eigen::Map<const Eigen::Matrix<double, 7, 1> >(coeffs.data()));
+}

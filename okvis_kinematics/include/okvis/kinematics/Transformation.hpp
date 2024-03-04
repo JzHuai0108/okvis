@@ -107,6 +107,8 @@ class Transformation
   template<typename Derived_coeffs>
   bool setCoeffs(const Eigen::MatrixBase<Derived_coeffs> & coeffs);
 
+  bool setCoeffs(const double *coeffs);
+
   /// \brief Parameter setting, all 7.
   /// \tparam Derived_coeffs Deducible matrix type.
   /// @param[in] parameters The parameters as [r_AB,q_AB], q_AB as [x,y,z,w] (Eigen internal convention).

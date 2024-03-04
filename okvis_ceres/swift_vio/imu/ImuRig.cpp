@@ -25,16 +25,17 @@ int ImuRig::addImu(const okvis::ImuParameters& imuParams) {
 }
 
 void getImuAugmentedStatesEstimate(
-    std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>>
-        imuAugmentedParameterPtrs,
+    const std::vector<const double*> &imuAugmentedParameterPtrs,
+    const std::vector<size_t> &paramDims,
     Eigen::Matrix<double, Eigen::Dynamic, 1>* extraParams, int imuModelId) {
   const int augmentedDim = ImuModelGetAugmentedDim(imuModelId);
   extraParams->resize(augmentedDim);
   size_t offset = 0u;
+  size_t i = 0u;
   for (const auto paramPtr : imuAugmentedParameterPtrs) {
-    memcpy(extraParams->data() + offset, paramPtr->parameters(),
-           sizeof(double) * paramPtr->dimension());
-    offset += paramPtr->dimension();
+    memcpy(extraParams->data() + offset, paramPtr, paramDims[i] * sizeof(double));
+    offset += paramDims[i];
+    ++i;
   }
 }
 }  // namespace swift_vio

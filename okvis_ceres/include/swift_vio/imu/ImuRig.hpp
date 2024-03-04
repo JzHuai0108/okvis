@@ -131,7 +131,8 @@ private:
  * @param imuModelId[in]
  */
 void getImuAugmentedStatesEstimate(
-     std::vector<std::shared_ptr<const okvis::ceres::ParameterBlock>> imuAugmentedParameterPtrs,
+    const std::vector<const double *> &imuAugmentedParameterPtrs,
+    const std::vector<size_t> &paramDims,
     Eigen::Matrix<double, Eigen::Dynamic, 1>* extraParams, int imuModelId);
 
 }  // namespace swift_vio

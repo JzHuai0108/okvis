@@ -291,6 +291,12 @@ void NCameraSystem::setCameraIntrinsics(int camera_id,
   cameraGeometries_[camera_id]->setIntrinsics(intrinsic_vec);
 }
 
+void NCameraSystem::setCameraIntrinsics(int camera_id, const double *intrinsic_data) {
+  int size = cameraGeometries_[camera_id]->noIntrinsicsParameters();
+  Eigen::Map<const Eigen::VectorXd> intrinsic_vec(intrinsic_data, size);
+  cameraGeometries_[camera_id]->setIntrinsics(intrinsic_vec);
+}
+
 void NCameraSystem::setImageDelay(int camera_id, double td) {
   cameraGeometries_[camera_id]->setImageDelay(td);
 }

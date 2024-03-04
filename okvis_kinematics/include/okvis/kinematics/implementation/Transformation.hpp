@@ -139,6 +139,13 @@ inline bool Transformation::setCoeffs(
   return true;
 }
 
+inline bool Transformation::setCoeffs(const double *coeffs) {
+  Eigen::Map<const Eigen::Matrix<double, 7, 1>> coeffs_map(coeffs);
+  parameters_ = coeffs_map;
+  updateC();
+  return true;
+}
+
 // The underlying transformation
 inline Eigen::Matrix4d Transformation::T() const {
   Eigen::Matrix4d T_ret;

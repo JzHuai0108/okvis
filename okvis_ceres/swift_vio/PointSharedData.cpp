@@ -17,7 +17,7 @@ void PointSharedData::computePoseAndVelocityAtObservation() {
   int imuModelId = ImuModelNameToId(imuParameters_->model_name);
   CHECK(imuModelId != Imu_BG_BA_TG_TS_TA::kModelId) << "Imu_BG_BA_TG_TS_TA deprecated!";
   Eigen::Matrix<double, -1, 1> imuAugmentedParams;
-  getImuAugmentedStatesEstimate(imuAugmentedParamBlockPtrs_,
+  getImuAugmentedStatesEstimate(imuAugmentedParamBlockPtrs_, imuAugmentedParamBlockDims_,
                                 &imuAugmentedParams, imuModelId);
   if (0) {
     // naive approach, ignoring the rolling shutter effect and the time offset.
@@ -65,9 +65,8 @@ void PointSharedData::computePoseAndVelocityForJacobians() {
   CHECK(status_ == PointSharedDataState::NavStateReady);
   Eigen::Matrix<double, -1, 1> imuAugmentedParams;
   int imuModelId = ImuModelNameToId(imuParameters_->model_name);
-  getImuAugmentedStatesEstimate(
-      imuAugmentedParamBlockPtrs_, &imuAugmentedParams,
-      imuModelId);
+  getImuAugmentedStatesEstimate(imuAugmentedParamBlockPtrs_, imuAugmentedParamBlockDims_,
+      &imuAugmentedParams, imuModelId);
   for (auto& item : stateInfoForObservations_) {
     okvis::kinematics::Transformation T_WB_lin = item.T_WBj_ptr->linPoint();
     Eigen::Vector3d speedLinPoint = item.v_WBj_ptr->linPoint();

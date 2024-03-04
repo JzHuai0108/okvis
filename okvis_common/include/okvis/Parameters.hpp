@@ -173,6 +173,10 @@ struct ImuParameters{
 
   const Eigen::Matrix<double, 6, 1> &accelCorrectionMatrix() const { return Ma0; }
 
+  Eigen::Matrix<double, 4, 1> imuNoiseSigmas() const {
+    return (Eigen::Matrix<double, 4, 1>() << sigma_a_c, sigma_aw_c, sigma_g_c, sigma_gw_c).finished();
+  }
+
   void setGravityDirection(const Eigen::Vector3d &gravityDirection);
 
   void setInitialGyroBias(const Eigen::Vector3d &gb) { g0 = gb; }
