@@ -40,7 +40,8 @@
 #define INCLUDE_OKVIS_CERES_POSEERROR_HPP_
 
 #include <vector>
-#include "ceres/ceres.h"
+#include <ceres/manifold.h>
+#include <ceres/sized_cost_function.h>
 #include <okvis/kinematics/Transformation.hpp>
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ErrorInterface.hpp>
@@ -71,20 +72,27 @@ class PoseError : public ::ceres::SizedCostFunction<6 /* number of residuals */,
   typedef Eigen::Matrix<double, 6, 6> covariance_t;
 
   /// \brief Default constructor.
-  PoseError() {}
+  PoseError() : manifold_(nullptr) {
+  }
 
   /// \brief Construct with measurement and information matrix.
   /// @param[in] measurement The measurement.
   /// @param[in] information The information (weight) matrix.
+  /// @param[in] manifold The manifold to use for the parameter block.
+  /// if manifold is null, then the Jacobians will be computed using the 
+  /// PoseManifoldSimplified (ie., PoseLocalParameterizationSimplified) which
+  /// uses a lazy identity MinusJacobian.
   PoseError(const okvis::kinematics::Transformation & measurement,
-            const Eigen::Matrix<double, 6, 6> & information);
+            const Eigen::Matrix<double, 6, 6> & information, 
+            ::ceres::Manifold *manifold = nullptr);
 
   /// \brief Construct with measurement and variance.
   /// @param[in] measurement The measurement.
   /// @param[in] translationVariance The translation variance.
   /// @param[in] rotationVariance The rotation variance.
   PoseError(const okvis::kinematics::Transformation & measurement,
-            double translationVariance, double rotationVariance);
+            double translationVariance, double rotationVariance, 
+            ::ceres::Manifold *manifold = nullptr);
 
   /// \brief Trivial destructor.
   virtual ~PoseError() {
@@ -183,7 +191,7 @@ class PoseError : public ::ceres::SizedCostFunction<6 /* number of residuals */,
 
   // the measurement
   okvis::kinematics::Transformation measurement_; ///< The pose measurement.
-
+  ::ceres::Manifold *manifold_;
   // weighting related
   information_t information_; ///< The 6x6 information matrix.
   information_t squareRootInformation_; ///< The 6x6 square root information matrix.

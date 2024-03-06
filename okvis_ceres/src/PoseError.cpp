@@ -46,14 +46,16 @@ namespace ceres {
 
 // Construct with measurement and information matrix.
 PoseError::PoseError(const okvis::kinematics::Transformation & measurement,
-                     const Eigen::Matrix<double, 6, 6> & information) {
+                     const Eigen::Matrix<double, 6, 6> & information,
+                     ::ceres::Manifold *manifold) : manifold_(manifold) {
   setMeasurement(measurement);
   setInformation(information);
 }
 
 // Construct with measurement and variance.
 PoseError::PoseError(const okvis::kinematics::Transformation & measurement,
-                     double translationVariance, double rotationVariance) {
+                     double translationVariance, double rotationVariance,
+                     ::ceres::Manifold *manifold) : manifold_(manifold) {
   setMeasurement(measurement);
 
   information_t information;
@@ -117,9 +119,14 @@ bool PoseError::EvaluateWithMinimalJacobians(double const* const * parameters,
       J0_minimal.block<3, 3>(3, 3) = -okvis::kinematics::plus(dp.q())
           .topLeftCorner<3, 3>();
       J0_minimal = (squareRootInformation_ * J0_minimal).eval();
-
-      J0.leftCols<6>() = J0_minimal;
-      J0.col(6).setZero();
+      if (manifold_) {
+        Eigen::Matrix<double, 6, 7, Eigen::RowMajor> minusJac;
+        manifold_->MinusJacobian(parameters[0], minusJac.data());
+        J0 = J0_minimal * minusJac;
+      } else {
+        J0.leftCols<6>() = J0_minimal;
+        J0.col(6).setZero();
+      }
 
       if (jacobiansMinimal != NULL) {
         if (jacobiansMinimal[0] != NULL) {

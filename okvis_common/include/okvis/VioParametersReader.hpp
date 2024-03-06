@@ -105,7 +105,7 @@ class VioParametersReader{
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     okvis::kinematics::Transformation T_SC;   ///< Transformation from camera to sensor (IMU) frame.
     Eigen::Vector2d imageDimension;           ///< Image dimension. [pixels]
-    Eigen::VectorXd distortionCoefficients;   ///< Distortion Coefficients.
+    std::vector<double> distortionCoefficients;   ///< Distortion Coefficients.
     Eigen::Vector2d focalLength;              ///< Focal length.
     Eigen::Vector2d principalPoint;           ///< Principal point.
     std::string distortionType;               ///< Distortion type. ('radialtangential' 'plumb_bob' 'equdistant')
@@ -120,7 +120,9 @@ class VioParametersReader{
       ss << "T_SC\n"
          << T_SC.T3x4() << "\nimage dimension " << imageDimension.transpose()
          << ", distortion type " << distortionType.c_str() << ", ["
-         << distortionCoefficients.transpose() << "]\n(fx, fy) "
+         << Eigen::Map<const Eigen::VectorXd>(distortionCoefficients.data(),
+                                              distortionCoefficients.size()).transpose() 
+        << "]\n(fx, fy) "
          << focalLength.transpose() << ", (cx, cy) "
          << principalPoint.transpose() << ", imageDelay " << imageDelaySecs
          << " secs, readoutTime " << readoutTimeSecs << " secs\n"

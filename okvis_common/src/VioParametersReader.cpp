@@ -1014,7 +1014,7 @@ bool VioParametersReader::getCalibrationViaConfig(
       if ((*it)["cam_overlaps"].isInt()) {
         int overlapCamId;
         (*it)["cam_overlaps"] >> overlapCamId;
-        calib.overlapCameraIds = {overlapCamId};
+        calib.overlapCameraIds.push_back(overlapCamId);
       }
       if ((*it)["cam_overlaps"].isSeq()) {
         size_t numOverlapCams = (*it)["cam_overlaps"].size();
@@ -1069,10 +1069,10 @@ bool VioParametersReader::getCalibrationViaVisensorAPI(
     calibration.principalPoint << calibrationFromAPI.principal_point[0],
                                   calibrationFromAPI.principal_point[1];
     calibration.distortionCoefficients.resize(4); // FIXME: 8 coeff support?
-    calibration.distortionCoefficients << calibrationFromAPI.dist_coeff[0],
+    calibration.distortionCoefficients = {calibrationFromAPI.dist_coeff[0],
                                           calibrationFromAPI.dist_coeff[1],
                                           calibrationFromAPI.dist_coeff[2],
-                                          calibrationFromAPI.dist_coeff[3];
+                                          calibrationFromAPI.dist_coeff[3]};
     calibration.imageDimension << 752, 480;
     calibration.distortionType = "plumb_bob";
     calibrations.push_back(calibration);

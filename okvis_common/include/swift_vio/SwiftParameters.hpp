@@ -80,6 +80,7 @@ struct FrontendOptions {
    * @brief If the hull-area around all matched keypoints of the current frame (with existing landmarks)
    *        divided by the hull-area around all keypoints in the current frame is lower than
    *        this threshold it should be a new keyframe.
+   *        The higher this threshold, the more keyframes.
    * @see   doWeNeedANewKeyframe()
    */
   float keyframeInsertionOverlapThreshold;
@@ -87,6 +88,7 @@ struct FrontendOptions {
    * @brief If the number of matched keypoints of the current frame with an older frame
    *        divided by the amount of points inside the convex hull around all keypoints
    *        is lower than the threshold it should be a keyframe.
+   *        The higher this threshold, the more keyframes.
    * @see   doWeNeedANewKeyframe()
    */
   float keyframeInsertionMatchingRatioThreshold;
