@@ -101,6 +101,10 @@ class EstimatorBase : public VioBackendInterface
   EstimatorBase(std::shared_ptr<okvis::ceres::Map> mapPtr);
   virtual ~EstimatorBase();
 
+  std::string getFrameAnnotation() const {
+    return "";
+  }
+
   /// @name Sensor configuration related
   ///@{
   /**

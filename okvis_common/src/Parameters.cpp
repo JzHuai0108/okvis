@@ -136,7 +136,7 @@ EstimatorOptions::EstimatorOptions(
     size_t minMargedFrames, int _numKeyframesForInit, bool _constantBias, bool _useEpipolarConstraint,
     int _cameraObservationModelId, bool _computeOkvisNees,
     bool _useMahalanobisGating, double _maxProjectionErrorTol,
-    int _numThreads, bool _verbose)
+    int _numThreads, bool _uniformKnots, bool _verbose)
     : algorithm(_algorithm), initializer(_initializer),
       max_iterations(_max_iterations), min_iterations(_min_iterations),
       timeLimitForMatchingAndOptimization(_timeLimitForMatchingAndOptimization),
@@ -148,7 +148,7 @@ EstimatorOptions::EstimatorOptions(
       computeOkvisNees(_computeOkvisNees),
       useMahalanobisGating(_useMahalanobisGating),
       maxProjectionErrorTol(_maxProjectionErrorTol),
-      numThreads(_numThreads),
+      numThreads(_numThreads), uniformKnots(_uniformKnots),
       verbose(_verbose) {}
 
 std::string EstimatorOptions::toString(const std::string &hint) const {
@@ -163,7 +163,8 @@ std::string EstimatorOptions::toString(const std::string &hint) const {
      << ", compute OKVIS NEES? " << computeOkvisNees
      << ".\nMahalanobis gating? " << useMahalanobisGating
      << ", max projection error " << maxProjectionErrorTol
-     << " (px).\n";
+     << " (px).\n" << "Num threads " << numThreads
+      << ", uniform knots? " << uniformKnots << ", verbose? " << verbose << ".\n";
   return ss.str();
 }
 }  // namespace okvis

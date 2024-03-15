@@ -67,6 +67,7 @@ class VioVisualizer {
     std::shared_ptr<okvis::MultiFrame> currentFrames; ///< Current multiframe.
     std::shared_ptr<okvis::MultiFrame> keyFrames;     ///< Current keyframe.
     okvis::kinematics::Transformation T_WS_keyFrame;  ///< Pose of the current keyframe
+    std::string annotation;
   };
 
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)

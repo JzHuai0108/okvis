@@ -299,6 +299,7 @@ void parseEstimatorOptions(cv::FileNode optNode, EstimatorOptions *optParams,
   if (optNode["maxProjectionErrorTol"].isInt()) {
     optNode["maxProjectionErrorTol"] >> optParams->maxProjectionErrorTol;
   }
+  parseBoolean(optNode["uniformKnots"], optParams->uniformKnots);
 }
 
 void parseCeresOptions(cv::FileNode ceresNode, EstimatorOptions *optParams) {

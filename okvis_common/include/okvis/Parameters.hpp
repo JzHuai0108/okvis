@@ -354,6 +354,7 @@ struct EstimatorOptions {
   double maxProjectionErrorTol;
 
   int numThreads;
+  bool uniformKnots;
   bool verbose;
 
   EstimatorOptions(
@@ -370,7 +371,7 @@ struct EstimatorOptions {
       bool _useEpipolarConstraint = false, int _cameraObservationModelId = 0,
       bool _computeOkvisNees = false, bool _useMahalanobisGating = true,
       double _maxProjectionErrorTol = 7,
-      int _numThreads = 2, bool _verbose = false);
+      int _numThreads = 2, bool _uniformKnots=true, bool _verbose = false);
 
   std::string toString(const std::string &hint = "") const;
 };
