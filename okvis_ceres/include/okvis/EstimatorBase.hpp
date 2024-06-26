@@ -598,6 +598,8 @@ class EstimatorBase : public VioBackendInterface
     poseGraphOptions_ = pgp;
   }
 
+  virtual void setTimingLogfile(const std::string& /*timingLogfile*/) {}
+
   void setInitializationStatus(InitializationStatus status) {
     initStatus_ = status;
   }

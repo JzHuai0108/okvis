@@ -237,6 +237,8 @@ class Map {
 
   size_t removeAllResidualBlocks();
 
+  size_t numReprojectionErrors() const;
+
   /// @}
 
   /// @name Set constant/variable/local parameterization

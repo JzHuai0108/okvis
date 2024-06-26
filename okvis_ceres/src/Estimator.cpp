@@ -49,6 +49,7 @@
 #include <okvis/IdProvider.hpp>
 #include <okvis/MultiFrame.hpp>
 #include <okvis/assert_macros.hpp>
+#include <okvis/timing/Timers.hpp>
 
 #include <swift_vio/ceres/CameraTimeParamBlock.hpp>
 #include <swift_vio/ceres/EuclideanParamBlock.hpp>
@@ -809,8 +810,13 @@ void Estimator::optimize(size_t numIter, size_t /*numThreads*/,
     mapPtr_->options.minimizer_progress_to_stdout = false;
   }
   addReprojectionFactors();
-  // call solver
+
+  okvis::TimerSwitchable optimizationTimer("3.1.1 solve", false);
+  size_t numReprojectionErrors = mapPtr_->numReprojectionErrors();
   mapPtr_->solve();
+  double duration = optimizationTimer.stop();
+  okvis::Time stamp = statesMap_.rbegin()->second.timestamp;
+  timing_log_ << stamp << " " << duration << " " << numReprojectionErrors << "\n";
 
   // update landmarks
   {

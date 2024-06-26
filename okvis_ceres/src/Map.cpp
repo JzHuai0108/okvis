@@ -601,6 +601,16 @@ size_t Map::removeAllResidualBlocks() {
   return numResiduals;
 }
 
+size_t Map::numReprojectionErrors() const {
+  size_t numErrors = 0u;
+  for (const auto &residual : residualBlockId2ResidualBlockSpecMap()) {
+    if (residual.second.errorInterfacePtr->typeInfo() == "ReprojectionError") {
+      ++numErrors;
+    }
+  }
+  return numErrors;
+}
+
 // Do not optimise a certain parameter block.
 bool Map::setParameterBlockConstant(uint64_t parameterBlockId) {
   if (!parameterBlockExists(parameterBlockId))

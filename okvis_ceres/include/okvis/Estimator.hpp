@@ -134,6 +134,11 @@ class Estimator : public EstimatorBase
    */
   bool setOptimizationTimeLimit(double timeLimit, int minIterations) final;
 
+  void setTimingLogfile(const std::string &logfile) final {
+    timing_logfile_ = logfile;
+    timing_log_ = std::ofstream(logfile, std::ios::out);
+  }
+
   /**
    * @brief Prints state information to buffer.
    * @param poseId The pose Id for which to print.
@@ -230,6 +235,8 @@ class Estimator : public EstimatorBase
   // ceres iteration callback object
   std::unique_ptr<okvis::ceres::CeresIterationCallback> ceresCallback_; ///< Maybe there was a callback registered, store it here.
 
+  std::string timing_logfile_;
+  std::ofstream timing_log_;
 };
 }  // namespace okvis
 

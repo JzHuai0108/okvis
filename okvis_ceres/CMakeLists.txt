@@ -57,6 +57,7 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC okvis_util
   PUBLIC okvis_cv 
   PUBLIC okvis_common
+  PUBLIC okvis_timing
   PUBLIC loop_closure_structs
   PRIVATE ${CERES_LIBRARIES} 
   PRIVATE ${OpenCV_LIBRARIES} 
