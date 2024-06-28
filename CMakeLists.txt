@@ -118,7 +118,7 @@ else()
   message(STATUS "libvisensor not found")
 endif()
 
-find_package(Glog REQUIRED)
+find_package(glog REQUIRED)
 include_directories(BEFORE ${GLOG_INCLUDE_DIRS})
 
 # brisk

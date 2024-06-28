@@ -41,9 +41,10 @@
 #ifndef INCLUDE_OKVIS_ESTIMATOR_HPP_
 #define INCLUDE_OKVIS_ESTIMATOR_HPP_
 
+#include <array>
+#include <fstream>
 #include <memory>
 #include <mutex>
-#include <array>
 
 #include <ceres/ceres.h>
 #include <okvis/kinematics/Transformation.hpp>

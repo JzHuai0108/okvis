@@ -474,9 +474,9 @@ void VioParametersReader::readConfigFile(const std::string& filename) {
                     "Could not open config file: " << filename);
   LOG(INFO) << "Opened configuration file: " << filename;
 
-  parseFrontendOptions(file["frontend"], &vioParameters_.frontendOptions);
-
   parseDetectionOptions(file["detection_options"], &vioParameters_.frontendOptions);
+
+  parseFrontendOptions(file["frontend"], &vioParameters_.frontendOptions);
 
   parsePointLandmarkOptions(file["point_landmark"], &vioParameters_.pointLandmarkOptions);
 
