@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.00)
+cmake_minimum_required(VERSION 3.5.00)
 
 project(okvis)
 # The version number.
@@ -132,6 +132,7 @@ else()
     UPDATE_COMMAND ""
     INSTALL_DIR ${CMAKE_BINARY_DIR}
     CMAKE_ARGS
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5
       -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
       -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
       -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
@@ -198,7 +199,7 @@ if(${USE_SYSTEM_CERES})
   list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
   find_package(Ceres 2.0 REQUIRED )
   include_directories(BEFORE ${CERES_INCLUDE_DIRS})
-  message(STATUS "Using system Ceres at ${CERES_INCLUDE_DIRS}.")
+  message(WARNING "To use Ceres properly in newer Cmake versions, it is enough to just add Ceres::ceres to target_link_libraries.")
 else()
   set(CERES_VERSION 2.1.0)
   set(CERES_TAG f68321e7de8929fbcdb95dd42877531e64f72f66) # a commit between 1.14 and 2.0.
@@ -299,6 +300,7 @@ ExternalProject_Add(opengv_external
         COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/cmake/opengv/opengvConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/opengv/src/opengv/opengvConfig.cmake.in
         COMMENT "Forcing our own CMakeLists.txt to build OpenGV (static library support)."
     CMAKE_ARGS
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5
       -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
       -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
       -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
@@ -337,6 +339,7 @@ if(${BUILD_TESTS})
       URL https://github.com/google/googletest/archive/release-1.8.0.zip
       PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gmock
       CMAKE_ARGS
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS}

@@ -190,8 +190,7 @@ OKVIS.
     # require ceres
     list(APPEND CMAKE_PREFIX_PATH ${OKVIS_INSTALLATION})
     find_package( Ceres REQUIRED )
-    include_directories(${CERES_INCLUDE_DIRS}) 
-    
+
     # require OpenGV
     find_package(opengv REQUIRED)
     

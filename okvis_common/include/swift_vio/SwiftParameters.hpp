@@ -35,6 +35,7 @@ enum class FeatureTrackingScheme {
   KeyframeDescriptorMatching = 0,   ///< default, keyframe and back-to-back frame matching
   FramewiseKLT,  ///< KLT back-to-back frame matching,
   FramewiseDescriptorMatching, ///< back-to-back descriptor-based frame matching
+  ExternalFramewiseMatching
 };
 std::string EnumToString(FeatureTrackingScheme s);
 inline std::ostream &operator<<(std::ostream &strm, FeatureTrackingScheme s) {
