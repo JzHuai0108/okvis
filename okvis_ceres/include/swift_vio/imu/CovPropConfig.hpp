@@ -161,6 +161,7 @@ struct CovPropConfig {
   Eigen::Matrix<double, 3, 1> get_v_WS0() const { return sb0.head<3>(); }
   Eigen::Matrix<double, 6, 1> get_bias0() const { return sb0.tail<6>(); }
   Eigen::Matrix<double, 15, 15> get_cov0() const { return cov0; }
+  void zeroBias0() { sb0.tail<6>().setZero(); } 
 
   const okvis::ImuMeasurementDeque& get_imu_measurements() const {
     return imuMeasurements;

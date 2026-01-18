@@ -118,7 +118,7 @@ else()
   message(STATUS "libvisensor not found")
 endif()
 
-find_package(glog REQUIRED)
+find_package(Glog REQUIRED)
 include_directories(BEFORE ${GLOG_INCLUDE_DIRS})
 
 # brisk
@@ -287,26 +287,34 @@ else()
     DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/Ceres/)
 endif()
 
-# OpenGV
+option(USE_SYSTEM_OPENGV "Use OpenGV via find_package instead of downloading" ON)
+if(USE_SYSTEM_OPENGV)
+  find_package(opengv REQUIRED)
+  message(STATUS "Using system OpenGV.")
+  set(OpenGV_LIBRARIES opengv)
+else()
 set(CMAKE_CXX_FLAGS_WSUPPRESS
       "${CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS} -Wno-unused-parameter -Wno-maybe-uninitialized -Wno-sign-compare -Wno-unused-but-set-variable -Wno-unused-variable -Wno-pedantic")
 message(STATUS "NOTE: Suppressing some warnings when compiling OpenGV.")
 ExternalProject_Add(opengv_external
     GIT_REPOSITORY https://github.com/laurentkneip/opengv
     GIT_TAG 306a54e6c6b94e2048f820cdf77ef5281d4b48ad
+
     UPDATE_COMMAND ""
-    PATCH_COMMAND # forcing static libs
+    PATCH_COMMAND
         COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/cmake/opengv/CMakeLists.txt ${CMAKE_CURRENT_BINARY_DIR}/opengv/src/opengv/CMakeLists.txt
         COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_SOURCE_DIR}/cmake/opengv/opengvConfig.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/opengv/src/opengv/opengvConfig.cmake.in
-        COMMENT "Forcing our own CMakeLists.txt to build OpenGV (static library support)."
+
     CMAKE_ARGS
       -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+      -DBUILD_PYTHON=OFF
+      -DBUILD_TESTS=OFF
       -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
       -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
       -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
       -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-      -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS} # suppress warnings...
-      #-DBUILD_TESTS:BOOL=OFF
+      -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS_EXTERNAL_PROJECTS}
+
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/opengv
     SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/opengv/src/opengv
     INSTALL_DIR ${CMAKE_BINARY_DIR}
@@ -326,6 +334,7 @@ install(DIRECTORY ${CMAKE_BINARY_DIR}/include/opengv/
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include/opengv/)
 install(DIRECTORY ${CMAKE_BINARY_DIR}/lib/CMake/opengv/
   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/CMake/opengv/)
+endif()
 
 # the absolute path to the target template image
 set(OKVIS_TARGET_IMAGE_PATH \"${PROJECT_SOURCE_DIR}/config\")
