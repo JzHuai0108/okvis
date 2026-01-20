@@ -51,25 +51,25 @@ inline void print_p_q_v(const Eigen::Vector3d& p_WS_W,
   std::cout << "v:" << speed.transpose() << std::endl;
 }
 
-inline void checkSelectiveRatio(Eigen::MatrixXd ref, Eigen::MatrixXd est,
-                                double ratioTolForLargeValue,
-                                double tolForTinyValue, double valueThreshold = 1e-3) {
+inline void expectNearAbsRel(const Eigen::MatrixXd& ref,
+                             const Eigen::MatrixXd& est,
+                             double absTol,
+                             double relTol) {
+  ASSERT_EQ(ref.rows(), est.rows());
+  ASSERT_EQ(ref.cols(), est.cols());
+
   for (int i = 0; i < ref.rows(); ++i) {
     for (int j = 0; j < ref.cols(); ++j) {
-      double diff = std::fabs(ref(i, j) - est(i, j));
-      double refValue = std::fabs(ref(i, j));
-      if (refValue < valueThreshold) {
-        EXPECT_LT(std::fabs(est(i, j)), tolForTinyValue)
-            << "(" << i << ", " << j << "): ref " << ref(i, j) << " est "
-            << est(i, j);
-        EXPECT_LT(std::fabs(ref(i, j)), tolForTinyValue)
-            << "(" << i << ", " << j << "): ref " << ref(i, j) << " est "
-            << est(i, j);
-      } else {
-        EXPECT_LT(diff / refValue, ratioTolForLargeValue)
-            << "(" << i << ", " << j << "): ref " << ref(i, j) << " est "
-            << est(i, j);
-      }
+      const double a = ref(i,j);
+      const double b = est(i,j);
+      const double diff = std::abs(a - b);
+      const double scale = std::max(std::abs(a), std::abs(b));
+      const double tol = absTol + relTol * scale;
+
+      EXPECT_LE(diff, tol)
+        << "(" << i << "," << j << ") ref=" << a << " est=" << b
+        << " diff=" << diff << " tol=" << tol
+        << " absTol=" << absTol << " relTol=" << relTol;
     }
   }
 }
