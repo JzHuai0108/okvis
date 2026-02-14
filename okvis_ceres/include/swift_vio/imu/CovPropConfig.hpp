@@ -3,9 +3,9 @@
 
 #include <gtest/gtest.h>
 #include <iostream>
-#include <Eigen/Geometry>
+#include <random>
 
-#include <vio/Sample.h>
+#include <Eigen/Geometry>
 
 #include <okvis/Measurements.hpp>
 #include <okvis/Parameters.hpp>
@@ -74,6 +74,21 @@ inline void expectNearAbsRel(const Eigen::MatrixXd& ref,
   }
 }
 
+struct Rng {
+  std::mt19937 gen;
+  explicit Rng(uint32_t seed) : gen(seed) {}
+
+  double uniform(double a, double b) {
+    std::uniform_real_distribution<double> d(a, b);
+    return d(gen);
+  }
+
+  double gauss(double mean, double sigma) {
+    std::normal_distribution<double> d(mean, sigma);
+    return d(gen);
+  }
+};
+
 template<typename ImuModelT>
 struct CovPropConfig {
  private:
@@ -94,6 +109,8 @@ struct CovPropConfig {
   okvis::ImuParameters imuParams;
 
   const bool nominalImuIntrinsics;  // use nominal or noisy values for IMU intrinsic parameters.
+  Rng rng;
+
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -104,9 +121,7 @@ struct CovPropConfig {
         sigma_gw_c(7e-3),
         sigma_aw_c(2e-3),
         dt(0.005),
-        nominalImuIntrinsics(_nominalImuIntrinsics) {
-    srand(seed);
-
+        nominalImuIntrinsics(_nominalImuIntrinsics), rng(seed) {
     imuParams.g_max = 7.8;
     imuParams.a_max = 176;
     imuParams.sigma_g_c = sigma_g_c;
@@ -120,24 +135,24 @@ struct CovPropConfig {
       p_WS_W0 = Eigen::Vector3d(0, 0, 0);
       q_WS0 = Eigen::Quaterniond(1, 0, 0, 0);
     } else {
-      p_WS_W0 = Eigen::Vector3d(vio::gauss_rand(0, 1), vio::gauss_rand(0, 1),
-                                vio::gauss_rand(0, 1));
-      q_WS0 = Eigen::Quaterniond(vio::gauss_rand(0, 1), vio::gauss_rand(0, 1),
-                                 vio::gauss_rand(0, 1), vio::gauss_rand(0, 1));
+      p_WS_W0 = Eigen::Vector3d(rng.gauss(0, 1), rng.gauss(0, 1),
+                                rng.gauss(0, 1));
+      q_WS0 = Eigen::Quaterniond(rng.gauss(0, 1), rng.gauss(0, 1),
+                                 rng.gauss(0, 1), rng.gauss(0, 1));
       q_WS0.normalize();
     }
-    sb0 << vio::gauss_rand(0, 1), vio::gauss_rand(0, 1), vio::gauss_rand(0, 1), 0.1, 0.1, 0.1, 0.1, 0.1, 0.1;
+    sb0 << rng.gauss(0, 1), rng.gauss(0, 1), rng.gauss(0, 1), 0.1, 0.1, 0.1, 0.1, 0.1, 0.1;
 
     cov0.setIdentity();
-    cov0.diagonal().head<3>().setConstant(vio::uniform_rand(0.1, 1) * 10);  // p
-    cov0.diagonal().segment<3>(3).setConstant(vio::uniform_rand(0.1, 1) * 5);   // q
-    cov0.diagonal().segment<3>(6).setConstant(vio::uniform_rand(0.1, 1) * 20);  // v
-    cov0.diagonal().segment<3>(9).setConstant(vio::uniform_rand(0.1, 1) * 0.1); // bg
-    cov0.diagonal().segment<3>(12).setConstant(vio::uniform_rand(0.1, 1) * 0.2); // ba
+    cov0.diagonal().head<3>().setConstant(rng.uniform(0.1, 1) * 10);  // p
+    cov0.diagonal().segment<3>(3).setConstant(rng.uniform(0.1, 1) * 5);   // q
+    cov0.diagonal().segment<3>(6).setConstant(rng.uniform(0.1, 1) * 20);  // v
+    cov0.diagonal().segment<3>(9).setConstant(rng.uniform(0.1, 1) * 0.1); // bg
+    cov0.diagonal().segment<3>(12).setConstant(rng.uniform(0.1, 1) * 0.2); // ba
     for (int jack = 0; jack < freq * 10; ++jack) {
       Eigen::Vector3d gyr = Eigen::Vector3d::Random();  // range from [-1, 1]
       Eigen::Vector3d acc = Eigen::Vector3d::Random();
-      acc[2] = g + vio::gauss_rand(0.0, 0.1);
+      acc[2] = g + rng.gauss(0.0, 0.1);
       imuMeasurements.push_back(okvis::ImuMeasurement(
           okvis::Time(jack * dt), okvis::ImuSensorReadings(gyr, acc)));
     }
